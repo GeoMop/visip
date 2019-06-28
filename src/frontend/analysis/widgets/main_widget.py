@@ -9,15 +9,17 @@ import os
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QToolBox
 
+from frontend.analysis.graphical_items.g_output_action import GOutputAction
 from frontend.analysis.menu.file_menu import FileMenu
 from frontend.analysis.widgets.composite_type_view import CompositeTypeView
-from common.analysis.action_workflow import SlotInstance
+from common.analysis.action_workflow import SlotInstance, Result
 
 from .tab_widget import TabWidget
 from .toolbox_view import ToolboxView
 
 import common.analysis.action_instance as instance
 import common.analysis.action_base as base
+import common.analysis as analysis
 
 
 from PyQt5 import QtWidgets
@@ -75,14 +77,26 @@ class MainWidget(QtWidgets.QMainWindow):
 
     def _init_toolbox(self):
         toolbox_layout = ActionCategory()
-        toolbox_layout2 = ActionCategory()
-        ToolboxView(GInputAction(TreeItem(["Input", 0, 0, 50, 50]), SlotInstance("a")), toolbox_layout)
-        ToolboxView(GAction(TreeItem(["List", 0, 0, 50, 50]), instance.ActionInstance.create( base.List())), toolbox_layout2)
+
+
+        for action in analysis.base_system_actions:
+            if isinstance(action, SlotInstance):
+                ToolboxView(GInputAction(TreeItem(["Input", 0, 0, 50, 50]), action), toolbox_layout)
+            elif isinstance(action, Result):
+                ToolboxView(GOutputAction(TreeItem(["Output", 0, 0, 50, 50]), action), toolbox_layout)
+            else:
+                ToolboxView(GAction(TreeItem([action.name, 0, 0, 50, 50]),
+                                    instance.ActionInstance.create(action)), toolbox_layout)
+
+
+
+        #ToolboxView(GAction(TreeItem(["List", 0, 0, 50, 50]), instance.ActionInstance.create( base.List())), toolbox_layout2)
 
         self.toolBox = QToolBox()
+        self.toolBox.setMinimumWidth(180)
+        self.toolBox.addItem(toolbox_layout, "System actions")
+        #self.toolBox.addItem(toolbox_layout2, "Data manipulation")
 
-        self.toolBox.addItem(toolbox_layout, "Input/Output")
-        self.toolBox.addItem(toolbox_layout2, "Data manipulation")
         self.toolbox_dock.setWidget(self.toolBox)
 
     def export_to_file(self):
