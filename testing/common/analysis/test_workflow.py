@@ -1,7 +1,7 @@
 import pytest
-import common.analysis.action_instance as instance
-import common.analysis.action_workflow as wf
-import common.analysis.action_base as base
+import src.common.analysis.action_instance as instance
+import src.common.analysis.action_workflow as wf
+import src.common.analysis.action_base as base
 
 def test_workflow_modification():
     w = wf._Workflow("tst_wf")

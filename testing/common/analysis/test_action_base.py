@@ -1,9 +1,9 @@
 
 from typing import List
-import common.analysis.action_base as base
-import common.analysis.code.decorators as wf
-import common.analysis.code.wrap as wrap
-import common.analysis.action_instance as ai
+import src.common.analysis.action_base as base
+import src.common.analysis.code.decorators as wf
+import src.common.analysis.code.wrap as wrap
+import src.common.analysis.action_instance as ai
 
 
 @wf.Class
