@@ -35,6 +35,7 @@ class TabWidget(QTabWidget):
 
     def change_workspace(self, workspace):
         self.currentWidget().setCurrentWidget(workspace)
+        self.current_workspace().workflow.update()
 
     def open_module(self, filename=None):
         if not isinstance(filename, str):
@@ -48,7 +49,7 @@ class TabWidget(QTabWidget):
         curr_module.show()
         self.main_widget.module_dock.setWidget(curr_module)
 
-    def current_view(self):
+    def current_module_view(self):
         return self.module_views[self.tabText(self.currentIndex())]
 
     def on_close_tab(self, index):
@@ -56,19 +57,19 @@ class TabWidget(QTabWidget):
         self.module_views.pop(self.tabText(index), None)
         self.removeTab(index)
 
-    def currentWorkspace(self):
+    def current_workspace(self):
         return self.currentWidget().currentWidget()
 
     def add_action(self):
-        self.currentWorkspace().scene.add_action(self.currentWorkspace().scene.new_action_pos)
+        self.current_workspace().scene.add_action(self.current_workspace().scene.new_action_pos)
 
     def delete_items(self):
-        self.currentWorkspace().scene.delete_items()
+        self.current_workspace().scene.delete_items()
 
     def add_random_items(self):
-        self.currentWorkspace().scene.add_random_items()
+        self.current_workspace().scene.add_random_items()
 
     def order_diagram(self):
-        self.currentWorkspace().scene.order_diagram()
+        self.current_workspace().scene.order_diagram()
 
 

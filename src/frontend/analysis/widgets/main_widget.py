@@ -4,6 +4,8 @@ Main window.
 @contact: tomas.blazek@tul.cz
 """
 
+import os
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QToolBox
 
@@ -46,6 +48,7 @@ class MainWidget(QtWidgets.QMainWindow):
         self.resize(1000, 500)
 
         self.file_menu.open.triggered.connect(self.tab_widget.open_module)
+        self.file_menu.export.triggered.connect(self.export_to_file)
 
     def _init_menu(self):
         """Initializes menus"""
@@ -81,4 +84,10 @@ class MainWidget(QtWidgets.QMainWindow):
         self.toolBox.addItem(toolbox_layout, "Input/Output")
         self.toolBox.addItem(toolbox_layout2, "Data manipulation")
         self.toolbox_dock.setWidget(self.toolBox)
+
+    def export_to_file(self):
+        filename = QtWidgets.QFileDialog.getSaveFileName(self.parent(), "Export Module", os.getcwd(), "Python File (*.py)")[0]
+        code = self.tab_widget.current_module_view().module.code()
+        with open(filename, 'w') as f:
+            f.write(code)
 
