@@ -13,6 +13,7 @@ from frontend.analysis.graphical_items.g_output_action import GOutputAction
 from frontend.analysis.menu.file_menu import FileMenu
 from frontend.analysis.widgets.composite_type_view import CompositeTypeView
 from common.analysis.action_workflow import SlotInstance, Result
+from frontend.analysis.widgets.tool_box import ToolBox
 
 from .tab_widget import TabWidget
 from .toolbox_view import ToolboxView
@@ -41,7 +42,8 @@ class MainWidget(QtWidgets.QMainWindow):
 
         #self.tab_widget.open_module("C:\\Users\\samot\\PycharmProjects\\GeoMop\\testing\\common\\analysis\\analysis_in.py")   # for testing purposes
 
-        self._init_toolbox()
+        self.toolbox = ToolBox(self)
+        self.toolbox_dock.setWidget(self.toolbox)
 
         self.data_view = CompositeTypeView()
         self.data_view.model()
@@ -74,30 +76,6 @@ class MainWidget(QtWidgets.QMainWindow):
         self.data_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.addDockWidget(Qt.RightDockWidgetArea, self.data_dock)
         self.data_dock.hide()
-
-    def _init_toolbox(self):
-        toolbox_layout = ActionCategory()
-
-
-        for action in analysis.base_system_actions:
-            if isinstance(action, SlotInstance):
-                ToolboxView(GInputAction(TreeItem(["Input", 0, 0, 50, 50]), action), toolbox_layout)
-            elif isinstance(action, Result):
-                ToolboxView(GOutputAction(TreeItem(["Output", 0, 0, 50, 50]), action), toolbox_layout)
-            else:
-                ToolboxView(GAction(TreeItem([action.name, 0, 0, 50, 50]),
-                                    instance.ActionInstance.create(action)), toolbox_layout)
-
-
-
-        #ToolboxView(GAction(TreeItem(["List", 0, 0, 50, 50]), instance.ActionInstance.create( base.List())), toolbox_layout2)
-
-        self.toolBox = QToolBox()
-        self.toolBox.setMinimumWidth(180)
-        self.toolBox.addItem(toolbox_layout, "System actions")
-        #self.toolBox.addItem(toolbox_layout2, "Data manipulation")
-
-        self.toolbox_dock.setWidget(self.toolBox)
 
     def export_to_file(self):
         filename = QtWidgets.QFileDialog.getSaveFileName(self.parent(), "Export Module", os.getcwd(), "Python File (*.py)")[0]

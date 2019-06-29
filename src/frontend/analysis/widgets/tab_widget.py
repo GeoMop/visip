@@ -24,10 +24,13 @@ class TabWidget(QTabWidget):
         self.main_widget = main_widget
 
         self.module_views = {}
+        self.toolboxes = {}
 
     def _add_tab(self, module_filename, module):
         w = QStackedWidget()
         self.module_views[module_filename] = ModuleView(self, module,self.edit_menu)
+        #self.main_widget.toolbox.on_workspace_change(self.module_views[module_filename].module,
+        #                                             self.module_views[module_filename]._current_workspace)
         for name, workspace in self.module_views[module_filename].workspaces.items():
             w.addWidget(workspace)
 
@@ -48,6 +51,9 @@ class TabWidget(QTabWidget):
         curr_module = self.module_views[self.tabText(index)]
         curr_module.show()
         self.main_widget.module_dock.setWidget(curr_module)
+
+        self.main_widget.toolbox.on_model_change(self.module_views[self.tabText(index)].module,
+                                                     self.module_views[self.tabText(index)]._current_workspace)
 
     def current_module_view(self):
         return self.module_views[self.tabText(self.currentIndex())]

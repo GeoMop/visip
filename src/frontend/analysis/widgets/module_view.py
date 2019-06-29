@@ -43,6 +43,7 @@ class ModuleView(QTreeWidget):
         if self.root_item.childCount() > 0:
             self.mark_active_wf_item(self.root_item.child(0))
 
+
     def change_workflow(self):
         curr_item = self.currentItem()
         while curr_item.parent() != self.root_item:
@@ -68,6 +69,7 @@ class ModuleView(QTreeWidget):
         self._current_workspace = self.workspaces[name]
         temp = self._current_workspace.workflow
         self.tab_widget.change_workspace(self._current_workspace)
+        self.tab_widget.main_widget.toolbox.on_workspace_change(self.module, self._current_workspace)
 
     def _double_clicked(self, model_index):
         if model_index.parent().data() == "Inputs":
