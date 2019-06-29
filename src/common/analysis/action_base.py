@@ -135,12 +135,21 @@ class _ActionBase:
         self.is_analysis = False
         self.name = action_name or self.__class__.__name__
         self._module = "wf"
+        # Module where the action is defined.
         self.parameters = Parameters()
         # Parameter specification list, class attribute, no parameters by default.
         self.output_type = None
         # Output type of the action, class attribute.
         # Both _parameters and _outputtype can be extracted from type annotations of the evaluate method using the _extract_input_type.
         self._extract_input_type()
+
+    @property
+    def module(self):
+        if self._module:
+            return self._module
+        else:
+            return self.__module__
+
 
     def _extract_input_type(self, func=None, skip_self=True):
         """
@@ -204,13 +213,6 @@ class _ActionBase:
             else:
                 args.append("{{{idx}}}".format(idx=i_arg))
         args = ", ".join(args)
-
-        module_str = self._module
-        if module_str:
-            action_name = "{}.{}".format(module_str, self.name)
-        else:
-            action_name = self.name
-
         return "{{action_name}}({args})".format(args=args)
 
 
@@ -297,7 +299,7 @@ class ClassActionBase(_ActionBase):
     def __init__(self, data_class):
         super().__init__(data_class.__name__)
         self._data_class = data_class
-        self._module = ""
+        self._module = self._data_class.__module__
         self._extract_input_type(func=data_class.__init__, skip_self=True)
 
 
@@ -324,11 +326,15 @@ class ClassActionBase(_ActionBase):
         return self._data_class(*args)
 
 
-    def code_of_definition(self, module_name_dict):
+    def code_of_definition(self, make_rel_name):
         lines = ['@wf.Class']
         lines.append('class {}:'.format(self.name))
         for attribute in self._data_class.__attrs_attrs__:
-            type_str = attribute.type.__name__ if attribute.type else "Any"
+            if attribute.type:
+                type_str = make_rel_name(attribute.type.__module__, attribute.type.__name__)
+            else:
+                type_str = "Any"
+
             if attribute.default == attr.NOTHING:
                 default = ""
             else:

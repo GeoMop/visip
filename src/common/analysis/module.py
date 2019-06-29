@@ -171,6 +171,20 @@ class Module:
         self._name_to_def[action.name] = action
 
 
+    def relative_name(self, module, name):
+        """
+        Construct the action class name for given set of imported modules.
+        :param module_dict: A dict mapping the full module path to its imported alias.
+        :return: The action name using the alias instead of the full module path.
+        """
+        alias = self._full_name_dict.get(module)
+        if alias:
+            return "{}.{}".format(alias, name)
+        else:
+            return name
+
+
+
 
 
     @property
@@ -198,7 +212,7 @@ class Module:
         for v in self.definitions:
             action = v
             source.extend(["", ""])     # two empty lines as separator
-            source.append(action.code_of_definition(self._full_name_dict))
+            source.append(action.code_of_definition(self.relative_name))
         return "\n".join(source)
 
 

@@ -62,6 +62,8 @@ def Class(data_class):
     Moreover dot access returns the converter.Get action instead of the value itself.
     This is necessary to catch it in the workflow decorator.
     """
+    new_anns = {name:wrap.unwrap_type(ann) for name, ann in data_class.__annotations__.items()}
+    data_class.__annotations__ = new_anns
     data_class = attr.s(data_class, auto_attribs=True)
     dataclass_action = base.ClassActionBase(data_class)
     return wrap.public_action(dataclass_action)

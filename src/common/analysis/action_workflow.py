@@ -187,7 +187,7 @@ class _Workflow(base._ActionBase):
         return [v.action_name() for v in self._actions.values()]
 
     
-    def code_of_definition(self, module_name_dict):
+    def code_of_definition(self, make_rel_name):
         """
         Represent workflow by its source.
         :return: list of lines containing representation of the workflow as a decorated function.
@@ -200,7 +200,7 @@ class _Workflow(base._ActionBase):
 
         for iname in self._topology_sort:
             action_instance = self._actions[iname]
-            code = action_instance.code(module_name_dict)
+            code = action_instance.code(make_rel_name)
             if code:    # skip slots
                 body.append("    " + code)
         assert len(self._result.arguments) > 0

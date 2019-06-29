@@ -4,17 +4,20 @@ from .action import *
 """
 # Minimalistic implementation of the analysis data layer for the GUI.
 
-GUI TODO:
-- changes (name, slots, result type) in workflow may break workflow that use it
-- ? change slot and result types automaticaly or explicitely (that
+Questions
+=========
 
+Q: "Workflow changes" - Change in the interface (name, slots, result type) of a workflow X may break its usage in other workflow Y.
+How the GUI should react?
+A: Do not fix the call place automatically, but correctly highlight the problem in the dependent workflow Y.
+We must provide a way to obtain unique instance of a workflow when it is loaded through different modules. 
+Future: wizard for changing the call places
 
-TODO:  
-- side_effect results - perform some actions for their sideefect, need a way to connect them to the result action instance
-  that way result should have arbitrary number of parameters, but only the first is used (not good for a workflow with side effect but no true return value)
-  
-- introduce other special action instance SideEffect (works like result but is used for DFS,
-  side effect always contains result as its input
+Q: "Side effects" - The special Save action do nothing and return nothing but force saving of the input to DB 
+and is automatically connected to the workflow result as the sideeffect. Would be better if these connections 
+would not be displayed to simplify. This is related to the idea, that the interface of the workflow should be permanently visible
+on the border of the scene.  
+
 
 3. GUI way to modify dataclasses and enums
 
@@ -29,15 +32,7 @@ TODO:
     - modify _code methods to return (instance_name, format, list of instance to substitute into the format)
     - modify workspace code to dynamicaly expand format to obtain not extremaly long code representation:
         try to expand:
-            - Value, dataclass instance, Tuple, List, GetAttribute ... should be the action property
-
-4. Simplest evaluation support.
-    - create Task DAG from the root analysis workflow.
-    - process the Task DAG (serialy directly in Python)
-
-
-    
-      
+            - Value, dataclass instance, Tuple, List, GetAttribute ... should be the action property  
 
 6. Typechecking
 

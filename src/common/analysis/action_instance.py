@@ -73,7 +73,7 @@ class ActionInstance:
         :param kwargs:
         :return:
         """
-        assert isinstance(action, base._ActionBase)
+        assert isinstance(action, base._ActionBase), action.__class__
         instance = ActionInstance(action)
         remaining_args, duplicate = instance.set_inputs(input_list=args, input_dict=kwargs)
         if remaining_args:
@@ -197,22 +197,9 @@ class ActionInstance:
 
 
 
-    def relative_action_name(self, module_dict):
-        """
-        Construct the action class name for given set of imported modules.
-        :param module_dict: A dict mapping the full module path to its imported alias.
-        :return: The action name using the alias instead of the full module path.
-        """
-        action_name = self.action_name
-        action_module = self.action.__module__
-        alias = module_dict.get(action_module)
-        if alias:
-            return "{}.{}".format(alias, action_name)
-        else:
-            return action_name
 
 
-    def code(self, module_dict):
+    def code(self, make_rel_name):
         """
         Return a representation of the action instance.
         This is generic representation code that calls the constructor.
@@ -225,6 +212,6 @@ class ActionInstance:
         """
         expr_format = self.action.format(len(self.arguments))
         inputs = [arg.value.get_code_instance_name() for arg in self.arguments]
-        expression = expr_format.format(*inputs, action_name=self.relative_action_name(module_dict))
+        expression = expr_format.format(*inputs, action_name= make_rel_name(self.action.module, self.action_name))
         code_line =  "{} = {}".format(self.get_code_instance_name(), expression)
         return code_line

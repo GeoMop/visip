@@ -25,7 +25,11 @@ class DataClassBase:
 
 HashValue = NewType('HashValue', int)
 
-#hasher_fn = hashlib.murmur3_x64_128()
+default_hash_fn = hash
+def my_hash(x, seed=0):
+    return default_hash_fn((x, seed))
+
+hasher_fn = my_hash
 def hash(stream: bytearray, previous:HashValue=0) -> HashValue:
     """
     Compute the hash of the bytearray.
@@ -37,8 +41,8 @@ def hash(stream: bytearray, previous:HashValue=0) -> HashValue:
     - input and result hashes
     - ResultsDB
     """
-    return hash(stream, previous)
-    #return hasher_fn(stream, seed=previous)
+    return hasher_fn(stream, seed=previous)
+
 
 def serialize(data):
     """

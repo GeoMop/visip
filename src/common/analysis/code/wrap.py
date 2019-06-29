@@ -32,7 +32,22 @@ def into_action(value):
         raise base.ExcActionExpected("Can not wrap into action, value: {}".format(str(value)))
 
 
+def unwrap_type(value):
+    """
+    Convert value to a type.
+    - unwrap DataClass
+    - check that output is a valid type
+    TODO: must be called recursively for composed data types or we must define our own typing
+    e.g. List[ActionWrapper(Point)]
+    :param value:
+    :return:
+    """
+    if isinstance(value, ActionWrapper):
+        assert isinstance(value.action, base.ClassActionBase)
+        return value.action._data_class
 
+    else:
+        return value
 
 
 def separate_underscored_keys(arg_dict: Dict[str, Any]):
