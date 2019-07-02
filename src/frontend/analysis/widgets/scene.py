@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsItem
 
 from common.analysis.action_base import List
 from common.analysis.action_instance import ActionInstance, ActionInputStatus
-from common.analysis.action_workflow import Slot
+from common.analysis.action_workflow import Slot, SlotInstance
 from frontend.analysis.graphical_items.g_input_action import GInputAction
 from frontend.analysis.graphical_items.root_action import RootAction
 from frontend.analysis.graphical_items.g_action import GAction
@@ -118,7 +118,7 @@ class Scene(QtWidgets.QGraphicsScene):
         action = self.workflow._actions.get(item.data(GActionData.NAME))
         if action is None:
             action = self.unconnected_actions.get(item.data(GActionData.NAME))
-        if isinstance(action, Slot):
+        if isinstance(action, SlotInstance):
             self.actions.append(GInputAction(item, action, self.root_item))
         elif isinstance(action, ActionInstance):
             self.actions.append(GAction(item, action, self.root_item))
@@ -279,16 +279,21 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def add_action(self, new_action_pos, action_type="List"):
         if action_type == "List":
-            action = ActionInstance(List())
+            action = ActionInstance.create(List())
+
+            name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.name)
+            action.name = name
         elif action_type == "Slot":
-            action = ActionInstance(Slot())
+            action = SlotInstance("slot")
+            name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.name)
+            action.name = name
+
+            self.workflow.insert_slot(len(self.workflow.slots), action)
         else:
             assert True, "Action isn't supported by scene!"
             return
-        name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.name)
-        action.name = name
-        if issubclass(type(action), Slot):
-            self.workflow.slots.append(action)
+
+
 
         self.unconnected_actions[name] = action
 
@@ -416,7 +421,10 @@ class Scene(QtWidgets.QGraphicsScene):
         self.actions.remove(action)
         self.removeItem(action)
         #for action in action.
-        self.workflow._actions.pop(action.name, None)
+
+        if isinstance(action, GInputAction):
+            self.workflow.remove_slot(self.workflow.slots.index(action.w_data_item))
+
 
     def delete_connection(self, conn):
         action1 = conn.port1.parentItem().w_data_item

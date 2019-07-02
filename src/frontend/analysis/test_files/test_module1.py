@@ -1,6 +1,12 @@
 import common.analysis as wf
 
 
+@wf.Class
+class Point:
+    x:float
+    y:float
+
+
 @wf.workflow
 def test_list(self, a, b):
     self.c = [a]

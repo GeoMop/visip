@@ -4,18 +4,23 @@ Main window.
 @contact: tomas.blazek@tul.cz
 """
 
+import os
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QToolBox
 
+from frontend.analysis.graphical_items.g_output_action import GOutputAction
 from frontend.analysis.menu.file_menu import FileMenu
 from frontend.analysis.widgets.composite_type_view import CompositeTypeView
-from common.analysis.action_workflow import SlotInstance
+from common.analysis.action_workflow import SlotInstance, Result
+from frontend.analysis.widgets.tool_box import ToolBox
 
 from .tab_widget import TabWidget
 from .toolbox_view import ToolboxView
 
 import common.analysis.action_instance as instance
 import common.analysis.action_base as base
+import common.analysis as analysis
 
 
 from PyQt5 import QtWidgets
@@ -37,7 +42,8 @@ class MainWidget(QtWidgets.QMainWindow):
 
         #self.tab_widget.open_module("C:\\Users\\samot\\PycharmProjects\\GeoMop\\testing\\common\\analysis\\analysis_in.py")   # for testing purposes
 
-        self._init_toolbox()
+        self.toolbox = ToolBox(self)
+        self.toolbox_dock.setWidget(self.toolbox)
 
         self.data_view = CompositeTypeView()
         self.data_view.model()
@@ -46,6 +52,7 @@ class MainWidget(QtWidgets.QMainWindow):
         self.resize(1000, 500)
 
         self.file_menu.open.triggered.connect(self.tab_widget.open_module)
+        self.file_menu.export.triggered.connect(self.export_to_file)
 
     def _init_menu(self):
         """Initializes menus"""
@@ -70,15 +77,9 @@ class MainWidget(QtWidgets.QMainWindow):
         self.addDockWidget(Qt.RightDockWidgetArea, self.data_dock)
         self.data_dock.hide()
 
-    def _init_toolbox(self):
-        toolbox_layout = ActionCategory()
-        toolbox_layout2 = ActionCategory()
-        ToolboxView(GInputAction(TreeItem(["Input", 0, 0, 50, 50]), SlotInstance("a")), toolbox_layout)
-        ToolboxView(GAction(TreeItem(["List", 0, 0, 50, 50]), instance.ActionInstance.create( base.List())), toolbox_layout2)
-
-        self.toolBox = QToolBox()
-
-        self.toolBox.addItem(toolbox_layout, "Input/Output")
-        self.toolBox.addItem(toolbox_layout2, "Data manipulation")
-        self.toolbox_dock.setWidget(self.toolBox)
+    def export_to_file(self):
+        filename = QtWidgets.QFileDialog.getSaveFileName(self.parent(), "Export Module", os.getcwd(), "Python File (*.py)")[0]
+        code = self.tab_widget.current_module_view().module.code()
+        with open(filename, 'w') as f:
+            f.write(code)
 

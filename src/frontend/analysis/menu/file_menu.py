@@ -15,6 +15,9 @@ class FileMenu(QtWidgets.QMenu):
         self.open = QtWidgets.QAction("Open Module")
         self.addAction(self.open)
 
+        self.export = QtWidgets.QAction("Export Module")
+        self.addAction(self.export)
+
         self.exit = QtWidgets.QAction("Exit")
         self.addAction(self.exit)
 

@@ -24,10 +24,13 @@ class TabWidget(QTabWidget):
         self.main_widget = main_widget
 
         self.module_views = {}
+        self.toolboxes = {}
 
     def _add_tab(self, module_filename, module):
         w = QStackedWidget()
         self.module_views[module_filename] = ModuleView(self, module,self.edit_menu)
+        #self.main_widget.toolbox.on_workspace_change(self.module_views[module_filename].module,
+        #                                             self.module_views[module_filename]._current_workspace)
         for name, workspace in self.module_views[module_filename].workspaces.items():
             w.addWidget(workspace)
 
@@ -35,6 +38,7 @@ class TabWidget(QTabWidget):
 
     def change_workspace(self, workspace):
         self.currentWidget().setCurrentWidget(workspace)
+        self.current_workspace().workflow.update()
 
     def open_module(self, filename=None):
         if not isinstance(filename, str):
@@ -48,7 +52,10 @@ class TabWidget(QTabWidget):
         curr_module.show()
         self.main_widget.module_dock.setWidget(curr_module)
 
-    def current_view(self):
+        self.main_widget.toolbox.on_model_change(self.module_views[self.tabText(index)].module,
+                                                     self.module_views[self.tabText(index)]._current_workspace)
+
+    def current_module_view(self):
         return self.module_views[self.tabText(self.currentIndex())]
 
     def on_close_tab(self, index):
@@ -56,19 +63,19 @@ class TabWidget(QTabWidget):
         self.module_views.pop(self.tabText(index), None)
         self.removeTab(index)
 
-    def currentWorkspace(self):
+    def current_workspace(self):
         return self.currentWidget().currentWidget()
 
     def add_action(self):
-        self.currentWorkspace().scene.add_action(self.currentWorkspace().scene.new_action_pos)
+        self.current_workspace().scene.add_action(self.current_workspace().scene.new_action_pos)
 
     def delete_items(self):
-        self.currentWorkspace().scene.delete_items()
+        self.current_workspace().scene.delete_items()
 
     def add_random_items(self):
-        self.currentWorkspace().scene.add_random_items()
+        self.current_workspace().scene.add_random_items()
 
     def order_diagram(self):
-        self.currentWorkspace().scene.order_diagram()
+        self.current_workspace().scene.order_diagram()
 
 
