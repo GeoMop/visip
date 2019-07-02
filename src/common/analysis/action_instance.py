@@ -193,10 +193,15 @@ class ActionInstance:
         else:
             return self.name
 
-
-
-
-
+    def substitution_probability(self):
+        """
+        Can tune substitution preference dependent on the action.
+        :return:
+        """
+        if self._proper_instance_name:
+            return 0.0
+        else:
+            return 0.5
 
 
     def code(self, make_rel_name):
@@ -208,10 +213,10 @@ class ActionInstance:
 
         :param inputs: Dictionary assigning strings to the Action's parameters.
         :param config: String used for configuration, call serialization of the configuration by default.
-        :return: string (code to instantiate the action)
+        :return:
+        ( format, [instance names used in format])
         """
-        expr_format = self.action.format(len(self.arguments))
-        inputs = [arg.value.get_code_instance_name() for arg in self.arguments]
-        expression = expr_format.format(*inputs, action_name= make_rel_name(self.action.module, self.action_name))
-        code_line =  "{} = {}".format(self.get_code_instance_name(), expression)
-        return code_line
+        arg_names = [arg.value.get_code_instance_name() for arg in self.arguments]
+        full_action_name = make_rel_name(self.action.module, self.action_name)
+        expr_format = self.action.format(full_action_name, arg_names)
+        return expr_format

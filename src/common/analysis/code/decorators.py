@@ -37,7 +37,7 @@ def workflow(func):
     slots = [wf.SlotInstance(name) for i, name in enumerate(param_names)]
     dummies = [dummy.Dummy(slot) for slot in slots]
     func_args.extend(dummies)
-    print(func)
+    #print(func)
     output_action = wrap.into_action(func(*func_args))
 
     new_workflow = wf._Workflow(workflow_name)

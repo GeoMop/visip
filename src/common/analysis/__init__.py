@@ -34,6 +34,10 @@ on the border of the scene.
         try to expand:
             - Value, dataclass instance, Tuple, List, GetAttribute ... should be the action property  
 
+2. other meta actions: ForEach, If, While
+2. calculations
+3. file support, external processes
+
 6. Typechecking
 
 - have common class for actions (current classes)

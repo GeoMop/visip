@@ -7,7 +7,7 @@ from typing import *
 from collections import defaultdict
 from common.analysis import data
 from common.analysis import task
-
+from common.analysis.code import format
 
 # Name for the first parameter of the workflow definiton function that is used
 # to capture instance names.
@@ -88,6 +88,10 @@ class Parameters:
 
 
     def __iter__(self):
+        """
+        Iter protocol just iterate over parameters.
+        :return:
+        """
         return iter(self.parameters)
 
 
@@ -191,7 +195,7 @@ class _ActionBase:
         assert False, "Implementation has to be provided."
 
 
-    def format(self, n_args=None):
+    def format(self, full_action_name, arg_names):
         """
         Return a format string for the expression that constructs the action.
         :param n_args: Number of arguments, number of placeholders. Can be None if the action is not variadic.
@@ -201,19 +205,13 @@ class _ActionBase:
         E.g. "Action({0}, {1}, {})" can be expanded to :
         "Action(arg0, arg1, arg2, arg3)"
         """
-        if n_args is None:
-            assert not self.parameters.is_variadic()
-            n_args = self.parameters.size()
-        assert n_args >= self.parameters.size()
-        args=[]
-        for i_arg in range(n_args):
-            param = self.parameters.get_index(i_arg)
-            if param.name:
-                args.append("{name}={{{idx}}}".format(name=param.name, idx=i_arg))
-            else:
-                args.append("{{{idx}}}".format(idx=i_arg))
-        args = ", ".join(args)
-        return "{{action_name}}({args})".format(args=args)
+        args = []
+        for i, arg in enumerate(arg_names):
+            param = self.parameters.get_index(i)
+            assert param is not None
+            args.append( (param.name, arg) )
+        return format.Format.action_call(full_action_name, args)
+
 
 
     def validate(self, inputs):
@@ -234,13 +232,14 @@ class Value(_ActionBase):
     def _evaluate(self):
         return self.value
 
-    def format(self, n_args):
+    def format(self, action_name, arg_names):
         value = self.value
         if type(value) is str:
             expr = "'{}'".format(value)
         else:
             expr = str(value)
-        return expr
+
+        return format.Format([expr])
 
 
 class Pass(_ActionBase):
@@ -278,12 +277,8 @@ class _ListBase(_ActionBase):
 
 
 class List(_ListBase):
-
-    def format(self, n_args):
-        assert n_args is not None
-        args=["{{{idx}}}".format(idx=i_arg) for i_arg in range(n_args)]
-        args = ", ".join(args)
-        return "[{args}]".format(args=args)
+    def format(self, action_name, arg_names):
+        return format.Format.list("[", "]", [(None, arg) for arg in arg_names])
 
     def evaluate(self, inputs):
         return list(inputs)

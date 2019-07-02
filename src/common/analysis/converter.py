@@ -3,7 +3,7 @@ import indexed
 from typing import *
 
 from common.analysis import action_base as base
-
+from common.analysis.code import format
 
 
 
@@ -15,9 +15,9 @@ class GetAttribute(base._ActionBase):
         super().__init__()
         self.key = key
 
-    def format(self, n_args):
-        assert n_args == self.parameters.size()
-        return "{{0}}.{key}".format(key=self.key)
+    def format(self, action_name, arg_names):
+        assert len(arg_names) == 1
+        return format.Format([format.Token(arg_names[0]), ".{}".format(self.key)])
 
     def _evaluate(self, data_class: Any) -> Any:
         return data_class.__getattribute__(self.key)
@@ -26,12 +26,14 @@ class GetAttribute(base._ActionBase):
 
 
 class GetItem(base._ActionBase):
+    def __inti__(self):
+        super().__init__()
 
-    def format(self, n_args):
-        assert n_args == self.parameters.size()
-        return "{0}[{1}]"
+    def format(self, action_name, arg_names):
+        assert len(arg_names) == 2
+        return format.Format([format.Token(arg_names[0]), "[", format.Token(arg_names[1]), "]"])
 
-    def _evaluate(self, data_list: List[Any], idx: str) -> Any:
+    def _evaluate(self, data_list: List[Any], idx: int) -> Any:
         return data_list[idx]
 
 

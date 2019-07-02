@@ -1,10 +1,13 @@
 
+from functools import partial
 from typing import List, Any
 from common.analysis import action_base as base
 from common.analysis import task
 from common.analysis import dfs
 from common.analysis.action_instance import ActionInstance
+from common.analysis.code import format
 
+import attr
 """
 Implementation of the Workflow composed action.
 - creating the 
@@ -31,6 +34,8 @@ class SlotInstance(ActionInstance):
     # def is_used(self):
     #     return bool(self.output_actions)
 
+    def substitution_probability(self):
+        return 1.0
 
     def code(self, module_dict):
         return None
@@ -174,10 +179,6 @@ class _Workflow(base._ActionBase):
     # def evaluate(self, input):
     #     pass
 
-    #def _code(self):
-    #    """ Representation of the workflow class instance within an outer workflow."""
-    #
-    #    pass
 
 
     def dependencies(self):
@@ -186,24 +187,97 @@ class _Workflow(base._ActionBase):
         """
         return [v.action_name() for v in self._actions.values()]
 
+    @attr.s(auto_attribs=True)
+    class InstanceRepr:
+        code: format.Format
+        subst_prob: float
+        n_uses: int = 0
+
+        def prob(self):
+            if self.n_uses > 1:
+                return 0.0
+            else:
+                return self.subst_prob
     
     def code_of_definition(self, make_rel_name):
         """
         Represent workflow by its source.
         :return: list of lines containing representation of the workflow as a decorated function.
+        Code sugar:
+        1. substitute all results used just once in single parameter actions
+        2. try to substitute to multiparameter actions, check line length.
         """
+        indent = 4 * " "
         decorator = 'analysis' if self.is_analysis else 'workflow'
         params = [base._VAR_]
         params.extend([self._slots[islot].name for islot in range(len(self._slots))])
         head = "def {}({}):".format(self.name, ", ".join(params))
         body = ["@{base_module}.{decorator}".format(base_module='wf', decorator=decorator), head]
 
+        # Make dict: full_instance_name -> (format, [arg full names])
+        inst_order = []
+        inst_exprs = {}
         for iname in self._topology_sort:
             action_instance = self._actions[iname]
+            full_name = action_instance.get_code_instance_name()
+            subst_prob = action_instance.substitution_probability()
             code = action_instance.code(make_rel_name)
-            if code:    # skip slots
-                body.append("    " + code)
+            if code:
+                inst_repr = self.InstanceRepr(code, subst_prob)
+                for name in code.placeholders:
+                    inst_exprs[name].n_uses += 1
+                inst_order.append(full_name)
+            else:
+                inst_repr = self.InstanceRepr(None, 0.0)
+            inst_exprs[full_name] = inst_repr
+
+        # Substitute single used, single param instances
+        for full_inst in reversed(inst_order):
+            if full_inst in inst_exprs:
+                inst_repr = inst_exprs[full_inst]
+                placeholders = inst_repr.code.placeholders
+                while len(placeholders) == 1:
+                    arg_full_name = placeholders.pop()
+                    arg_repr = inst_exprs[arg_full_name]
+                    if arg_repr.subst_prob > 0.0 and arg_repr.n_uses < 2:
+                        inst_repr.code = inst_repr.code.substitute(arg_full_name, arg_repr.code)
+                        del inst_exprs[arg_full_name]
+                    else:
+                        break
+
+
+        # Substitute into multi arg actions
+        for full_inst in reversed(inst_order):
+            if full_inst in inst_exprs:
+                inst_repr = inst_exprs[full_inst]
+                # subst_candidates works as a priority queue
+
+                while True:
+                    subst_candidates = [(inst_exprs[n].code.len_est(), n)
+                                        for n in inst_repr.code.placeholders if inst_exprs[n].prob() > 0]
+                    if not subst_candidates:
+                        break
+                    len_est, name = min(subst_candidates)
+                    # substitute, update substitute_candidates
+                    new_code = inst_repr.code.substitute(name, inst_exprs[name].code)
+                    if new_code.len_est() > 120:
+                        break
+                    inst_repr.code = new_code
+                    del inst_exprs[name]
+                    if new_code.len_est() > 100:
+                        break
+
+        # output code
+        for full_inst in inst_order:
+            if full_inst in inst_exprs:
+                inst_repr = inst_exprs[full_inst]
+                if inst_repr.code:
+                    line = "{}{} = {}".format(indent, full_inst, inst_repr.code.final_string())
+                    body.append(line)
+
         assert len(self._result.arguments) > 0
+
+
         result_action = self._result.arguments[0].value
         body.append("    return {}".format(result_action.name))
         return "\n".join(body)
