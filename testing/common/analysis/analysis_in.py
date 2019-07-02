@@ -5,8 +5,8 @@ import common.analysis as wf
 def test_list(self, a, b):
     self.c = [a]
     d = [a, b]
-    e = [self.c, d]
-    return e
+    self.e = [self.c, d]
+    return [self.e[1][0], self.e[0]]
 
 
 @wf.Class
@@ -24,9 +24,11 @@ def test_class(self, a: Point, b: Point):
 
 @wf.analysis
 def test_analysis(self):
-    self.tuple = test_list(10, "ahoj")
+    self.tuple = test_list(10, "hallo")
     self.point = test_list(Point(20, 30), Point(40, 50))
-    return [self.tuple, self.point]
+    self.list = test_list(1, 2)
+    self.extract = self.list[1]
+    return [self.tuple, self.point, self.extract]
 
 """
 TODO:

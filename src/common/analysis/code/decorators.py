@@ -15,7 +15,7 @@ class _Variables:
     def __setattr__(self, key, value):
         value = wrap.into_action(value)
         value = value.set_name(key)
-        self.__dict__[key] = value
+        self.__dict__[key] = dummy.Dummy(value)
 
 
 

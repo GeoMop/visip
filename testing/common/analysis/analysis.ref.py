@@ -4,8 +4,8 @@ import common.analysis as wf
 @wf.workflow
 def test_list(self, a, b):
     self.c = [a]
-    List_1 = [a, b]
-    List_2 = [self.c, List_1]
+    self.e = [self.c, [a, b]]
+    List_2 = [self.e[1][0], self.e[0]]
     return List_2
 
 
@@ -25,15 +25,9 @@ def test_class(self, a, b):
 
 @wf.analysis
 def test_analysis(self):
-    Value_1 = 10
-    Value_2 = 'ahoj'
-    self.tuple = test_list(a=Value_1, b=Value_2)
-    Value_3 = 20
-    Value_4 = 30
-    Point_1 = Point(x=Value_3, y=Value_4)
-    Value_5 = 40
-    Value_6 = 50
-    Point_2 = Point(x=Value_5, y=Value_6)
-    self.point = test_list(a=Point_1, b=Point_2)
-    List_1 = [self.tuple, self.point]
+    self.tuple = test_list(a=10, b='hallo')
+    self.point = test_list(a=Point(x=20, y=30), b=Point(x=40, y=50))
+    self.list = test_list(a=1, b=2)
+    self.extract = self.list[1]
+    List_1 = [self.tuple, self.point, self.extract]
     return List_1
