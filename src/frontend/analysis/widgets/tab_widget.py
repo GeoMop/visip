@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import QTabWidget, QStackedWidget, QTextEdit
 from frontend.analysis.widgets.home_tab_widget import HomeTabWidget
 from frontend.analysis.widgets.module_view import ModuleView
 from common.analysis.module import Module
+from frontend.analysis.widgets.tab import Tab
 
 
 class TabWidget(QTabWidget):
@@ -20,6 +21,7 @@ class TabWidget(QTabWidget):
         #self.edit_menu.add_random.triggered.connect(self.add_random_items)
         self.edit_menu.order_diagram.triggered.connect(self.order_diagram)
         self.currentChanged.connect(self.current_changed)
+        self.tabBarClicked.connect(self.before_curr_index_change)
 
 
         self.main_widget = main_widget
@@ -28,14 +30,15 @@ class TabWidget(QTabWidget):
         self.toolboxes = {}
 
         self.initial_tab_name = 'Home'
-        self._create_home_tab()
+        self.home_tab = HomeTabWidget(self.main_widget)
+        self.addTab(self.home_tab, self.initial_tab_name)
 
-
-    def _create_home_tab(self):
-        self.addTab(HomeTabWidget(self.main_widget), self.initial_tab_name)
+    def before_curr_index_change(self, index):
+        if isinstance(self.currentWidget(), Tab):
+            self.currentWidget().last_category = self.main_widget.toolbox.currentIndex()
 
     def _add_tab(self, module_filename, module):
-        w = QStackedWidget()
+        w = Tab()
         self.module_views[module_filename] = ModuleView(self, module,self.edit_menu)
         #self.main_widget.toolbox.on_workspace_change(self.module_views[module_filename].module,
         #                                             self.module_views[module_filename]._current_workspace)
@@ -43,7 +46,6 @@ class TabWidget(QTabWidget):
             w.addWidget(workspace)
 
         self.setCurrentIndex(self.addTab(w, module_filename))
-
 
     def change_workspace(self, workspace):
         self.currentWidget().setCurrentWidget(workspace)
@@ -61,13 +63,20 @@ class TabWidget(QTabWidget):
             self._add_tab(os.path.basename(filename), module)
 
     def current_changed(self, index):
-        if index != -1 and self.tabText(index) != self.initial_tab_name:
-            curr_module = self.module_views[self.tabText(index)]
-            curr_module.show()
-            self.main_widget.module_dock.setWidget(curr_module)
+        if index != -1 and isinstance(self.widget(index), Tab):
+            curr_module_view = self.module_views[self.tabText(index)]
+            self.main_widget.toolbox_dock.setDisabled(False)
+            self.main_widget.module_dock.setDisabled(False)
+            curr_module_view.show()
+            self.main_widget.module_dock.setWidget(curr_module_view)
 
-            self.main_widget.toolbox.on_model_change(self.module_views[self.tabText(index)].module,
-                                                         self.module_views[self.tabText(index)]._current_workspace)
+            self.main_widget.toolbox.on_module_change(curr_module_view.module,
+                                                      curr_module_view._current_workspace)
+            self.main_widget.toolbox.setCurrentIndex(self.currentWidget().last_category)
+            return
+
+        self.main_widget.toolbox_dock.setDisabled(True)
+        self.main_widget.module_dock.setDisabled(True)
 
     def current_module_view(self):
         return self.module_views[self.tabText(self.currentIndex())]

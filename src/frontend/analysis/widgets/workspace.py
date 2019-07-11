@@ -53,6 +53,9 @@ class Workspace(QtWidgets.QGraphicsView):
         self.last_mouse_event_pos = QPoint(0, 0)
         self.mouse_press_event_pos = QPoint(0, 0)
 
+    def __repr__(self):
+        return "Workspace: " + self.scene.workflow.name
+
     def _on_wf_changed(self):
         self.scene = Scene(self.module_view.current_workspace, self)
         self.setScene(self.scene)

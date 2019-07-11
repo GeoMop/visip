@@ -1,5 +1,5 @@
 import common.analysis as wf
-import frontend.analysis.test_files.test_module1 as test_module1
+import frontend.analysis.test_files.Home as test_module1
 
 
 @wf.workflow

@@ -36,20 +36,27 @@ class ToolBox(QToolBox):
 
         self.import_modules = {}
 
-    def on_workspace_change(self, module, workspace):
+    def on_workspace_change(self, module, curr_workspace):
+        last_index = self.currentIndex()
         if module.name in self.import_modules:
-            self.removeItem(self.indexOf(self.import_modules[module.name]))
+            category_index = self.indexOf(self.import_modules[module.name])
+            self.removeItem(category_index)
+        else:
+            category_index = self.count()
         module_category = ActionCategory()
         for item in module.definitions:
-            if not item.is_analysis:
+            if not item.is_analysis and item.name != curr_workspace.scene.workflow.name:
                 ToolboxView(GAction(TreeItem([item.name, 0, 0, 50, 50]),
                                     instance.ActionInstance.create(item)), module_category)
 
         self.import_modules[module.name] = module_category
-        self.addItem(module_category, module.name)
+        self.insertItem(category_index, module_category, module.name)
+        self.setCurrentIndex(last_index)
 
-    def on_model_change(self, module, workspace):
+
+    def on_module_change(self, module, curr_workspace):
         while self.count() > 1:
             self.removeItem(self.count()-1)
         #self.addItem(self.system_actions_layout, "System actions")
-        self.on_workspace_change(module, workspace)
+        if module is not None:
+            self.on_workspace_change(module, curr_workspace)
