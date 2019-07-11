@@ -1,8 +1,9 @@
 import os
 
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QTabWidget, QStackedWidget
+from PyQt5.QtWidgets import QTabWidget, QStackedWidget, QTextEdit
 
+from frontend.analysis.widgets.home_tab_widget import HomeTabWidget
 from frontend.analysis.widgets.module_view import ModuleView
 from common.analysis.module import Module
 
@@ -26,6 +27,13 @@ class TabWidget(QTabWidget):
         self.module_views = {}
         self.toolboxes = {}
 
+        self.initial_tab_name = 'Home'
+        self._create_home_tab()
+
+
+    def _create_home_tab(self):
+        self.addTab(HomeTabWidget(self.main_widget), self.initial_tab_name)
+
     def _add_tab(self, module_filename, module):
         w = QStackedWidget()
         self.module_views[module_filename] = ModuleView(self, module,self.edit_menu)
@@ -34,26 +42,32 @@ class TabWidget(QTabWidget):
         for name, workspace in self.module_views[module_filename].workspaces.items():
             w.addWidget(workspace)
 
-        self.addTab(w, module_filename)
+        self.setCurrentIndex(self.addTab(w, module_filename))
+
 
     def change_workspace(self, workspace):
         self.currentWidget().setCurrentWidget(workspace)
         self.current_workspace().workflow.update()
 
+    def create_new_module(self, module_name):
+
+        pass
+
     def open_module(self, filename=None):
         if not isinstance(filename, str):
             filename = QtWidgets.QFileDialog.getOpenFileName(self.parent(), "Select Module", os.getcwd())[0]
-
-        module = Module(os.path.join(os.getcwd(), "analysis", filename))
-        self._add_tab(os.path.basename(filename), module)
+        if filename != "":
+            module = Module(os.path.join(os.getcwd(), "analysis", filename))
+            self._add_tab(os.path.basename(filename), module)
 
     def current_changed(self, index):
-        curr_module = self.module_views[self.tabText(index)]
-        curr_module.show()
-        self.main_widget.module_dock.setWidget(curr_module)
+        if index != -1 and self.tabText(index) != self.initial_tab_name:
+            curr_module = self.module_views[self.tabText(index)]
+            curr_module.show()
+            self.main_widget.module_dock.setWidget(curr_module)
 
-        self.main_widget.toolbox.on_model_change(self.module_views[self.tabText(index)].module,
-                                                     self.module_views[self.tabText(index)]._current_workspace)
+            self.main_widget.toolbox.on_model_change(self.module_views[self.tabText(index)].module,
+                                                         self.module_views[self.tabText(index)]._current_workspace)
 
     def current_module_view(self):
         return self.module_views[self.tabText(self.currentIndex())]

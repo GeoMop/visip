@@ -67,6 +67,7 @@ class MainWidget(QtWidgets.QMainWindow):
         self.module_dock = QtWidgets.QDockWidget("Module", self)
         self.module_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.addDockWidget(Qt.RightDockWidgetArea, self.module_dock)
+        self.module_dock.setMinimumWidth(150)
 
         self.toolbox_dock = QtWidgets.QDockWidget("Toolbox", self)
         self.toolbox_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)

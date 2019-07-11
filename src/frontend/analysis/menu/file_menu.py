@@ -12,10 +12,14 @@ class FileMenu(QtWidgets.QMenu):
     def __init__(self, parent=None):
         super(FileMenu, self).__init__(parent)
         self.setTitle("File")
-        self.open = QtWidgets.QAction("Open Module")
+
+        self.new = QtWidgets.QAction("Create New Module...")
+        self.addAction(self.new)
+
+        self.open = QtWidgets.QAction("Open Module...")
         self.addAction(self.open)
 
-        self.export = QtWidgets.QAction("Export Module")
+        self.export = QtWidgets.QAction("Export Module...")
         self.addAction(self.export)
 
         self.exit = QtWidgets.QAction("Exit")
