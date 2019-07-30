@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsItem
 
 from common.analysis.action_base import List
 from common.analysis.action_instance import ActionInstance, ActionInputStatus
-from common.analysis.action_workflow import Slot, SlotInstance
+from common.analysis.action_workflow import Slot, SlotInstance, Result
 from frontend.analysis.graphical_items.g_input_action import GInputAction
 from frontend.analysis.graphical_items.root_action import RootAction
 from frontend.analysis.graphical_items.g_action import GAction
@@ -23,12 +23,13 @@ class ActionTypes:
 
 
 class Scene(QtWidgets.QGraphicsScene):
-    def __init__(self, workflow, parent=None):
+    def __init__(self, workflow, available_actions, parent=None):
         super(Scene, self).__init__(parent)
         self.unconnected_actions = {}
         self.workflow = workflow
         self.actions = []
         self.new_connection = None
+        self.available_actions = available_actions
 
         self.workflow_name = QGraphicsSimpleTextItem(workflow.name)
         self.workflow_name.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
@@ -49,9 +50,8 @@ class Scene(QtWidgets.QGraphicsScene):
 
 
     def initialize_workspace_from_workflow(self, workflow):
-        for action_name in workflow._actions:
+        for action_name in {**workflow._actions, "__result__": workflow._result}:
             self._add_action(QPoint(0.0, 0.0), action_name)
-            action = workflow._actions[action_name]
 
         #for slot in workflow.slots:
         #    self._add_action(QPoint(0.0, 0.0), slot.name)
@@ -95,14 +95,15 @@ class Scene(QtWidgets.QGraphicsScene):
             if self.new_connection is not None:
                 self.addItem(self.new_connection)
 
-            all_actions = {**self.workflow._actions, **self.unconnected_actions}
+            all_actions = {**self.workflow._actions, **self.unconnected_actions, "__result__": self.workflow._result}
             for action_name, action in all_actions.items():
                 i = 0
                 for other_action in action.arguments:
                     status = other_action.status
                     if status != ActionInputStatus.missing:
                         other_action = other_action.value
-                        port1 = self.get_action(other_action.name).out_ports[0]
+                        if self.get_action(other_action.name) is not None:
+                            port1 = self.get_action(other_action.name).out_ports[0]
                         if len(self.get_action(action_name).in_ports) <= i:
                             i = 1
                         port2 = self.get_action(action_name).in_ports[i]
@@ -115,7 +116,7 @@ class Scene(QtWidgets.QGraphicsScene):
             self.update()
 
     def draw_action(self, item):
-        action = self.workflow._actions.get(item.data(GActionData.NAME))
+        action = {**self.workflow._actions, "__result__":self.workflow._result}.get(item.data(GActionData.NAME))
         if action is None:
             action = self.unconnected_actions.get(item.data(GActionData.NAME))
         if isinstance(action, SlotInstance):
@@ -130,18 +131,19 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def order_diagram(self):
         #todo: optimize by assigning levels when scanning from bottom actions
-        queue = []
-        for action in self.actions:
-            if action.previous_actions():
-                action.level = self.get_distance(action)
-            else:
-                queue.append(action)
+        if self.actions:
+            queue = []
+            for action in self.actions:
+                if action.previous_actions():
+                    action.level = self.get_distance(action)
+                else:
+                    queue.append(action)
 
-        for action in queue:
-            action.level = math.inf
-            for next_action in action.next_actions():
-                action.level = min(next_action.level - 1, action.level)
-        self.reorganize_actions_by_levels()
+            for action in queue:
+                action.level = math.inf
+                for next_action in action.next_actions():
+                    action.level = min(next_action.level - 1, action.level)
+            self.reorganize_actions_by_levels()
 
     def reorganize_actions_by_levels(self):
         actions_by_levels = {}
@@ -277,27 +279,29 @@ class Scene(QtWidgets.QGraphicsScene):
         self.action_model.add_item(pos.x(), pos.y(), 50, 50, name)
         self.update_model = True
 
-    def add_action(self, new_action_pos, action_type="List"):
-        if action_type == "List":
-            action = ActionInstance.create(List())
+    def add_action(self, new_action_pos, action_type="wf.List"):
+        index = action_type.rfind(".")
+        module = action_type[:index]
+        action_name = action_type[index + 1:]
 
-            name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.name)
-            action.name = name
-        elif action_type == "Slot":
+        if action_type == "wf.Slot":
             action = SlotInstance("slot")
             name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.name)
             action.name = name
-
             self.workflow.insert_slot(len(self.workflow.slots), action)
+
+        elif action_name in self.available_actions[module]:
+            action = ActionInstance.create(self.available_actions[module][action_name])
+            name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.name)
+            action.name = name
+
         else:
-            assert True, "Action isn't supported by scene!"
+            assert False, "Action isn't supported by scene!"
             return
 
 
 
         self.unconnected_actions[name] = action
-
-
     '''
     def add_while_loop(self):
         [parent, pos] = self.find_top_afs(self.new_action_pos)

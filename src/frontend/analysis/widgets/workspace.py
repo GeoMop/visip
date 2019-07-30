@@ -14,11 +14,12 @@ from .scene import Scene
 
 class Workspace(QtWidgets.QGraphicsView):
     """Graphics scene which handles user input and shows user the results."""
-    def __init__(self, workflow, edit_menu, parent=None):
+    def __init__(self, workflow, edit_menu, available_actions, parent=None):
         """Initializes class."""
         super(Workspace, self).__init__(parent)
         self.workflow = workflow
-        self.scene = Scene(workflow, self)
+        self.scene = Scene(workflow, available_actions, self)
+        self.available_actions = available_actions
         self.setScene(self.scene)
         self.setRenderHint(QtGui.QPainter.Antialiasing, True)
 
@@ -69,12 +70,17 @@ class Workspace(QtWidgets.QGraphicsView):
     def dragEnterEvent(self, drag_enter):
         """Accept drag event if it carries action."""
         if drag_enter.mimeData().hasText():
-            if drag_enter.mimeData().text() in ["Slot", "List"]:
+            identifier = drag_enter.mimeData().text()
+            index = identifier.rfind(".")
+            module = identifier[:index]
+            action_name = identifier[index + 1:]
+            if module == "wf" and (action_name == "Slot"):
+                drag_enter.acceptProposedAction()
+            if action_name in self.available_actions[module]:
                 drag_enter.acceptProposedAction()
 
     def dropEvent(self, drop_event):
         """Create new action from dropped information"""
-        self.scene.new_action_pos = self.mapToScene(drop_event.pos()) - drop_event.source().get_pos_correction()
         self.scene.add_action(self.mapToScene(drop_event.pos()) - drop_event.source().get_pos_correction(),
                               drop_event.mimeData().text())
         drop_event.acceptProposedAction()

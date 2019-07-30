@@ -49,17 +49,26 @@ class TabWidget(QTabWidget):
 
     def change_workspace(self, workspace):
         self.currentWidget().setCurrentWidget(workspace)
-        self.current_workspace().workflow.update()
+        workspace.workflow.update()
 
-    def create_new_module(self, module_name):
+    def create_new_module(self, module_name=None):
+        if not isinstance(module_name, str):
+            filename = QtWidgets.QFileDialog.getSaveFileName(self.parent(), "New Module", os.getcwd())[0]
+        if filename != "":
 
-        pass
+            if not filename.endswith(".py"):
+                filename = filename + ".py"
+            with open(filename, "w") as file:
+                file.write("import common.analysis as wf")
+            module = Module(filename)
+            self._add_tab(os.path.basename(filename), module)
 
     def open_module(self, filename=None):
         if not isinstance(filename, str):
             filename = QtWidgets.QFileDialog.getOpenFileName(self.parent(), "Select Module", os.getcwd())[0]
         if filename != "":
-            module = Module(os.path.join(os.getcwd(), "analysis", filename))
+            temp = os.path.join(os.getcwd(), "analysis", filename)
+            module = Module(filename)
             self._add_tab(os.path.basename(filename), module)
 
     def current_changed(self, index):

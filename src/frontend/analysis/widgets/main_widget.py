@@ -51,6 +51,7 @@ class MainWidget(QtWidgets.QMainWindow):
 
         self.resize(1000, 500)
 
+        self.file_menu.new.triggered.connect(self.tab_widget.create_new_module)
         self.file_menu.open.triggered.connect(self.tab_widget.open_module)
         self.file_menu.export.triggered.connect(self.export_to_file)
 

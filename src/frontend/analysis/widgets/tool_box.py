@@ -1,6 +1,7 @@
 from PyQt5.QtWidgets import QToolBox
 
-from common.analysis import SlotInstance, Result
+from common.analysis import Slot
+from common.analysis.action_workflow import SlotInstance
 from frontend.analysis.data.tree_item import TreeItem
 from frontend.analysis.graphical_items.g_action import GAction
 from frontend.analysis.graphical_items.g_input_action import GInputAction
@@ -19,15 +20,18 @@ class ToolBox(QToolBox):
         self.main_widget = main_widget
 
         self.system_actions_layout = ActionCategory()
+        self.action_database = {"wf": {}}
 
         for action in analysis.base_system_actions:
-            if isinstance(action, SlotInstance):
-                ToolboxView(GInputAction(TreeItem(["Input", 0, 0, 50, 50]), action), self.system_actions_layout)
-            elif isinstance(action, Result):
-                ToolboxView(GOutputAction(TreeItem(["Output", 0, 0, 50, 50]), action), self.system_actions_layout)
+            if isinstance(action, Slot):
+                inst = SlotInstance("Slot")
+                ToolboxView(GInputAction(TreeItem(["Input", 0, 0, 50, 50]), inst), self.system_actions_layout)
             else:
+                inst = instance.ActionInstance.create(action)
                 ToolboxView(GAction(TreeItem([action.name, 0, 0, 50, 50]),
-                                    instance.ActionInstance.create(action)), self.system_actions_layout)
+                                    inst), self.system_actions_layout)
+
+            self.action_database["wf"][action.name] = action
 
         # ToolboxView(GAction(TreeItem(["List", 0, 0, 50, 50]), instance.ActionInstance.create( base.List())), toolbox_layout2)
         self.setMinimumWidth(180)
@@ -36,27 +40,35 @@ class ToolBox(QToolBox):
 
         self.import_modules = {}
 
+
     def on_workspace_change(self, module, curr_workspace):
         last_index = self.currentIndex()
         if module.name in self.import_modules:
             category_index = self.indexOf(self.import_modules[module.name])
             self.removeItem(category_index)
+            self.action_database.pop(module.name)
         else:
             category_index = self.count()
         module_category = ActionCategory()
-        for item in module.definitions:
-            if not item.is_analysis and item.name != curr_workspace.scene.workflow.name:
-                ToolboxView(GAction(TreeItem([item.name, 0, 0, 50, 50]),
-                                    instance.ActionInstance.create(item)), module_category)
+        if module.definitions:
+            self.action_database[module.name] = {}
+            for item in module.definitions:
+                if not item.is_analysis and item.name != curr_workspace.scene.workflow.name:
+                    ToolboxView(GAction(TreeItem([item.name, 0, 0, 50, 50]),
+                                        instance.ActionInstance.create(item)), module_category)
+                    self.action_database[module.name][item.name] = item
 
-        self.import_modules[module.name] = module_category
-        self.insertItem(category_index, module_category, module.name)
-        self.setCurrentIndex(last_index)
+            self.import_modules[module.name] = module_category
+            self.insertItem(category_index, module_category, module.name)
+            self.setCurrentIndex(last_index)
 
 
     def on_module_change(self, module, curr_workspace):
         while self.count() > 1:
             self.removeItem(self.count()-1)
+            temp = self.action_database["wf"]
+            self.action_database.clear()
+            self.action_database["wf"] = temp
         #self.addItem(self.system_actions_layout, "System actions")
         if module is not None:
             self.on_workspace_change(module, curr_workspace)

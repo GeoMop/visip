@@ -46,7 +46,8 @@ class _ResultAction(base._ListBase):
     def __init__(self):
         super().__init__()
         self.parameters = base.Parameters()
-        self.parameters.append(base.ActionParameter(idx=0, name="result", type=Any, default=None))
+        # todo: check if first parameter is supposed to have default value none or no_default
+        self.parameters.append(base.ActionParameter(idx=0, name="result", type=Any, default=self.parameters.no_default))
         self.parameters.append(base.ActionParameter(idx=1, name=None, type=Any, default=self.parameters.no_default))
 
 

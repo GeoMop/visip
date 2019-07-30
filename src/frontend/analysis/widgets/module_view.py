@@ -10,11 +10,15 @@ class ModuleView(QTreeWidget):
     workspace_changed = pyqtSignal(int)
     def __init__(self, tab_widget, module, edit_menu, parent=None):
         super(ModuleView, self).__init__(parent)
+        self.edit_menu = edit_menu
         self.tab_widget = tab_widget
         self.menu = QMenu()
         self.show_wf = QAction("Show this workflow")
         self.menu.addAction(self.show_wf)
         self.show_wf.triggered.connect(self.change_workflow)
+        self.new_workflow = QAction("Create new workflow...")
+        self.menu.addAction(self.new_workflow)
+        self.new_workflow.triggered.connect(self.create_new_workflow)
 
         self._module = module
         self._current_workspace = None
@@ -26,14 +30,14 @@ class ModuleView(QTreeWidget):
 
         for wf in module.definitions:
             if issubclass(type(wf), _Workflow):
-                self.workspaces[wf.name] = (Workspace(wf, edit_menu))
+                self.workspaces[wf.name] = (Workspace(wf, edit_menu, self.tab_widget.main_widget.toolbox.action_database))
                 item = QTreeWidgetItem(self.root_item, [wf.name])
                 self.curr_wf_item = item
 
                 if wf.slots:
                     input_parent = QTreeWidgetItem(item,["Inputs"])
-                for slot in wf.slots:
-                    child = QTreeWidgetItem(input_parent,[slot.name])
+                    for slot in wf.slots:
+                        child = QTreeWidgetItem(input_parent,[slot.name])
 
                 if wf._result:
                     result_parent = QTreeWidgetItem(item, ["Output"])
@@ -42,6 +46,26 @@ class ModuleView(QTreeWidget):
         if self.root_item.childCount() > 0:
             self.mark_active_wf_item(self.root_item.child(0))
             self._current_workspace = self.workspaces[self.root_item.child(0).data(0, 0)]
+
+
+    def create_new_workflow(self):
+        wf_name = "new_workflow"
+        index = 0
+        while wf_name in self.workspaces.keys():
+            index += 1
+            wf_name = "new_workflow" + str(index)
+
+        item = QTreeWidgetItem(self.root_item, [wf_name])
+        self.curr_wf_item = item
+
+        wf = _Workflow(wf_name)
+        self.module.definitions.append(wf)
+
+        self.workspaces[wf_name] = (Workspace(wf, self.edit_menu, self.tab_widget.main_widget.toolbox.action_database))
+        self.tab_widget.currentWidget().addWidget(self.workspaces[wf_name])
+
+        self.mark_active_wf_item(item)
+        self.set_current_workspace(wf_name)
 
 
     def change_workflow(self):
@@ -67,7 +91,6 @@ class ModuleView(QTreeWidget):
 
     def set_current_workspace(self, name):
         self._current_workspace = self.workspaces[name]
-        temp = self._current_workspace.workflow
         self.tab_widget.change_workspace(self._current_workspace)
         self.tab_widget.main_widget.toolbox.on_workspace_change(self.module, self._current_workspace)
 
@@ -79,7 +102,8 @@ class ModuleView(QTreeWidget):
 
     def mark_active_wf_item(self, item):
         font = QFont()
-        self.curr_wf_item.setFont(0, font)
+        for i in range(self.root_item.childCount()):
+            self.root_item.child(i).setFont(0, font)
         font.setBold(True)
         item.setFont(0, font)
         self.curr_wf_item = item
@@ -87,5 +111,13 @@ class ModuleView(QTreeWidget):
     def contextMenuEvent(self, event):
         """Open context menu on right mouse button click if no dragging occurred."""
         super(ModuleView, self).contextMenuEvent(event)
-        if self.currentItem() != self.root_item:
-            self.menu.exec_(event.globalPos())
+        clicked_item = self.itemAt(event.pos())
+        clicked_item = self.root_item if clicked_item is None else clicked_item
+        self.setCurrentItem(clicked_item)
+        if clicked_item == self.root_item:
+            self.show_wf.setEnabled(False)
+        else:
+            self.show_wf.setEnabled(True)
+
+        self.menu.exec_(event.globalPos())
+
