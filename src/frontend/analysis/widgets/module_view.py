@@ -1,6 +1,8 @@
+import os
+
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QMenu, QAction
+from PyQt5.QtGui import QFont, QIcon
+from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QMenu, QAction, QStyle
 
 from common.analysis.action_workflow import _Workflow
 from frontend.analysis.menu.module_view_menu import ModuleViewMenu
@@ -22,7 +24,6 @@ class ModuleView(QTreeWidget):
         self._module = module
         self._current_workspace = None
         self.setHeaderHidden(True)
-        self.root_item = QTreeWidgetItem(self, [self._module.name])
         self.doubleClicked.connect(self._double_clicked)
 
         self.workspaces = {}
@@ -30,31 +31,36 @@ class ModuleView(QTreeWidget):
         for wf in module.definitions:
             if issubclass(type(wf), _Workflow):
                 self.workspaces[wf.name] = (Workspace(wf, edit_menu, self.tab_widget.main_widget.toolbox.action_database))
-                item = QTreeWidgetItem(self.root_item, [wf.name])
+                item = QTreeWidgetItem(self, [wf.name])
+                item.setExpanded(True)
+                self.addTopLevelItem(item)
                 self.curr_wf_item = item
 
                 if wf.slots:
-                    input_parent = QTreeWidgetItem(item,["Inputs"])
                     for slot in wf.slots:
-                        child = QTreeWidgetItem(input_parent,[slot.name])
+                        input_item = QTreeWidgetItem(item, [slot.name])
+                        input_item.setIcon(0, QIcon(os.path.join(os.getcwd(), "analysis\\icons\\arrow_right.png")))
 
                 if wf._result:
-                    result_parent = QTreeWidgetItem(item, ["Output"])
-                    QTreeWidgetItem(result_parent, [wf.result.name])
+                    output_item = QTreeWidgetItem(item, [wf.result.name])
+                    output_item.setIcon(0, QIcon(os.path.join(os.getcwd(), "analysis\\icons\\arrow_left.png")))
 
-        if self.root_item.childCount() > 0:
-            self.mark_active_wf_item(self.root_item.child(0))
-            self._current_workspace = self.workspaces[self.root_item.child(0).data(0, 0)]
+        if self.topLevelItemCount() > 0:
+            self.mark_active_wf_item(self.topLevelItem(0))
+            self._current_workspace = self.workspaces[self.topLevelItem(0).data(0, 0)]
 
     def remove_workflow(self):
-        wf_name = self.currentItem().data(0, 0)
+        curr_item = self.currentItem()
+        while curr_item.parent() != self:
+            curr_item = curr_item.parent()
+        wf_name = curr_item.data(0, 0)
         if len(self.workspaces) > 1:
             if self.current_workspace is self.workspaces[wf_name]:
-                index = self.root_item.indexOfChild(self.currentItem())
-                if self.root_item.child(index + 1) is None:
-                    item = self.root_item.child(index - 1)
+                index = self.indexOfTopLevelItem(curr_item)
+                if self.topLevelItem(index + 1) is None:
+                    item = self.topLevelItem(index - 1)
                 else:
-                    item = self.root_item.child(index + 1)
+                    item = self.topLevelItem(index + 1)
 
                 self.mark_active_wf_item(item)
                 self.set_current_workspace(item.data(0, 0))
@@ -68,10 +74,7 @@ class ModuleView(QTreeWidget):
                 del definiton
                 break
 
-
-        self.root_item.removeChild(self.currentItem())
-
-
+        self.takeTopLevelItem(self.indexOfTopLevelItem(curr_item))
 
     def create_new_workflow(self):
         wf_name = "new_workflow"
@@ -80,7 +83,9 @@ class ModuleView(QTreeWidget):
             index += 1
             wf_name = "new_workflow" + str(index)
 
-        item = QTreeWidgetItem(self.root_item, [wf_name])
+        item = QTreeWidgetItem(self, [wf_name])
+        item.setExpanded(True)
+        self.addTopLevelItem(item)
         self.curr_wf_item = item
 
         wf = _Workflow(wf_name)
@@ -95,7 +100,7 @@ class ModuleView(QTreeWidget):
 
     def _change_workflow(self):
         curr_item = self.currentItem()
-        while curr_item.parent() != self.root_item:
+        while curr_item.parent() is not None:
             curr_item = curr_item.parent()
 
         self.mark_active_wf_item(curr_item)
@@ -127,8 +132,8 @@ class ModuleView(QTreeWidget):
 
     def mark_active_wf_item(self, item):
         font = QFont()
-        for i in range(self.root_item.childCount()):
-            self.root_item.child(i).setFont(0, font)
+        for i in range(self.topLevelItemCount()):
+            self.topLevelItem(i).setFont(0, font)
         font.setBold(True)
         item.setFont(0, font)
         self.curr_wf_item = item
@@ -137,9 +142,8 @@ class ModuleView(QTreeWidget):
         """Open context menu on right mouse button click if no dragging occurred."""
         super(ModuleView, self).contextMenuEvent(event)
         clicked_item = self.itemAt(event.pos())
-        clicked_item = self.root_item if clicked_item is None else clicked_item
         self.setCurrentItem(clicked_item)
-        if clicked_item == self.root_item:
+        if clicked_item == None:
             self.menu.show_wf.setEnabled(False)
             self.menu.remove_workflow.setEnabled(False)
         else:

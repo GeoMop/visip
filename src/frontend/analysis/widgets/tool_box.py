@@ -68,6 +68,7 @@ class ToolBox(QToolBox):
             self.removeItem(self.count()-1)
             temp = self.action_database["wf"]
             self.action_database.clear()
+            self.import_modules.clear()
             self.action_database["wf"] = temp
         #self.addItem(self.system_actions_layout, "System actions")
         if module is not None:
