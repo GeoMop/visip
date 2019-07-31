@@ -38,8 +38,8 @@ class TabWidget(QTabWidget):
             self.currentWidget().last_category = self.main_widget.toolbox.currentIndex()
 
     def _add_tab(self, module_filename, module):
-        w = Tab()
         self.module_views[module_filename] = ModuleView(self, module,self.edit_menu)
+        w = Tab(self.module_views[module_filename])
         #self.main_widget.toolbox.on_workspace_change(self.module_views[module_filename].module,
         #                                             self.module_views[module_filename]._current_workspace)
         for name, workspace in self.module_views[module_filename].workspaces.items():

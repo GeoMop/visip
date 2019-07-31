@@ -3,6 +3,7 @@ from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QMenu, QAction
 
 from common.analysis.action_workflow import _Workflow
+from frontend.analysis.menu.module_view_menu import ModuleViewMenu
 from .workspace import Workspace
 
 
@@ -12,13 +13,11 @@ class ModuleView(QTreeWidget):
         super(ModuleView, self).__init__(parent)
         self.edit_menu = edit_menu
         self.tab_widget = tab_widget
-        self.menu = QMenu()
-        self.show_wf = QAction("Show this workflow")
-        self.menu.addAction(self.show_wf)
-        self.show_wf.triggered.connect(self.change_workflow)
-        self.new_workflow = QAction("Create new workflow...")
-        self.menu.addAction(self.new_workflow)
-        self.new_workflow.triggered.connect(self.create_new_workflow)
+        self.menu = ModuleViewMenu()
+
+        self.menu.show_wf.triggered.connect(self._change_workflow)
+        self.menu.new_workflow.triggered.connect(self.create_new_workflow)
+        self.menu.remove_workflow.triggered.connect(self.remove_workflow)
 
         self._module = module
         self._current_workspace = None
@@ -47,6 +46,32 @@ class ModuleView(QTreeWidget):
             self.mark_active_wf_item(self.root_item.child(0))
             self._current_workspace = self.workspaces[self.root_item.child(0).data(0, 0)]
 
+    def remove_workflow(self):
+        wf_name = self.currentItem().data(0, 0)
+        if len(self.workspaces) > 1:
+            if self.current_workspace is self.workspaces[wf_name]:
+                index = self.root_item.indexOfChild(self.currentItem())
+                if self.root_item.child(index + 1) is None:
+                    item = self.root_item.child(index - 1)
+                else:
+                    item = self.root_item.child(index + 1)
+
+                self.mark_active_wf_item(item)
+                self.set_current_workspace(item.data(0, 0))
+
+        self.tab_widget.currentWidget().removeWidget(self.workspaces[wf_name])
+
+        self.workspaces.pop(wf_name)
+
+        for definiton in self.module.definitions:
+            if definiton.name == wf_name:
+                del definiton
+                break
+
+
+        self.root_item.removeChild(self.currentItem())
+
+
 
     def create_new_workflow(self):
         wf_name = "new_workflow"
@@ -68,7 +93,7 @@ class ModuleView(QTreeWidget):
         self.set_current_workspace(wf_name)
 
 
-    def change_workflow(self):
+    def _change_workflow(self):
         curr_item = self.currentItem()
         while curr_item.parent() != self.root_item:
             curr_item = curr_item.parent()
@@ -115,9 +140,11 @@ class ModuleView(QTreeWidget):
         clicked_item = self.root_item if clicked_item is None else clicked_item
         self.setCurrentItem(clicked_item)
         if clicked_item == self.root_item:
-            self.show_wf.setEnabled(False)
+            self.menu.show_wf.setEnabled(False)
+            self.menu.remove_workflow.setEnabled(False)
         else:
-            self.show_wf.setEnabled(True)
+            self.menu.show_wf.setEnabled(True)
+            self.menu.remove_workflow.setEnabled(True)
 
         self.menu.exec_(event.globalPos())
 
