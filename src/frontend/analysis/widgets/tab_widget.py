@@ -3,6 +3,7 @@ import os
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QTabWidget, QStackedWidget, QTextEdit
 
+from frontend.analysis.config.config_data import ConfigData
 from frontend.analysis.widgets.home_tab_widget import HomeTabWidget
 from frontend.analysis.widgets.module_view import ModuleView
 from common.analysis.module import Module
@@ -12,6 +13,7 @@ from frontend.analysis.widgets.tab import Tab
 class TabWidget(QTabWidget):
     def __init__(self, main_widget, edit_menu, parent=None):
         super(TabWidget, self).__init__(parent)
+        self.cfg = ConfigData()
         self.setTabsClosable(True)
         self.setTabShape(1)
         self.tabCloseRequested.connect(self.on_close_tab)
@@ -22,7 +24,6 @@ class TabWidget(QTabWidget):
         self.edit_menu.order_diagram.triggered.connect(self.order_diagram)
         self.currentChanged.connect(self.current_changed)
         self.tabBarClicked.connect(self.before_curr_index_change)
-
 
         self.main_widget = main_widget
 
@@ -53,9 +54,9 @@ class TabWidget(QTabWidget):
 
     def create_new_module(self, module_name=None):
         if not isinstance(module_name, str):
-            filename = QtWidgets.QFileDialog.getSaveFileName(self.parent(), "New Module", os.getcwd())[0]
+            filename = QtWidgets.QFileDialog.getSaveFileName(self.parent(), "New Module", self.cfg.last_opened_directory)[0]
         if filename != "":
-
+            self.cfg.last_opened_directory = os.path.dirname(filename)
             if not filename.endswith(".py"):
                 filename = filename + ".py"
             with open(filename, "w") as file:
@@ -65,9 +66,9 @@ class TabWidget(QTabWidget):
 
     def open_module(self, filename=None):
         if not isinstance(filename, str):
-            filename = QtWidgets.QFileDialog.getOpenFileName(self.parent(), "Select Module", os.getcwd())[0]
+            filename = QtWidgets.QFileDialog.getOpenFileName(self.parent(), "Select Module", self.cfg.last_opened_directory)[0]
         if filename != "":
-            temp = os.path.join(os.getcwd(), "analysis", filename)
+            self.cfg.last_opened_directory = os.path.dirname(filename)
             module = Module(filename)
             self._add_tab(os.path.basename(filename), module)
 
