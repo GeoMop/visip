@@ -30,7 +30,7 @@ class Workspace(QtWidgets.QGraphicsView):
 
         self.setAcceptDrops(True)
 
-        self.setDragMode(self.RubberBandDrag)
+        self.setDragMode(self.ScrollHandDrag)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setViewportUpdateMode(self.FullViewportUpdate)
@@ -107,8 +107,6 @@ class Workspace(QtWidgets.QGraphicsView):
             self.scene.update()
         self.last_mouse_event_pos = move_event.pos()
 
-
-
     def mouseReleaseEvent(self, release_event):
         super(Workspace, self).mouseReleaseEvent(release_event)
         '''
@@ -129,6 +127,23 @@ class Workspace(QtWidgets.QGraphicsView):
         else:
             self.setCursor(QtCore.Qt.ArrowCursor)
             self.viewport_moved = False
+
+    def keyPressEvent(self, key_event):
+        super(Workspace, self).keyPressEvent(key_event)
+        if key_event.key() == QtCore.Qt.Key_Control:
+            self.setDragMode(self.RubberBandDrag)
+
+    def keyReleaseEvent(self, key_event):
+        super(Workspace, self).keyReleaseEvent(key_event)
+        if key_event.key() == QtCore.Qt.Key_Control:
+            self.setDragMode(self.ScrollHandDrag)
+
+    def focusInEvent(self, focus_event):
+        super(Workspace, self).focusInEvent(focus_event)
+        if QApplication.queryKeyboardModifiers() & QtCore.Qt.ControlModifier:
+            self.setDragMode(self.RubberBandDrag)
+        else:
+            self.setDragMode(self.ScrollHandDrag)
 
     def show_fps(self):
         """Debug tool"""

@@ -60,7 +60,6 @@ class GAction(QtWidgets.QGraphicsPathItem):
         else:
             self._add_ports(len(w_data_item.arguments))
 
-
         self.level = 0
         self.height = self.height
         self.width = self.width
@@ -123,6 +122,8 @@ class GAction(QtWidgets.QGraphicsPathItem):
         self.position_ports()
         self.update_gfx()
         #self.resize_handles.update_handles()
+
+
 
     def boundingRect(self):
         return super(GAction, self).boundingRect().united(self.childrenBoundingRect())
@@ -188,13 +189,18 @@ class GAction(QtWidgets.QGraphicsPathItem):
         super(GAction, self).moveBy(dx, dy)
         self.scene().move(self.g_data_item, self.x() + dx, self.y() + dy)
 
+    def hoverEnterEvent(self, hover_event):
+        self.setCursor(QtCore.Qt.ArrowCursor)
+
     def mousePressEvent(self, press_event):
         super(GAction, self).mousePressEvent(press_event)
+        self.setCursor(QtCore.Qt.ClosedHandCursor)
         if press_event.button() == Qt.RightButton:
             self.setSelected(True)
 
     def mouseReleaseEvent(self, release_event):
         super(GAction, self).mouseReleaseEvent(release_event)
+        self.setCursor(QtCore.Qt.OpenHandCursor)
         temp = release_event.buttonDownScenePos(Qt.LeftButton)
         temp2 = release_event.pos()
         if release_event.buttonDownScenePos(Qt.LeftButton) != self.mapToScene(release_event.pos()):
