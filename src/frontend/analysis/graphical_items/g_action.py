@@ -55,10 +55,7 @@ class GAction(QtWidgets.QGraphicsPathItem):
         self.g_data_item = g_data_item
         self.w_data_item = w_data_item
 
-        if len(w_data_item.parameters.parameters) > 0:
-            self._add_ports(len(w_data_item.arguments), w_data_item.parameters.parameters[-1].name is None)
-        else:
-            self._add_ports(len(w_data_item.arguments))
+        self.update_ports()
 
         self.level = 0
         self.height = self.height
@@ -67,6 +64,14 @@ class GAction(QtWidgets.QGraphicsPathItem):
         self.progress = 0
 
         self.status = ActionStatus.IDLE
+
+    def update_ports(self):
+        self.in_ports.clear()
+        self.out_ports.clear()
+        if len(self.w_data_item.parameters.parameters) > 0:
+            self._add_ports(len(self.w_data_item.arguments), self.w_data_item.parameters.parameters[-1].name is None)
+        else:
+            self._add_ports(len(self.w_data_item.arguments))
 
     def __repr__(self):
         return self.name + "\t" + str(self.level)

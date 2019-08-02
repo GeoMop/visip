@@ -7,6 +7,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 # todo: Add port which will have plus inside and when clicked will create new port.
 # todo: If it will be clicked with new connection, new port is created and connection is connected to the new port
 from PyQt5.QtCore import QPoint
+from PyQt5.QtWidgets import QApplication
 
 
 class GPort(QtWidgets.QGraphicsPathItem):
@@ -30,13 +31,14 @@ class GPort(QtWidgets.QGraphicsPathItem):
         self.setPen(QtCore.Qt.black)
         self.setBrush(QtCore.Qt.white)
         self.connections = []
-        self.setAcceptHoverEvents(True)
+        #self.setAcceptHoverEvents(True)
         self.setZValue(1.0)
         self.setFlag(self.ItemSendsGeometryChanges)
 
         self.setToolTip("Type")
 
         self.index = index
+        self.setCursor(QtCore.Qt.ArrowCursor)
 
     @property
     def appending_port(self):
@@ -83,7 +85,6 @@ class GPort(QtWidgets.QGraphicsPathItem):
         """Return scene coordinates to draw connection."""
         return self.mapToScene(QtCore.QPoint(self.RADIUS, self.RADIUS))
 
-
 class GInputPort(GPort):
     """Class for input data."""
     def __init__(self, index, pos=QPoint(0,0), name="", parent=None):
@@ -96,7 +97,8 @@ class GInputPort(GPort):
     def mousePressEvent(self, event):
         if not self.connections:
             super(GInputPort, self).mousePressEvent(event)
-
+        else:
+            self.scene().detach_connection(self, QApplication.keyboardModifiers() & QtCore.Qt.AltModifier)
 
 class GOutputPort(GPort):
     """Class for output data."""

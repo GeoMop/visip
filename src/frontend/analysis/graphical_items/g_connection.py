@@ -39,6 +39,10 @@ class GConnection(QtWidgets.QGraphicsPathItem):
         self._shape = QtGui.QPainterPath()
         self.update_gfx()
         self.setToolTip("conn_type")
+        self.setCursor(Qt.ArrowCursor)
+
+    def __del__(self):
+        i=1
 
     def is_connected(self, port):
         """Returns True if this connection is attached to specified port."""

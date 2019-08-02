@@ -10,7 +10,7 @@ from frontend.analysis.graphical_items.g_input_action import GInputAction
 from frontend.analysis.graphical_items.root_action import RootAction
 from frontend.analysis.graphical_items.g_action import GAction
 from frontend.analysis.graphical_items.g_connection import GConnection
-from frontend.analysis.graphical_items.g_port import GOutputPort
+from frontend.analysis.graphical_items.g_port import GOutputPort, GInputPort
 from frontend.analysis.graphical_items.action_for_subactions import GActionForSubactions
 from frontend.analysis.data.g_action_data_model import GActionDataModel, GActionData
 import random
@@ -29,6 +29,7 @@ class Scene(QtWidgets.QGraphicsScene):
         self.workflow = workflow
         self.actions = []
         self.new_connection = None
+        self.detached_port = None
         self.available_actions = available_actions
 
         self.workflow_name = QGraphicsSimpleTextItem(workflow.name)
@@ -81,13 +82,12 @@ class Scene(QtWidgets.QGraphicsScene):
 
 
     def update_scene(self):
-        if self.update_model:
+        if self.update_model and self.new_connection is None:
             self.update_model = False
             self.clear()
             self.actions.clear()
             self.root_item = RootAction()
             self.addItem(self.root_item)
-            temp = self.action_model.get_item().children()
 
             for child in self.action_model.get_item().children():
                 self.draw_action(child)
@@ -308,16 +308,34 @@ class Scene(QtWidgets.QGraphicsScene):
         self.actions.append(ActionForSubactions(parent, pos))
     '''
 
+    def detach_connection(self, in_port, alt):
+        action_name1 = in_port.parentItem().name
+        port_index1 = in_port.parentItem().in_ports.index(in_port)
+        action_name2 = in_port.connections[0].port1.parentItem().name
+        self._delete_connection(in_port.connections[0])
+        self.update_model = True
+        self.update_scene()
+        port1 = self.get_action(action_name1).in_ports[port_index1]
+        port2 = self.get_action(action_name2).out_ports[0]
+        if alt:
+            connected_port = port2
+            self.detached_port = port1
+        else:
+            connected_port = port1
+            self.detached_port = port2
+
+        self.add_connection(connected_port)
+
     def add_connection(self, port):
         """Create new connection from/to specified port and add it to workspace."""
         if self.new_connection is None:
-            isinstance(port, GOutputPort)
+            self.clearSelection()
             if isinstance(port, GOutputPort):
                 self.enable_ports(False, False)
             else:
                 self.enable_ports(True, False)
-            self.views()[0].setDragMode(QtWidgets.QGraphicsView.NoDrag)
             self.new_connection = GConnection(port)
+            self.new_connection.unsetCursor()
             self.addItem(self.new_connection)
             self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, False)
         else:
@@ -326,7 +344,6 @@ class Scene(QtWidgets.QGraphicsScene):
             else:
                 self.enable_ports(False, True)
 
-            self.views()[0].setDragMode(QtWidgets.QGraphicsView.RubberBandDrag)
             self.new_connection.set_port2(port)
 
             port1 = self.new_connection.port1
@@ -338,7 +355,9 @@ class Scene(QtWidgets.QGraphicsScene):
             self.workflow.set_action_input(action2, port2.index, action1)
             if True: #self.is_graph_acyclic():
                 self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, True)
+                self.new_connection.setCursor(Qt.ArrowCursor)
                 self.new_connection = None
+                self.detached_port = None
                 self.update_model = True
 
                 if port1.appending_port:
@@ -357,13 +376,15 @@ class Scene(QtWidgets.QGraphicsScene):
 
                 if port2.appending_port:
                     port2.appending_port = False
+
+
             else:
                 msg = "Pipeline cannot be cyclic!"
                 msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,
                                             "Cyclic diagram", msg,
                                             QtWidgets.QMessageBox.Ok)
                 msg.exec_()
-                self.delete_connection(self.new_connection)
+                self._delete_connection(self.new_connection)
                 self.new_connection = None
 
     def enable_ports(self, in_ports, enable):
@@ -377,49 +398,53 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def keyPressEvent(self, key_event):
         if key_event.key() == Qt.Key_Escape:
-            self.removeItem(self.new_connection)
-            self.new_connection = None
-            self.enable_ports(True, True)
-            self.enable_ports(False, True)
+            if self.detached_port:
+                self.add_connection(self.detached_port)
+            else:
+                self.removeItem(self.new_connection)
+                self.new_connection = None
+                self.enable_ports(True, True)
+                self.enable_ports(False, True)
 
 
     def delete_items(self):
         """Delete all selected items from workspace."""
-        while self.selectedItems():
+        if self.new_connection is None:
+            while self.selectedItems():
 
-            item = self.selectedItems()[0]
-            if self.is_action(item):
-                for port in item.ports():
-                    while port.connections:
-                        self.delete_connection(port.connections[0])
-
-                self.delete_action(item)
-            else:
-                self.delete_connection(item)
-                """
-            item = self.selectedItems()[0]
-            if self.is_action(item):
-                conn_to_delete = []
-                for conn in self.connections:
+                item = self.selectedItems()[0]
+                if self.is_action(item):
                     for port in item.ports():
-                        if conn.is_connected(port) and conn not in conn_to_delete:
-                            conn_to_delete.append(conn)
+                        while port.connections:
+                            self._delete_connection(port.connections[0])
 
-                for conn in conn_to_delete:
-                    try:
-                        self.delete_connection(conn)
-                    except:
-                        print("Tried to delete connection again... probably...")
-                
-                self.delete_action(item)
-            else:
-                self.delete_connection(item)
-                """
+                    self._delete_action(item)
+                else:
+                    self._delete_connection(item)
+                    """
+                item = self.selectedItems()[0]
+                if self.is_action(item):
+                    conn_to_delete = []
+                    for conn in self.connections:
+                        for port in item.ports():
+                            if conn.is_connected(port) and conn not in conn_to_delete:
+                                conn_to_delete.append(conn)
+    
+                    for conn in conn_to_delete:
+                        try:
+                            self.delete_connection(conn)
+                        except:
+                            print("Tried to delete connection again... probably...")
+                    
+                    self.delete_action(item)
+                else:
+                    self.delete_connection(item)
+                    """
 
-        self.update_model = True
-        self.update()
+            self.update_model = True
+            self.update()
 
-    def delete_action(self, action):
+    def _delete_action(self, action):
         """Delete specified action from workspace."""
         self.action_model.removeRow(action.g_data_item.child_number())
         self.actions.remove(action)
@@ -429,8 +454,7 @@ class Scene(QtWidgets.QGraphicsScene):
         if isinstance(action, GInputAction):
             self.workflow.remove_slot(self.workflow.slots.index(action.w_data_item))
 
-
-    def delete_connection(self, conn):
+    def _delete_connection(self, conn):
         action1 = conn.port1.parentItem().w_data_item
         action2 = conn.port2.parentItem().w_data_item
         for i in range(len(action2.arguments)):
