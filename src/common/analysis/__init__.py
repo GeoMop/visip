@@ -1,10 +1,14 @@
 from common.analysis.action_base import Value, List
-from common.analysis.action_workflow import Result, SlotInstance
+from common.analysis.action_workflow import _ResultAction, Slot
 from common.analysis.code.decorators import workflow, analysis, action, Class
 from common.analysis.converter import GetAttribute, GetItem
 from .action import *
 
-base_system_actions = [SlotInstance("slot"), Result(), Value(None), List(), GetAttribute(None), GetItem()]
+base_system_actions = [Slot(),
+                       Value(None),
+                       List(),
+                       GetAttribute(None),
+                       GetItem()]
 
 """
 # Minimalistic implementation of the analysis data layer for the GUI.

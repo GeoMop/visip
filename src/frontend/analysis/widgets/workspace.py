@@ -14,11 +14,12 @@ from .scene import Scene
 
 class Workspace(QtWidgets.QGraphicsView):
     """Graphics scene which handles user input and shows user the results."""
-    def __init__(self, workflow, edit_menu, parent=None):
+    def __init__(self, workflow, edit_menu, available_actions, parent=None):
         """Initializes class."""
         super(Workspace, self).__init__(parent)
         self.workflow = workflow
-        self.scene = Scene(workflow, self)
+        self.scene = Scene(workflow, available_actions, self)
+        self.available_actions = available_actions
         self.setScene(self.scene)
         self.setRenderHint(QtGui.QPainter.Antialiasing, True)
 
@@ -29,7 +30,7 @@ class Workspace(QtWidgets.QGraphicsView):
 
         self.setAcceptDrops(True)
 
-        self.setDragMode(self.RubberBandDrag)
+        self.setDragMode(self.ScrollHandDrag)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setViewportUpdateMode(self.FullViewportUpdate)
@@ -53,6 +54,9 @@ class Workspace(QtWidgets.QGraphicsView):
         self.last_mouse_event_pos = QPoint(0, 0)
         self.mouse_press_event_pos = QPoint(0, 0)
 
+    def __repr__(self):
+        return "Workspace: " + self.scene.workflow.name
+
     def _on_wf_changed(self):
         self.scene = Scene(self.module_view.current_workspace, self)
         self.setScene(self.scene)
@@ -66,12 +70,17 @@ class Workspace(QtWidgets.QGraphicsView):
     def dragEnterEvent(self, drag_enter):
         """Accept drag event if it carries action."""
         if drag_enter.mimeData().hasText():
-            if drag_enter.mimeData().text() in ["Slot", "List"]:
+            identifier = drag_enter.mimeData().text()
+            index = identifier.rfind(".")
+            module = identifier[:index]
+            action_name = identifier[index + 1:]
+            if module == "wf" and (action_name == "Slot"):
+                drag_enter.acceptProposedAction()
+            if action_name in self.available_actions[module]:
                 drag_enter.acceptProposedAction()
 
     def dropEvent(self, drop_event):
         """Create new action from dropped information"""
-        self.scene.new_action_pos = self.mapToScene(drop_event.pos()) - drop_event.source().get_pos_correction()
         self.scene.add_action(self.mapToScene(drop_event.pos()) - drop_event.source().get_pos_correction(),
                               drop_event.mimeData().text())
         drop_event.acceptProposedAction()
@@ -98,8 +107,6 @@ class Workspace(QtWidgets.QGraphicsView):
             self.scene.update()
         self.last_mouse_event_pos = move_event.pos()
 
-
-
     def mouseReleaseEvent(self, release_event):
         super(Workspace, self).mouseReleaseEvent(release_event)
         '''
@@ -120,6 +127,23 @@ class Workspace(QtWidgets.QGraphicsView):
         else:
             self.setCursor(QtCore.Qt.ArrowCursor)
             self.viewport_moved = False
+
+    def keyPressEvent(self, key_event):
+        super(Workspace, self).keyPressEvent(key_event)
+        if key_event.key() == QtCore.Qt.Key_Control:
+            self.setDragMode(self.RubberBandDrag)
+
+    def keyReleaseEvent(self, key_event):
+        super(Workspace, self).keyReleaseEvent(key_event)
+        if key_event.key() == QtCore.Qt.Key_Control:
+            self.setDragMode(self.ScrollHandDrag)
+
+    def focusInEvent(self, focus_event):
+        super(Workspace, self).focusInEvent(focus_event)
+        if QApplication.queryKeyboardModifiers() & QtCore.Qt.ControlModifier:
+            self.setDragMode(self.RubberBandDrag)
+        else:
+            self.setDragMode(self.ScrollHandDrag)
 
     def show_fps(self):
         """Debug tool"""

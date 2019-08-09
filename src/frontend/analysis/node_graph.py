@@ -17,7 +17,7 @@ from frontend.analysis.widgets.main_widget import MainWidget
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    w = MainWidget()
+    w = MainWidget(app)
     w.resize(1000, 720)
     w.move(300, 50)
     w.setWindowTitle('Analysis')

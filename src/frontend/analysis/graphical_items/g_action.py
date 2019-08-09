@@ -55,11 +55,7 @@ class GAction(QtWidgets.QGraphicsPathItem):
         self.g_data_item = g_data_item
         self.w_data_item = w_data_item
 
-        if len(w_data_item.parameters.parameters) > 0:
-            self._add_ports(len(w_data_item.arguments), w_data_item.parameters.parameters[-1].name is None)
-        else:
-            self._add_ports(len(w_data_item.arguments))
-
+        self.update_ports()
 
         self.level = 0
         self.height = self.height
@@ -68,6 +64,14 @@ class GAction(QtWidgets.QGraphicsPathItem):
         self.progress = 0
 
         self.status = ActionStatus.IDLE
+
+    def update_ports(self):
+        self.in_ports.clear()
+        self.out_ports.clear()
+        if len(self.w_data_item.parameters.parameters) > 0:
+            self._add_ports(len(self.w_data_item.arguments), self.w_data_item.parameters.parameters[-1].name is None)
+        else:
+            self._add_ports(len(self.w_data_item.arguments))
 
     def __repr__(self):
         return self.name + "\t" + str(self.level)
@@ -123,6 +127,8 @@ class GAction(QtWidgets.QGraphicsPathItem):
         self.position_ports()
         self.update_gfx()
         #self.resize_handles.update_handles()
+
+
 
     def boundingRect(self):
         return super(GAction, self).boundingRect().united(self.childrenBoundingRect())
@@ -188,13 +194,18 @@ class GAction(QtWidgets.QGraphicsPathItem):
         super(GAction, self).moveBy(dx, dy)
         self.scene().move(self.g_data_item, self.x() + dx, self.y() + dy)
 
+    def hoverEnterEvent(self, hover_event):
+        self.setCursor(QtCore.Qt.ArrowCursor)
+
     def mousePressEvent(self, press_event):
         super(GAction, self).mousePressEvent(press_event)
+        self.setCursor(QtCore.Qt.ClosedHandCursor)
         if press_event.button() == Qt.RightButton:
             self.setSelected(True)
 
     def mouseReleaseEvent(self, release_event):
         super(GAction, self).mouseReleaseEvent(release_event)
+        self.setCursor(QtCore.Qt.OpenHandCursor)
         temp = release_event.buttonDownScenePos(Qt.LeftButton)
         temp2 = release_event.pos()
         if release_event.buttonDownScenePos(Qt.LeftButton) != self.mapToScene(release_event.pos()):
