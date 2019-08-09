@@ -1,1 +1,0 @@
-from .transformator import Transformator, TransformationFileFormatError

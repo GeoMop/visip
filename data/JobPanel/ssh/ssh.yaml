@@ -1,4 +1,0 @@
-metacentrum: {env: metacentrum, host: skirit.ics.muni.cz, key: 0971f20a-ed5a-452f-ab91-678b72b7a896,
-  name: metacentrum, pbs_system: pbs_metacentrum, port: 22, pwd: a124b.#, remote_dir: js_services,
-  to_pc: false, to_remote: false, uid: user}
-

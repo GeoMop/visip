@@ -1,9 +1,0 @@
-{
-  problem = {
-    TYPE = "SequentialCoupling",
-    description = "Lorem ipsum"
-  },
-  empty = {
-    TYPE = "test"
-  }
-}

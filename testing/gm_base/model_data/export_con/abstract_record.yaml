@@ -1,3 +1,0 @@
-problem: !SequentialCoupling
-  description: Lorem ipsum
-empty: !test
