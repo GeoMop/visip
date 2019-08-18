@@ -7,9 +7,12 @@ Main window.
 import os
 
 from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QMessageBox
 
 from frontend.config.config_data import ConfigData
+from frontend.menu.eval_menu import EvalMenu
 from frontend.menu.file_menu import FileMenu
+from frontend.services.gui_evaluation import GUIEvaluation
 from frontend.widgets.composite_type_view import CompositeTypeView
 from frontend.widgets.tool_box import ToolBox
 
@@ -29,6 +32,10 @@ class MainWidget(QtWidgets.QMainWindow):
         self.tab_widget = TabWidget(self, self.edit_menu)
         self.setCentralWidget(self.tab_widget)
 
+        self.file_menu.new.triggered.connect(self.tab_widget.create_new_module)
+        self.file_menu.open.triggered.connect(self.tab_widget.open_module)
+        self.file_menu.export.triggered.connect(self.export_to_file)
+
         #self.tab_widget.open_module("C:\\Users\\samot\\PycharmProjects\\GeoMop\\testing\\common\\analysis\\analysis_in.py")   # for testing purposes
 
         self.toolbox = ToolBox(self)
@@ -39,10 +46,6 @@ class MainWidget(QtWidgets.QMainWindow):
         self.data_dock.setWidget(self.data_view)
 
         self.resize(1000, 500)
-
-        self.file_menu.new.triggered.connect(self.tab_widget.create_new_module)
-        self.file_menu.open.triggered.connect(self.tab_widget.open_module)
-        self.file_menu.export.triggered.connect(self.export_to_file)
 
         app.aboutToQuit.connect(self.before_exit)
 
@@ -57,6 +60,10 @@ class MainWidget(QtWidgets.QMainWindow):
         self.menu_bar.addMenu(self.file_menu)
         self.edit_menu = EditMenu(self)
         self.menu_bar.addMenu(self.edit_menu)
+        self.eval_menu = EvalMenu()
+        self.menu_bar.addMenu(self.eval_menu)
+
+        self.eval_menu.evaluate.triggered.connect(self.evaluate)
 
     def _init_docks(self):
         """Initializes docks"""
@@ -81,4 +88,13 @@ class MainWidget(QtWidgets.QMainWindow):
             code = self.tab_widget.current_module_view().module.code()
             with open(filename, 'w') as f:
                 f.write(code)
+
+    def evaluate(self):
+        workflow = self.tab_widget.current_workspace().workflow
+        if workflow.is_analysis:
+            GUIEvaluation(workflow)
+        else:
+            msg = QMessageBox(self)
+            msg.setText( "This isn't analysis. Todo: make a dialog to fill empty slots!")
+            msg.exec()
 

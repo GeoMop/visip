@@ -344,16 +344,17 @@ class Evaluation:
         :return:
         """
         while not self.force_finish:
-            schedule = self.expand_tasks(assigned_tasks_limit)
-            self.tasks_update(schedule)
-            self.scheduler.update()
-            self.scheduler.optimize()
-            if  self.scheduler.n_assigned_tasks == 0:
-                self.force_finish = True
-
+            self.process(assigned_tasks_limit)
 
         return self.final_task
 
+    def process(self, assigned_tasks_limit=np.inf):
+        schedule = self.expand_tasks(assigned_tasks_limit)
+        self.tasks_update(schedule)
+        self.scheduler.update()
+        self.scheduler.optimize()
+        if self.scheduler.n_assigned_tasks == 0:
+            self.force_finish = True
 
     def enqueue(self, task: task_mod.Composed):
         heapq.heappush(self.queue, (self.composed_id, task.time_estimate, task))
