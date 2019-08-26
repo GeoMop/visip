@@ -9,10 +9,11 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import QPoint
 from PyQt5.QtWidgets import QFileDialog, QApplication
 
+from frontend.widgets.base.g_base_model_view import GBaseModelView
 from .scene import Scene
 
 
-class Workspace(QtWidgets.QGraphicsView):
+class Workspace(GBaseModelView):
     """Graphics scene which handles user input and shows user the results."""
     def __init__(self, workflow, edit_menu, available_actions, parent=None):
         """Initializes class."""
@@ -30,17 +31,6 @@ class Workspace(QtWidgets.QGraphicsView):
 
         self.setAcceptDrops(True)
 
-        self.setDragMode(self.ScrollHandDrag)
-        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setViewportUpdateMode(self.FullViewportUpdate)
-
-        # settings for zooming the workspace
-        self.zoom = 1.0
-        self.zoom_factor = 1.1
-        self.max_zoom = pow(self.zoom_factor, 10)
-        self.min_zoom = pow(1/self.zoom_factor, 20)
-
         # timer for updating scene
         timer = QtCore.QTimer(self)
         timer.timeout.connect(self.scene.update_scene)
@@ -56,10 +46,6 @@ class Workspace(QtWidgets.QGraphicsView):
 
     def __repr__(self):
         return "Workspace: " + self.scene.workflow.name
-
-    def _on_wf_changed(self):
-        self.scene = Scene(self.module_view.current_workspace, self)
-        self.setScene(self.scene)
 
     def mousePressEvent(self, press_event):
         """Store information about position where this event occurred."""
@@ -158,20 +144,6 @@ class Workspace(QtWidgets.QGraphicsView):
 
         self.prof = cProfile.Profile()
         self.prof.enable()
-
-    def wheelEvent(self, event):
-        """Handle zoom on wheel rotation."""
-        degrees = event.angleDelta() / 8
-        steps = degrees.y() / 15
-        self.setTransformationAnchor(self.AnchorUnderMouse)
-        if steps > 0:
-            if self.zoom < self.max_zoom:
-                self.scale(self.zoom_factor, self.zoom_factor)
-                self.zoom = self.zoom * self.zoom_factor
-        else:
-            if self.zoom > self.min_zoom:
-                self.scale(1 / self.zoom_factor, 1 / self.zoom_factor)
-                self.zoom = self.zoom / self.zoom_factor
 
     def paintEvent(self, event):
         if self.center_on_content:

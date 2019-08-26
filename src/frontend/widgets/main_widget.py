@@ -92,7 +92,7 @@ class MainWidget(QtWidgets.QMainWindow):
     def evaluate(self):
         workflow = self.tab_widget.current_workspace().workflow
         if workflow.is_analysis:
-            GUIEvaluation(workflow)
+            self.eval = GUIEvaluation(workflow)
         else:
             msg = QMessageBox(self)
             msg.setText( "This isn't analysis. Todo: make a dialog to fill empty slots!")

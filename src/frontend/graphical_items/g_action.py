@@ -63,7 +63,7 @@ class GAction(QtWidgets.QGraphicsPathItem):
 
         self.progress = 0
 
-        self.status = ActionStatus.IDLE
+        #self._status = ActionStatus.IDLE
 
     def update_ports(self):
         self.in_ports.clear()

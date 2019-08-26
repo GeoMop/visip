@@ -15,62 +15,37 @@ from frontend.data.g_action_data_model import GActionDataModel, GActionData
 import random
 import math
 
+from frontend.widgets.base.g_base_model_scene import GBaseModelScene
+
 
 class ActionTypes:
     ACTION = 0
     CONNECTION = 1
 
 
-class Scene(QtWidgets.QGraphicsScene):
+class Scene(GBaseModelScene):
     def __init__(self, workflow, available_actions, parent=None):
-        super(Scene, self).__init__(parent)
-        self.unconnected_actions = {}
-        self.workflow = workflow
-        self.actions = []
-        self.new_connection = None
+        super(Scene, self).__init__(workflow, parent)
         self.detached_port = None
         self.available_actions = available_actions
 
         self.workflow_name = QGraphicsSimpleTextItem(workflow.name)
         self.workflow_name.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
 
-        self.root_item = RootAction()
-        self.addItem(self.root_item)
-
         self.new_action_pos = QtCore.QPoint()
-
-        self.action_model = GActionDataModel()
-        self.action_model.dataChanged.connect(self.data_changed)
-        self.update_model = True
 
         self.setSceneRect(QtCore.QRectF(QtCore.QPoint(-10000000, -10000000), QtCore.QPoint(10000000, 10000000)))
 
-        self.initialize_workspace_from_workflow(workflow)
+        self.initialize_workspace_from_workflow()
 
-
-
-    def initialize_workspace_from_workflow(self, workflow):
-        for action_name in {**workflow._actions, "__result__": workflow._result}:
+    def initialize_workspace_from_workflow(self):
+        for action_name in {**self.workflow._actions, "__result__": self.workflow._result}:
             self._add_action(QPoint(0.0, 0.0), action_name)
-
-        #for slot in workflow.slots:
-        #    self._add_action(QPoint(0.0, 0.0), slot.name)
 
         self.update_scene()
         self.order_diagram()
         self.update_scene()
         self.parent().center_on_content = True
-
-    @staticmethod
-    def is_action(obj):
-        """Return True if given object obj is an g_action."""
-        if issubclass(type(obj), GAction):
-            return True
-        else:
-            return False
-
-    def data_changed(self):
-        self.update_model = True
 
     def drawForeground(self, painter, rectf):
         super(Scene, self).drawForeground(painter, rectf)
@@ -78,129 +53,6 @@ class Scene(QtWidgets.QGraphicsScene):
         painter.scale(1.5, 1.5)
         text = QStaticText("Workflow: " + self.workflow.name)
         painter.drawStaticText(QPoint(5,5), text)
-
-
-    def update_scene(self):
-        if self.update_model and self.new_connection is None:
-            self.update_model = False
-            self.clear()
-            self.actions.clear()
-            self.root_item = RootAction()
-            self.addItem(self.root_item)
-
-            for child in self.action_model.get_item().children():
-                self.draw_action(child)
-
-            if self.new_connection is not None:
-                self.addItem(self.new_connection)
-
-            all_actions = {**self.workflow._actions, **self.unconnected_actions, "__result__": self.workflow._result}
-            for action_name, action in all_actions.items():
-                i = 0
-                for other_action in action.arguments:
-                    status = other_action.status
-                    if status != ActionInputStatus.missing:
-                        other_action = other_action.value
-                        if self.get_action(other_action.name) is not None:
-                            port1 = self.get_action(other_action.name).out_ports[0]
-                        if len(self.get_action(action_name).in_ports) <= i:
-                            i = 1
-                        port2 = self.get_action(action_name).in_ports[i]
-                        port1.connections.append(GConnection(port1, port2, status))
-                        port2.connections.append(port1.connections[-1])
-                        self.addItem(port1.connections[-1])
-
-                    i += 1
-
-            self.update()
-
-    def draw_action(self, item):
-        action = {**self.workflow._actions, "__result__":self.workflow._result}.get(item.data(GActionData.NAME))
-        if action is None:
-            action = self.unconnected_actions.get(item.data(GActionData.NAME))
-        if isinstance(action, SlotInstance):
-            self.actions.append(GInputAction(item, action, self.root_item))
-        elif isinstance(action, ActionInstance):
-            self.actions.append(GAction(item, action, self.root_item))
-
-        for child in item.children():
-            self.draw_action(child)
-
-        self.update()
-
-    def order_diagram(self):
-        #todo: optimize by assigning levels when scanning from bottom actions
-        if self.actions:
-            queue = []
-            for action in self.actions:
-                if action.previous_actions():
-                    action.level = self.get_distance(action)
-                else:
-                    queue.append(action)
-
-            for action in queue:
-                action.level = math.inf
-                for next_action in action.next_actions():
-                    action.level = min(next_action.level - 1, action.level)
-            self.reorganize_actions_by_levels()
-
-    def reorganize_actions_by_levels(self):
-        actions_by_levels = {}
-        for action in self.actions:
-            if action.level in actions_by_levels:
-                actions_by_levels[action.level].append(action)
-            else:
-                actions_by_levels[action.level] = [action]
-        levels = list(actions_by_levels.keys())
-        levels.sort()
-        base_item = actions_by_levels[levels[0]][-1]
-        prev_y = base_item.y()
-        max_height = base_item.height
-        for level in levels:
-            for item in actions_by_levels[level]:
-                max_height = max(max_height, item.height)
-            for item in actions_by_levels[level]:
-                self.move(item.g_data_item, None, prev_y)
-            items = sorted(actions_by_levels[level], key=lambda item:item.x())
-            middle = math.floor(len(items)/2)
-            prev_x = items[middle].pos().x()
-            prev_width = items[middle].width
-            for i in range(middle + 1, len(items)):
-                if items[i].pos().x() < prev_x + prev_width:
-                    prev_x = prev_x + prev_width + 10
-                    self.move(items[i].g_data_item, prev_x, None)
-                prev_width = items[i].width
-
-            prev_x = items[middle].pos().x()
-            prev_width = items[middle].width
-
-            for i in range(middle - 1, -1, -1):
-                if items[i].pos().x() + items[i].width > prev_x:
-                    prev_x = prev_x - items[i].width - 10
-                    self.move(items[i].g_data_item, prev_x, None)
-
-            prev_y = prev_y + max_height + 50
-
-        self.update_model = True
-        self.update()
-
-    def get_distance(self, action):
-        prev_actions = set(action.previous_actions())
-        next_prev_actions = set()
-        dist = 0
-        while prev_actions:
-            next_prev_actions = next_prev_actions.union(set(prev_actions.pop().previous_actions()))
-            if not prev_actions:
-                dist += 1
-                prev_actions = next_prev_actions
-                next_prev_actions = set()
-
-        return dist
-
-    def get_action(self, name: str) -> GAction:
-        for action in self.actions:
-            if action.name == name:
-                return action
 
     def find_top_afs(self, pos):
         for item in self.items(pos):
@@ -266,18 +118,6 @@ class Scene(QtWidgets.QGraphicsScene):
             return False
 
     # Modifying functions
-
-    def move(self, action, new_x, new_y):
-        self.action_model.move(action, new_x, new_y)
-        self.update_model = False
-        self.update()
-
-    def _add_action(self, new_action_pos, name=None):
-        """Create new action and add it to workspace."""
-        [parent, pos] = self.find_top_afs(new_action_pos)
-        self.action_model.add_item(pos.x(), pos.y(), 50, 50, name)
-        self.update_model = True
-
     def add_action(self, new_action_pos, action_type="wf.List"):
         index = action_type.rfind(".")
         module = action_type[:index]
