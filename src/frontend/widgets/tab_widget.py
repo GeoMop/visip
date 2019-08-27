@@ -92,7 +92,6 @@ class TabWidget(QTabWidget):
         return self.module_views[self.tabText(self.currentIndex())]
 
     def on_close_tab(self, index):
-        print(self.currentIndex())
         self.module_views.pop(self.tabText(index), None)
         self.removeTab(index)
 

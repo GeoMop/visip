@@ -17,7 +17,7 @@ from frontend.data.g_action_data_model import GActionData
 
 class GAction(QtWidgets.QGraphicsPathItem):
     """Base class for all graphical actions."""
-    def __init__(self, g_data_item, w_data_item, parent=None):
+    def __init__(self, g_data_item, w_data_item, parent=None, eval_gui=None):
         """Initializes GAction.
         :param g_data_item: Object which holds data describing graphical properties of this GAction.
         :param w_data_item: Object which holds data about action in workflow.
@@ -28,6 +28,7 @@ class GAction(QtWidgets.QGraphicsPathItem):
         self._height = g_data_item.data(GActionData.HEIGHT)
         self.in_ports = []
         self.out_ports = []
+        self.eval_gui = eval_gui
 
         self.setPos(QtCore.QPoint(g_data_item.data(GActionData.X), g_data_item.data(GActionData.Y)))
 
@@ -129,7 +130,6 @@ class GAction(QtWidgets.QGraphicsPathItem):
         #self.resize_handles.update_handles()
 
 
-
     def boundingRect(self):
         return super(GAction, self).boundingRect().united(self.childrenBoundingRect())
 
@@ -214,8 +214,11 @@ class GAction(QtWidgets.QGraphicsPathItem):
                     self.scene().move(item.g_data_item, item.x(), item.y())
 
     def mouseDoubleClickEvent(self, event):
-        if self._name.contains(self.mapToItem(self._name, event.pos())):
-            self._name.mouseDoubleClickEvent(event)
+        if self.eval_gui is None:
+            if self._name.contains(self.mapToItem(self._name, event.pos())):
+                self._name.mouseDoubleClickEvent(event)
+        else:
+            self.eval_gui.double_click(self)
 
     def itemChange(self, change_type, value):
         """Update all connections which are attached to this action."""

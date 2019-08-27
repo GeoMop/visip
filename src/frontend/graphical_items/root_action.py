@@ -8,7 +8,6 @@ class RootAction(QtWidgets.QGraphicsItem):
         self.setPos(QPoint(0,0))
 
     def sceneEvent(self, event):
-        print(event.type())
         return super(RootAction, self).sceneEvent(event)
 
     def boundingRect(self):

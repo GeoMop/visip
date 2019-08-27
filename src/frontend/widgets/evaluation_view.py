@@ -10,9 +10,11 @@ from frontend.widgets.evaluation_scene import EvaluationScene
 
 
 class EvaluationView(GBaseModelView):
-    def __init__(self, evaluation, parent=None):
+    def __init__(self, eval_gui, task=None,  parent=None):
         super(EvaluationView, self).__init__(parent)
-        self.scene = EvaluationScene(evaluation)
+        if task is None:
+            task = eval_gui.evaluation.final_task.parent
+        self.scene = EvaluationScene(eval_gui, task)
         self.setScene(self.scene)
 
 

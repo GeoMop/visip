@@ -39,11 +39,11 @@ class ModuleView(QTreeWidget):
                 if wf.slots:
                     for slot in wf.slots:
                         input_item = QTreeWidgetItem(item, [slot.name])
-                        input_item.setIcon(0, QIcon(os.path.join(os.getcwd(), "analysis\\icons\\arrow_right.png")))
+                        input_item.setIcon(0, QIcon(os.path.join(os.getcwd(), "frontend\\icons\\arrow_right.png")))
 
                 if wf._result:
                     output_item = QTreeWidgetItem(item, [wf.result.name])
-                    output_item.setIcon(0, QIcon(os.path.join(os.getcwd(), "analysis\\icons\\arrow_left.png")))
+                    output_item.setIcon(0, QIcon(os.path.join(os.getcwd(), "frontend\\icons\\arrow_left.png")))
 
         if self.topLevelItemCount() > 0:
             self.mark_active_wf_item(self.topLevelItem(0))

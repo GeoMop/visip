@@ -5,8 +5,13 @@ Scene of currently running evaluation.
 """
 from PyQt5.QtCore import QPoint
 
+from common.action_instance import ActionInstance
+from common.action_workflow import SlotInstance
 from common.task import Status
+from frontend.data.g_action_data_model import GActionData
+from frontend.graphical_items.g_action import GAction
 from frontend.graphical_items.g_action_background import ActionStatus
+from frontend.graphical_items.g_input_action import GInputAction
 from frontend.widgets.base.g_base_model_scene import GBaseModelScene
 
 StatusMaping = {
@@ -22,13 +27,16 @@ StatusMaping = {
 
 
 class EvaluationScene(GBaseModelScene):
-    def __init__(self, evaluation, parent=None):
-        super(EvaluationScene, self).__init__(evaluation.final_task.parent.action, parent)
-        self.evaluation = evaluation
+    def __init__(self, eval_gui, task, parent=None):
+        super(EvaluationScene, self).__init__(task.action, parent)
+        self.eval_gui = eval_gui
+        self.task = task
+        self.initialize_scene_from_workflow(task.action)
+        self.update_states()
 
-        self.initialize_scene_from_evaluation()
-
-    def initialize_scene_from_evaluation(self):
+    def initialize_scene_from_workflow(self, workflow):
+        self._clear_actions()
+        self.workflow = workflow
         for action_name in {**self.workflow._actions, "__result__": self.workflow._result}:
             self._add_action(QPoint(0.0, 0.0), action_name)
 
@@ -37,8 +45,21 @@ class EvaluationScene(GBaseModelScene):
         self.update_scene()
         #self.parent().center_on_content = True
 
+    def draw_action(self, item):
+        action = {**self.workflow._actions, "__result__":self.workflow._result}.get(item.data(GActionData.NAME))
+        if action is None:
+            action = self.unconnected_actions.get(item.data(GActionData.NAME))
+        if isinstance(action, SlotInstance):
+            self.actions.append(GInputAction(item, action, self.root_item, self.eval_gui))
+        elif isinstance(action, ActionInstance):
+            self.actions.append(GAction(item, action, self.root_item, self.eval_gui))
+
+        for child in item.children():
+            self.draw_action(child)
+
+        self.update()
+
     def update_states(self):
-        i = 2
-        for instance_name, instance in self.evaluation.final_task.childs.items():
+        for instance_name, instance in self.task.childs.items():
 
             self.get_action(instance_name).status = StatusMaping[instance.status]
