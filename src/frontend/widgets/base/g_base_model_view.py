@@ -16,6 +16,7 @@ class GBaseModelView(QGraphicsView):
         self.setDragMode(self.ScrollHandDrag)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        #self.verticalScrollBar().blockSignals(True)
         self.setViewportUpdateMode(self.FullViewportUpdate)
 
         # settings for zooming the workspace
@@ -24,8 +25,12 @@ class GBaseModelView(QGraphicsView):
         self.max_zoom = pow(self.zoom_factor, 10)
         self.min_zoom = pow(1 / self.zoom_factor, 20)
 
+
     def wheelEvent(self, event):
         """Handle zoom on wheel rotation."""
+        super(GBaseModelView, self).wheelEvent(event)
+        if event.isAccepted():
+            i=1
         degrees = event.angleDelta() / 8
         steps = degrees.y() / 15
         self.setTransformationAnchor(self.AnchorUnderMouse)

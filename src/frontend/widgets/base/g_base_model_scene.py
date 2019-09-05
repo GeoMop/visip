@@ -69,7 +69,6 @@ class GBaseModelScene(QGraphicsScene):
                         port2.connections.append(port1.connections[-1])
                         self.addItem(port1.connections[-1])
                     i += 1
-
             self.update()
 
     def draw_action(self, item):
@@ -168,3 +167,9 @@ class GBaseModelScene(QGraphicsScene):
             return True
         else:
             return False
+
+    def add_connection(self, port):
+        pass
+
+    def detach_connection(self, in_port, alt):
+        pass

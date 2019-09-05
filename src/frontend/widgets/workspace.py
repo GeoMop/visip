@@ -20,9 +20,8 @@ class Workspace(GBaseModelView):
         super(Workspace, self).__init__(parent)
         self.workflow = workflow
         self.scene = Scene(workflow, available_actions, self)
-        self.available_actions = available_actions
         self.setScene(self.scene)
-        self.setRenderHint(QtGui.QPainter.Antialiasing, True)
+        self.available_actions = available_actions
 
         # for deciding if context menu should appear
         self.viewport_moved = False

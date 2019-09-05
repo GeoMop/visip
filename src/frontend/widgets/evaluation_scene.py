@@ -11,6 +11,7 @@ from common.task import Status
 from frontend.data.g_action_data_model import GActionData
 from frontend.graphical_items.g_action import GAction
 from frontend.graphical_items.g_action_background import ActionStatus
+from frontend.graphical_items.g_connection import GConnection
 from frontend.graphical_items.g_input_action import GInputAction
 from frontend.widgets.base.g_base_model_scene import GBaseModelScene
 
@@ -61,5 +62,5 @@ class EvaluationScene(GBaseModelScene):
 
     def update_states(self):
         for instance_name, instance in self.task.childs.items():
-
             self.get_action(instance_name).status = StatusMaping[instance.status]
+

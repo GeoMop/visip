@@ -7,10 +7,12 @@ Representation of connection between two ports.
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt
 from common.action_instance import ActionInputStatus
+from frontend.graphical_items.g_tooltip_base import GTooltipBase
 
 from .g_port import GPort, GOutputPort
 
-class GConnection(QtWidgets.QGraphicsPathItem):
+
+class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
     """Representation of connection between two ports."""
     color = {ActionInputStatus.ok: Qt.darkGreen,
              ActionInputStatus.seems_ok: Qt.darkYellow,
@@ -38,9 +40,7 @@ class GConnection(QtWidgets.QGraphicsPathItem):
         self.update_gfx()
         self.setToolTip("conn_type")
         self.setCursor(Qt.ArrowCursor)
-
-    def __del__(self):
-        i=1
+        self.setAcceptHoverEvents(True)
 
     def is_connected(self, port):
         """Returns True if this connection is attached to specified port."""
