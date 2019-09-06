@@ -34,9 +34,19 @@ class GTooltipBase(QGraphicsItem):
     def show_tooltip(self):
         if self.__widget is not None:
             self.__widget_proxy.show()
-            self.__position = self.scene().views()[0].mapFromGlobal(QCursor.pos())
-            self.__position = self.scene().views()[0].mapToScene(self.__position)
+            view = self.scene().views()[0]
+            self.__position = view.mapFromGlobal(QCursor.pos())
+            self.__position = view.mapToScene(self.__position)
             self.__widget_proxy.setPos(self.__position)
+
+            scene_rect = view.mapToScene(view.viewport().geometry()).boundingRect()
+            widget_rect = self.mapRectToScene(self.__widget_proxy.boundingRect())
+
+            if widget_rect.bottom() > scene_rect.bottom():
+                self.__widget_proxy.setPos(self.__position + QPoint(0, -widget_rect.height()))
+            if widget_rect.right() > scene_rect.right():
+                self.__widget_proxy.setPos(self.__widget_proxy.pos() + QPoint(-widget_rect.width(), 0))
+
 
             if self.__widget_proxy.scene() is None:
                 self.scene().addItem(self.__widget_proxy)

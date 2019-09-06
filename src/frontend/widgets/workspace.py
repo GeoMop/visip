@@ -43,6 +43,7 @@ class Workspace(GBaseModelView):
         self.last_mouse_event_pos = QPoint(0, 0)
         self.mouse_press_event_pos = QPoint(0, 0)
 
+
     def __repr__(self):
         return "Workspace: " + self.scene.workflow.name
 
