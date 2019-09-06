@@ -14,6 +14,7 @@ from frontend.graphical_items.g_action_background import ActionStatus
 from frontend.graphical_items.g_connection import GConnection
 from frontend.graphical_items.g_input_action import GInputAction
 from frontend.widgets.base.g_base_model_scene import GBaseModelScene
+from frontend.widgets.composite_type_view import CompositeTypeView
 
 StatusMaping = {
     Status.none: ActionStatus.IDLE,
@@ -51,9 +52,9 @@ class EvaluationScene(GBaseModelScene):
         if action is None:
             action = self.unconnected_actions.get(item.data(GActionData.NAME))
         if isinstance(action, SlotInstance):
-            self.actions.append(GInputAction(item, action, self.root_item, self.eval_gui))
+            self.actions.append(GInputAction(item, action, self.root_item, self.eval_gui, False))
         elif isinstance(action, ActionInstance):
-            self.actions.append(GAction(item, action, self.root_item, self.eval_gui))
+            self.actions.append(GAction(item, action, self.root_item, self.eval_gui, False))
 
         for child in item.children():
             self.draw_action(child)
@@ -62,5 +63,7 @@ class EvaluationScene(GBaseModelScene):
 
     def update_states(self):
         for instance_name, instance in self.task.childs.items():
-            self.get_action(instance_name).status = StatusMaping[instance.status]
+            action = self.get_action(instance_name)
+            action.status = StatusMaping[instance.status]
+            action.widget = CompositeTypeView(instance._result, "Output data: " + instance_name)
 

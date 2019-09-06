@@ -7,8 +7,8 @@ from .g_action import GAction
 
 
 class GInputAction(GAction):
-    def __init__(self, g_data_item, w_data_item, parent=None, eval=None):
-        super(GInputAction, self).__init__(g_data_item, w_data_item, parent, eval)
+    def __init__(self, g_data_item, w_data_item, parent=None, eval=None, appending_ports=True):
+        super(GInputAction, self).__init__(g_data_item, w_data_item, parent, eval, appending_ports)
 
     def _add_ports(self, n_ports):
         self.add_g_port(False, "Output Port")

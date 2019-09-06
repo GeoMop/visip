@@ -2,6 +2,7 @@ from PyQt5.QtCore import QTimer, QPoint, QObject
 from PyQt5.QtGui import QCursor
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsProxyWidget, QWidget
 
+from frontend.graphical_items.graphics_proxy_widget import GraphicsProxyWidget
 from frontend.widgets.composite_type_view import CompositeTypeView
 
 
@@ -14,12 +15,10 @@ class GTooltipBase(QGraphicsItem):
         self.__timer.timeout.connect(self.show_tooltip)
         self.__timer.setInterval(500)
         self.__position = QPoint()
-        self.__widget_proxy = QGraphicsProxyWidget(self)
+        self.__widget_proxy = GraphicsProxyWidget(self)
         self.__widget_proxy.setVisible(False)
         self.__widget_proxy.hide()
-        self.widget = CompositeTypeView()
-        self.widget.hide()
-
+        self.widget = None
 
     @property
     def widget(self):
@@ -29,25 +28,31 @@ class GTooltipBase(QGraphicsItem):
     def widget(self, widget):
         self.__widget = widget
         self.__widget_proxy.setWidget(widget)
+        if widget is not None:
+            self.__widget.hide()
 
     def show_tooltip(self):
-        self.__widget_proxy.show()
-        print(QCursor.pos())
-        self.__position = self.scene().views()[0].mapFromGlobal(QCursor.pos())
-        print(self.__position)
-        self.__widget_proxy.setPos(self.__position)
-        self.scene().addItem(self.__widget_proxy)
+        if self.__widget is not None:
+            self.__widget_proxy.show()
+            self.__position = self.scene().views()[0].mapFromGlobal(QCursor.pos())
+            self.__position = self.scene().views()[0].mapToScene(self.__position)
+            self.__widget_proxy.setPos(self.__position)
 
-        self.__widget_proxy.ensureVisible()
+            if self.__widget_proxy.scene() is None:
+                self.scene().addItem(self.__widget_proxy)
+
 
     def hoverEnterEvent(self, event):
         super(GTooltipBase, self).hoverEnterEvent(event)
-        self.__timer.start()
+        if not self.__widget_proxy.isVisible():
+            self.__timer.start()
 
     def hoverLeaveEvent(self, event):
         super(GTooltipBase, self).hoverLeaveEvent(event)
         self.__timer.stop()
-        self.__widget_proxy.hide()
+        if not self.__widget_proxy.boundingRect().contains(self.mapToItem(self.__widget_proxy, event.pos())):
+            self.__widget_proxy.hide()
+
 
     def wheelEvent(self, event):
         super(GTooltipBase, self).wheelEvent(event)

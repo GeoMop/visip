@@ -4,6 +4,7 @@ Base class for view of graphics scene containing DAG.
 @contact: tomas.blazek@tul.cz
 """
 from PyQt5 import QtGui, QtCore
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QGraphicsView
 
 
@@ -29,18 +30,17 @@ class GBaseModelView(QGraphicsView):
     def wheelEvent(self, event):
         """Handle zoom on wheel rotation."""
         super(GBaseModelView, self).wheelEvent(event)
-        if event.isAccepted():
-            i=1
-        degrees = event.angleDelta() / 8
-        steps = degrees.y() / 15
-        self.setTransformationAnchor(self.AnchorUnderMouse)
-        if steps > 0:
-            if self.zoom < self.max_zoom:
-                self.scale(self.zoom_factor, self.zoom_factor)
-                self.zoom = self.zoom * self.zoom_factor
-        else:
-            if self.zoom > self.min_zoom:
-                self.scale(1 / self.zoom_factor, 1 / self.zoom_factor)
-                self.zoom = self.zoom / self.zoom_factor
+        if event.modifiers() & Qt.ControlModifier:
+            degrees = event.angleDelta() / 8
+            steps = degrees.y() / 15
+            self.setTransformationAnchor(self.AnchorUnderMouse)
+            if steps > 0:
+                if self.zoom < self.max_zoom:
+                    self.scale(self.zoom_factor, self.zoom_factor)
+                    self.zoom = self.zoom * self.zoom_factor
+            else:
+                if self.zoom > self.min_zoom:
+                    self.scale(1 / self.zoom_factor, 1 / self.zoom_factor)
+                    self.zoom = self.zoom / self.zoom_factor
 
 

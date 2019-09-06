@@ -26,6 +26,7 @@ class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
         :param parent: Action which holds this connection: this connection is inside parent action.
         """
         super(GConnection, self).__init__(parent)
+        self._shape = QtGui.QPainterPath()
         self.connection_set = False if port2 is None else True
         self.port1 = port1  # either first port when creating connection or always OutputPort if connection is set
         self.port2 = port2 if self.connection_set else GPort(-1, self.port1.get_connection_point())  # usually InputPort
@@ -36,7 +37,6 @@ class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.setPen(self.full_pen)
         self.setZValue(10.0)
         self.setFlag(self.ItemIsSelectable)
-        self._shape = QtGui.QPainterPath()
         self.update_gfx()
         self.setToolTip("conn_type")
         self.setCursor(Qt.ArrowCursor)

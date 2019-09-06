@@ -65,9 +65,9 @@ class GBaseModelScene(QGraphicsScene):
                             port1 = self.get_action(action_argument.name).out_ports[0]
                         g_action = self.get_action(action_name)
                         port2 = g_action.in_ports[i]
-                        port1.connections.append(GConnection(port1, port2, status))
+                        port1.connections.append(GConnection(port1, port2, status, self.root_item))
                         port2.connections.append(port1.connections[-1])
-                        self.addItem(port1.connections[-1])
+                        #self.addItem(port1.connections[-1])
                     i += 1
             self.update()
 

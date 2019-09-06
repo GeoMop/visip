@@ -9,15 +9,16 @@ from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtGui import QPixmap, QPainter
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QStyleOptionGraphicsItem, QGraphicsItem
 
+from frontend.graphical_items.g_tooltip_base import GTooltipBase
 from .g_action_background import GActionBackground, ActionStatus
 from .g_port import GPort, GInputPort, GOutputPort
 from frontend.util.editable_text import EditableLabel
 from frontend.data.g_action_data_model import GActionData
 
 
-class GAction(QtWidgets.QGraphicsPathItem):
+class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
     """Base class for all graphical actions."""
-    def __init__(self, g_data_item, w_data_item, parent=None, eval_gui=None):
+    def __init__(self, g_data_item, w_data_item, parent=None, eval_gui=None, appending_ports=True):
         """Initializes GAction.
         :param g_data_item: Object which holds data describing graphical properties of this GAction.
         :param w_data_item: Object which holds data about action in workflow.
@@ -30,11 +31,12 @@ class GAction(QtWidgets.QGraphicsPathItem):
         self.out_ports = []
         self.eval_gui = eval_gui
 
+        self.appending_ports = appending_ports
+
         self.setPos(QtCore.QPoint(g_data_item.data(GActionData.X), g_data_item.data(GActionData.Y)))
 
         self.setPen(QtGui.QPen(QtCore.Qt.black))
         self.setBrush(QtCore.Qt.darkGray)
-        self.setAcceptHoverEvents(False)
         self.setFlag(self.ItemIsMovable)
         self.setFlag(self.ItemIsSelectable)
         self.setFlag(self.ItemSendsGeometryChanges)
@@ -178,7 +180,7 @@ class GAction(QtWidgets.QGraphicsPathItem):
     def _add_ports(self, n_ports, appending=False):
         for i in range(n_ports):
             self.add_g_port(True, "Input Port" + str(i))
-        if appending:
+        if appending and self.appending_ports:
             self.add_g_port(True, "Input Port" + str(0))
             self.in_ports[-1].appending_port = True
 
@@ -193,9 +195,6 @@ class GAction(QtWidgets.QGraphicsPathItem):
     def moveBy(self, dx, dy):
         super(GAction, self).moveBy(dx, dy)
         self.scene().move(self.g_data_item, self.x() + dx, self.y() + dy)
-
-    def hoverEnterEvent(self, hover_event):
-        self.setCursor(QtCore.Qt.ArrowCursor)
 
     def mousePressEvent(self, press_event):
         super(GAction, self).mousePressEvent(press_event)
