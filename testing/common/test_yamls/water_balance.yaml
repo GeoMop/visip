@@ -1,0 +1,46 @@
+column_names: [ flux,  flux_in,  flux_out,  mass,  source,  source_in,  source_out,  flux_increment,  source_increment,  flux_cumulative,  source_cumulative,  error ]
+data:
+  - time: 0
+    region: 1d_upper
+    quantity: water_volume
+    data: [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+  - time: 0
+    region: 1d_lower
+    quantity: water_volume
+    data: [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+  - time: 0
+    region: 1d_left_branch
+    quantity: water_volume
+    data: [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+  - time: 0
+    region: 2d
+    quantity: water_volume
+    data: [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+  - time: 0
+    region: .1d_top
+    quantity: water_volume
+    data: [ 17.8123, 17.8123, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+  - time: 0
+    region: .1d_left
+    quantity: water_volume
+    data: [ -8.97271, 0, -8.97271, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+  - time: 0
+    region: .1d_bottom
+    quantity: water_volume
+    data: [ -8.97796, 0, -8.97796, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+  - time: 0
+    region: .2d_top
+    quantity: water_volume
+    data: [ 1.11365, 1.11365, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+  - time: 0
+    region: .2d_right
+    quantity: water_volume
+    data: [ 0.901061, 0.901061, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+  - time: 0
+    region: .2d_bottom
+    quantity: water_volume
+    data: [ -0.974874, 0.00154626, -0.97642, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
+  - time: 0
+    region: .2d_left
+    quantity: water_volume
+    data: [ -0.901475, 0.00300279, -0.904477, 0, 0, 0, 0, 0, 0, 0, 0, 0 ]
