@@ -23,17 +23,11 @@ class GUIEvaluation(QMainWindow):
         self.setWindowTitle("Evaluating: \"" + self.view.scene.workflow.name + "\"")
         self.setCentralWidget(self.view)
 
-
-        self.view.scene.update_states()
-        while thread.is_alive():
-            QApplication.processEvents()
-            self.view.scene.update_states()
-
         self.view.scene.update_states()
         temp = self.evaluation.final_task
 
         self.navigation = EvaluationNavigation(self)
-        self.navigation.add_item(self.evaluation.final_task)
+        self.navigation.add_item(self.evaluation.final_task, self.analysis.name)
 
         self.navigation_dock = QDockWidget("Navigation Stack", self)
         self.navigation_dock.setMinimumWidth(150)
@@ -46,6 +40,14 @@ class GUIEvaluation(QMainWindow):
         self.show()
         self.navigation_dock.hide()
 
+        timer = QTimer()
+        timer.start(0.25)
+        timer.timeout.connect(self.view.scene.update_states)
+
+        self.view.scene.update_states()
+        while thread.is_alive():
+            QApplication.processEvents()
+
     def run(self):
         self.eval = Evaluation(self.analysis)
         self.result = self.evaluation.execute()
@@ -56,7 +58,7 @@ class GUIEvaluation(QMainWindow):
         if type(task) is Atomic:
             return
 
-        self.navigation.add_item(task)
+        self.navigation.add_item(task, g_action.name)
 
         self.change_view(task)
 

@@ -56,6 +56,7 @@ class EvaluationScene(GBaseModelScene):
         elif isinstance(action, ActionInstance):
             self.actions.append(GAction(item, action, self.root_item, self.eval_gui, False))
 
+        self.actions[-1].widget = CompositeTypeView()
         for child in item.children():
             self.draw_action(child)
 
@@ -65,5 +66,5 @@ class EvaluationScene(GBaseModelScene):
         for instance_name, instance in self.task.childs.items():
             action = self.get_action(instance_name)
             action.status = StatusMaping[instance.status]
-            action.widget = CompositeTypeView(instance._result, "Output data: " + instance_name)
+            action.widget.set_data(instance._result)
 

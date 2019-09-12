@@ -4,6 +4,8 @@ Base class of scene of containing DAG.
 @contact: tomas.blazek@tul.cz
 """
 import math
+
+from PyQt5 import QtCore
 from PyQt5.QtCore import QPoint
 from PyQt5.QtWidgets import QGraphicsScene
 
@@ -26,6 +28,8 @@ class GBaseModelScene(QGraphicsScene):
 
         self.action_model = GActionDataModel()
         self.action_model.dataChanged.connect(self.data_changed)
+
+        self.setSceneRect(QtCore.QRectF(QtCore.QPoint(-10000000, -10000000), QtCore.QPoint(10000000, 10000000)))
 
         self.new_connection = None
         self.workflow = workflow

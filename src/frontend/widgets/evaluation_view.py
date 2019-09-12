@@ -16,6 +16,7 @@ class EvaluationView(GBaseModelView):
             task = eval_gui.evaluation.final_task.parent
         self.scene = EvaluationScene(eval_gui, task)
         self.setScene(self.scene)
+        self.centerOn(self.scene.root_item)
 
 
 

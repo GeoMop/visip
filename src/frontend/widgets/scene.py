@@ -34,8 +34,6 @@ class Scene(GBaseModelScene):
 
         self.new_action_pos = QtCore.QPoint()
 
-        self.setSceneRect(QtCore.QRectF(QtCore.QPoint(-10000000, -10000000), QtCore.QPoint(10000000, 10000000)))
-
         self.initialize_workspace_from_workflow()
 
     def initialize_workspace_from_workflow(self):

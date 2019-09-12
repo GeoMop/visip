@@ -14,17 +14,25 @@ class CompositeTypeView(QTreeWidget):
         super(CompositeTypeView, self).__init__(parent)
         self.setHeaderHidden(True)
         self.data = data
-
-        self.title = QTreeWidgetItem([title])
+        self.title = title
+        title_item = QTreeWidgetItem([title])
         font = QFont()
         font.setBold(True)
-        self.title.setFont(0, font)
-        self.invisibleRootItem().addChild(self.title)
+        title_item.setFont(0, font)
+        self.invisibleRootItem().addChild(title_item)
 
         self.fill_item(self.invisibleRootItem(), self.data)
 
     def set_data(self, data):
-        self.data = data
+        if data != self.data:
+            self.data = data
+            self.clear()
+            title_item = QTreeWidgetItem([self.title])
+            font = QFont()
+            font.setBold(True)
+            title_item.setFont(0, font)
+            self.invisibleRootItem().addChild(title_item)
+            self.fill_item(self.invisibleRootItem(), self.data)
 
     def fill_item(self, item, data):
         def new_item(parent, text):

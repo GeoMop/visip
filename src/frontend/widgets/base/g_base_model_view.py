@@ -29,8 +29,8 @@ class GBaseModelView(QGraphicsView):
 
     def wheelEvent(self, event):
         """Handle zoom on wheel rotation."""
-        super(GBaseModelView, self).wheelEvent(event)
         if event.modifiers() & Qt.ControlModifier:
+            self.verticalScrollBar().blockSignals(True)
             degrees = event.angleDelta() / 8
             steps = degrees.y() / 15
             self.setTransformationAnchor(self.AnchorUnderMouse)
@@ -42,5 +42,10 @@ class GBaseModelView(QGraphicsView):
                 if self.zoom > self.min_zoom:
                     self.scale(1 / self.zoom_factor, 1 / self.zoom_factor)
                     self.zoom = self.zoom / self.zoom_factor
+
+            event.setAccepted(True)
+        super(GBaseModelView, self).wheelEvent(event)
+        self.verticalScrollBar().blockSignals(False)
+
 
 

@@ -8,12 +8,15 @@ class EvaluationNavigation(QListWidget):
         self.stack = []
         self.eval_gui = eval_gui
 
-    def add_item(self, task):
+    def add_item(self, task, task_name):
         self.stack.append(task)
         if self.count() != 0:
             self.mark_item(self.item(0), True)
 
-        item = QListWidgetItem(task.action.name)
+        if task == task.parent:
+            item = QListWidgetItem("Analysis: \"" + task_name + "\"")
+        else:
+            item = QListWidgetItem(task.action.name + ": \"" + task_name + "\"")
         self.insertItem(0, item)
         self.clearSelection()
         item.setSelected(True)
