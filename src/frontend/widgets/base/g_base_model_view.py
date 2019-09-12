@@ -17,7 +17,6 @@ class GBaseModelView(QGraphicsView):
         self.setDragMode(self.ScrollHandDrag)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        #self.verticalScrollBar().blockSignals(True)
         self.setViewportUpdateMode(self.FullViewportUpdate)
 
         # settings for zooming the workspace

@@ -72,3 +72,6 @@ class ToolBox(QToolBox):
         #self.addItem(self.system_actions_layout, "System actions")
         if module is not None:
             self.on_workspace_change(module, curr_workspace)
+
+    def contextMenuEvent(self, event):
+        pass

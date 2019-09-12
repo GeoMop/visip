@@ -142,9 +142,7 @@ class Module:
 
             else:
                 if type(obj) is ModuleType:
-                    full_name = obj.__name__
-                    self.imported_modules.append(obj)
-                    self._full_name_dict[full_name] = name
+                    self.insert_imported_module(obj, name)
                 elif name[0] == '_':
                     self.ignored_definitions.append((name, obj))
 
@@ -156,6 +154,10 @@ class Module:
         else:
             self.analysis = None
 
+    def insert_imported_module(self, obj, name):
+        full_name = obj.__name__
+        self.imported_modules.append(obj)
+        self._full_name_dict[full_name] = name
 
     def insert_definition(self, action: action_base._ActionBase, pos:int=None):
         """

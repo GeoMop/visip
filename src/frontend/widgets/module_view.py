@@ -89,7 +89,7 @@ class ModuleView(QTreeWidget):
         self.curr_wf_item = item
 
         wf = _Workflow(wf_name)
-        self.module.definitions.append(wf)
+        self.module.insert_definition(wf)
 
         self.workspaces[wf_name] = (Workspace(wf, self.edit_menu, self.tab_widget.main_widget.toolbox.action_database))
         self.tab_widget.currentWidget().addWidget(self.workspaces[wf_name])
