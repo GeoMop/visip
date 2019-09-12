@@ -6,7 +6,7 @@ Base class of scene of containing DAG.
 import math
 
 from PyQt5 import QtCore
-from PyQt5.QtCore import QPoint
+from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtWidgets import QGraphicsScene
 
 from common.action_instance import ActionInputStatus, ActionInstance
@@ -177,3 +177,8 @@ class GBaseModelScene(QGraphicsScene):
 
     def detach_connection(self, in_port, alt):
         pass
+
+    def wheelEvent(self, event):
+        super(GBaseModelScene, self).wheelEvent(event)
+        if event.modifiers() & Qt.ControlModifier:
+            event.accept()
