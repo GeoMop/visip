@@ -41,9 +41,9 @@ class MainWidget(QtWidgets.QMainWindow):
         self.toolbox = ToolBox(self)
         self.toolbox_dock.setWidget(self.toolbox)
 
-        self.data_view = CompositeTypeView()
-        self.data_view.model()
-        self.data_dock.setWidget(self.data_view)
+        #self.data_view = CompositeTypeView()
+        #self.data_view.model()
+        #self.data_dock.setWidget(self.data_view)
 
         self.resize(1000, 500)
 
@@ -76,10 +76,10 @@ class MainWidget(QtWidgets.QMainWindow):
         self.toolbox_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.toolbox_dock)
 
-        self.data_dock = QtWidgets.QDockWidget("Data/Config", self)
-        self.data_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.data_dock)
-        self.data_dock.hide()
+        #self.data_dock = QtWidgets.QDockWidget("Data/Config", self)
+        #self.data_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        #self.addDockWidget(Qt.RightDockWidgetArea, self.data_dock)
+        #self.data_dock.hide()
 
     def export_to_file(self):
         filename = QtWidgets.QFileDialog.getSaveFileName(self.parent(), "Export Module", self.cfg.last_opened_directory, "Python File (*.py)")[0]

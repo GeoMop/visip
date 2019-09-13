@@ -24,9 +24,24 @@ class ConfigData(object):
         if os.path.exists(self.FILE_PATH):
             self.load()
         else:
-            os.mkdir(self.__config_dir__)
+            if not os.path.exists(self.__config_dir__):
+                os.mkdir(self.__config_dir__)
             self.cwd = os.getcwd()
-            self.last_opened_directory = self.cwd
+            self._last_opened_directory = self.cwd
+            self._module_root_directory = self.cwd
+
+    @property
+    def module_root_directory(self):
+        return self._module_root_directory
+
+    @property
+    def last_opened_directory(self):
+        return self._last_opened_directory
+
+    @last_opened_directory.setter
+    def last_opened_directory(self, directory: str):
+        self._last_opened_directory = directory
+
 
     def save(self):
         with open(self.FILE_PATH, "w") as cfg_file:

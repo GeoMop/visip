@@ -28,7 +28,6 @@ class TabWidget(QTabWidget):
         self.main_widget = main_widget
 
         self.module_views = {}
-        self.toolboxes = {}
 
         self.initial_tab_name = 'Home'
         self.home_tab = HomeTabWidget(self.main_widget)

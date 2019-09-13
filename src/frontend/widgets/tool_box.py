@@ -1,8 +1,13 @@
+import importlib.util
+
 from PyQt5.QtWidgets import QToolBox
 
 from common import Slot
-from common.action_workflow import SlotInstance
+from common.action_workflow import SlotInstance, _Workflow
+from common.code.wrap import ActionWrapper
+from frontend.config.config_data import ConfigData
 from frontend.data.tree_item import TreeItem
+from frontend.dialogs.import_module import ImportModule
 from frontend.graphical_items.g_action import GAction
 from frontend.graphical_items.g_input_action import GInputAction
 from frontend.widgets.action_category import ActionCategory
@@ -21,6 +26,10 @@ class ToolBox(QToolBox):
         self.system_actions_layout = ActionCategory()
         self.action_database = {"wf": {}}
 
+        self.cfg = ConfigData()
+        self.module = None
+        self.workspace = None
+
         for action in analysis.base_system_actions:
             if isinstance(action, Slot):
                 inst = SlotInstance("Slot")
@@ -30,7 +39,7 @@ class ToolBox(QToolBox):
                 ToolboxView(GAction(TreeItem([action.name, 0, 0, 50, 50]),
                                     inst), self.system_actions_layout)
 
-            self.action_database["wf"][action.name] = action
+            self.action_database[action.module][action.name] = action
 
         # ToolboxView(GAction(TreeItem(["List", 0, 0, 50, 50]), instance.ActionInstance.create( base.List())), toolbox_layout2)
         self.setMinimumWidth(180)
@@ -55,12 +64,12 @@ class ToolBox(QToolBox):
                 if not item.is_analysis and item.name != curr_workspace.scene.workflow.name:
                     ToolboxView(GAction(TreeItem([item.name, 0, 0, 50, 50]),
                                         instance.ActionInstance.create(item)), module_category)
-                    self.action_database[module.name][item.name] = item
+                    self.action_database[item.module][item.name] = item
 
             self.import_modules[module.name] = module_category
             self.insertItem(category_index, module_category, module.name)
             self.setCurrentIndex(last_index)
-
+            self.workspace = curr_workspace
 
     def on_module_change(self, module, curr_workspace):
         while self.count() > 1:
@@ -70,14 +79,35 @@ class ToolBox(QToolBox):
             self.import_modules.clear()
             self.action_database["wf"] = temp
         #self.addItem(self.system_actions_layout, "System actions")
+        self.module = module
         if module is not None:
             self.on_workspace_change(module, curr_workspace)
 
-    def contextMenuEvent(self, event):
-        return
+            for m in module.imported_modules:
+                if m.__name__ != "common":
+                    module_category = ActionCategory()
+                    self.action_database[m.__name__] = {}
+                    for name, obj in m.__dict__.items():
+                        if issubclass(type(obj), ActionWrapper):
+                            item = obj.action
+                            ToolboxView(GAction(TreeItem([item.name, 0, 0, 50, 50]),
+                                                instance.ActionInstance.create(item)), module_category)
+                            self.action_database[item.module][item.name] = item
 
-        import importlib.util
-        spec = importlib.util.spec_from_file_location("module.name", "/path/to/file.py")
-        foo = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(foo)
-        foo.MyClass()
+                    self.import_modules[m.__name__] = module_category
+                    self.addItem(module_category, m.__name__)
+
+    def contextMenuEvent(self, event):
+        dialog = ImportModule(self.parent())
+        if dialog.exec():
+            import os
+            relpath = os.path.relpath(dialog.filename(), self.cfg.module_root_directory)
+            namespace = os.path.dirname(relpath).replace(os.sep, ".")
+            spec = importlib.util.spec_from_file_location(namespace, dialog.filename())
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            self.module.insert_imported_module(module, dialog.name())
+            self.on_module_change(self.module, self.workspace)
+
+
+

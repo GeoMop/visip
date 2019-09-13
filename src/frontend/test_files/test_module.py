@@ -1,5 +1,5 @@
 import common as wf
-from src.frontend.test_files import home
+from frontend.test_files import home
 
 
 @wf.workflow
