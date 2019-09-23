@@ -1,0 +1,6 @@
+input_fields:
+      - region: ALL
+        conductivity: 1.0e-15
+      - region: .BOUNDARY
+        bc_type: dirichlet
+        bc_pressure: 0
