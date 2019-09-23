@@ -94,7 +94,7 @@ class ToolBox(QToolBox):
                                                 instance.ActionInstance.create(item)), module_category)
                             self.action_database[item.module][item.name] = item
 
-                    self.import_modules[m.__name__] = module_category
+                    self.import_modules[item.module] = module_category
                     self.addItem(module_category, m.__name__)
 
     def contextMenuEvent(self, event):

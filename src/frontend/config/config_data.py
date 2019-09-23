@@ -21,14 +21,13 @@ class ConfigData(object):
         return cls.__instance
 
     def __init(self):
+        self.cwd = os.getcwd()
+        self._last_opened_directory = self.cwd
+        self._module_root_directory = self.cwd
+        if not os.path.exists(self.__config_dir__):
+            os.mkdir(self.__config_dir__)
         if os.path.exists(self.FILE_PATH):
             self.load()
-        else:
-            if not os.path.exists(self.__config_dir__):
-                os.mkdir(self.__config_dir__)
-            self.cwd = os.getcwd()
-            self._last_opened_directory = self.cwd
-            self._module_root_directory = self.cwd
 
     @property
     def module_root_directory(self):
@@ -50,6 +49,6 @@ class ConfigData(object):
     def load(self):
         with open(self.FILE_PATH, "r") as cfg_file:
             obj = json.load(cfg_file)
-            self.__dict__ = obj
+            self.__dict__.update(obj)
 
 
