@@ -111,10 +111,10 @@ def extract_func_signature(func, skip_self=True):
             continue
 
         annotation = param.annotation if param.annotation != param.empty else None
-        default = param.default if param.default != param.empty else None
-
+        default = param.default if param.default != param.empty else parameters.no_default
+        #todo: check if changing "None" for "parameters.no_default" is correct fix, None creates default action of type Value and value None
         if param.kind == param.VAR_POSITIONAL:
-            assert default == None
+            assert default == parameters.no_default
             param = ActionParameter(idx, None, annotation, default)
         else:
             assert param.kind == param.POSITIONAL_ONLY or param.kind == param.POSITIONAL_OR_KEYWORD, str(param.kind)

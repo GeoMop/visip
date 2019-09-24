@@ -1,0 +1,2419 @@
+data:
+ - time: 0
+   region: .fr_left_well
+   area: 134.832
+   average: [ 432.789 ]
+   min: [ 431.65 ]
+   max: [ 434.404 ]
+ - time: 0
+   region: .fr_right_well
+   area: 126.409
+   average: [ 433.261 ]
+   min: [ 432.156 ]
+   max: [ 434.191 ]
+ - time: 0
+   region: .left_well
+   area: 6600.14
+   average: [ 433.146 ]
+   min: [ 431.65 ]
+   max: [ 434.65 ]
+ - time: 0
+   region: .right_well
+   area: 6583.69
+   average: [ 433.15 ]
+   min: [ 431.65 ]
+   max: [ 434.65 ]
+ - time: 0
+   region: .side_x0
+   area: 360000
+   average: [ 433.15 ]
+   min: [ 424.593 ]
+   max: [ 441.71 ]
+ - time: 0
+   region: .side_x1
+   area: 360000
+   average: [ 433.15 ]
+   min: [ 424.593 ]
+   max: [ 441.71 ]
+ - time: 0
+   region: .side_y0
+   area: 360000
+   average: [ 433.15 ]
+   min: [ 424.585 ]
+   max: [ 441.714 ]
+ - time: 0
+   region: .side_y1
+   area: 360000
+   average: [ 433.15 ]
+   min: [ 424.585 ]
+   max: [ 441.714 ]
+ - time: 0
+   region: .side_z0
+   area: 360000
+   average: [ 442.15 ]
+   min: [ 442.15 ]
+   max: [ 442.15 ]
+ - time: 0
+   region: .side_z1
+   area: 360000
+   average: [ 424.15 ]
+   min: [ 424.15 ]
+   max: [ 424.15 ]
+ - time: 0
+   region: box
+   area: 2.15946e+08
+   average: [ 433.15 ]
+   min: [ 424.402 ]
+   max: [ 441.953 ]
+ - time: 0
+   region: fr
+   area: 244268
+   average: [ 433.294 ]
+   min: [ 430.598 ]
+   max: [ 436.729 ]
+ - time: 0
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 433.05 ]
+   min: [ 430.534 ]
+   max: [ 436.829 ]
+ - time: 3.1536e+07
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.032 ]
+   min: [ 287.854 ]
+   max: [ 288.19 ]
+ - time: 3.1536e+07
+   region: .fr_right_well
+   area: 126.409
+   average: [ 433.686 ]
+   min: [ 431.348 ]
+   max: [ 435.399 ]
+ - time: 3.1536e+07
+   region: .left_well
+   area: 6600.14
+   average: [ 288.146 ]
+   min: [ 285.811 ]
+   max: [ 288.596 ]
+ - time: 3.1536e+07
+   region: .right_well
+   area: 6583.69
+   average: [ 424.374 ]
+   min: [ 382.655 ]
+   max: [ 435.621 ]
+ - time: 3.1536e+07
+   region: .side_x0
+   area: 360000
+   average: [ 433.148 ]
+   min: [ 424.624 ]
+   max: [ 441.675 ]
+ - time: 3.1536e+07
+   region: .side_x1
+   area: 360000
+   average: [ 433.145 ]
+   min: [ 424.622 ]
+   max: [ 441.68 ]
+ - time: 3.1536e+07
+   region: .side_y0
+   area: 360000
+   average: [ 433.144 ]
+   min: [ 424.619 ]
+   max: [ 441.684 ]
+ - time: 3.1536e+07
+   region: .side_y1
+   area: 360000
+   average: [ 433.147 ]
+   min: [ 424.618 ]
+   max: [ 441.684 ]
+ - time: 3.1536e+07
+   region: .side_z0
+   area: 360000
+   average: [ 442.021 ]
+   min: [ 441.964 ]
+   max: [ 442.058 ]
+ - time: 3.1536e+07
+   region: .side_z1
+   area: 360000
+   average: [ 424.281 ]
+   min: [ 424.236 ]
+   max: [ 424.323 ]
+ - time: 3.1536e+07
+   region: box
+   area: 2.15946e+08
+   average: [ 430.227 ]
+   min: [ 286.914 ]
+   max: [ 441.867 ]
+ - time: 3.1536e+07
+   region: fr
+   area: 244268
+   average: [ 376.962 ]
+   min: [ 288.232 ]
+   max: [ 437.305 ]
+ - time: 3.1536e+07
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 372.363 ]
+   min: [ 288.286 ]
+   max: [ 437.366 ]
+ - time: 6.3072e+07
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.147 ]
+   min: [ 288.14 ]
+   max: [ 288.154 ]
+ - time: 6.3072e+07
+   region: .fr_right_well
+   area: 126.409
+   average: [ 433.686 ]
+   min: [ 430.858 ]
+   max: [ 435.604 ]
+ - time: 6.3072e+07
+   region: .left_well
+   area: 6600.14
+   average: [ 288.148 ]
+   min: [ 288.086 ]
+   max: [ 288.154 ]
+ - time: 6.3072e+07
+   region: .right_well
+   area: 6583.69
+   average: [ 410.711 ]
+   min: [ 333.112 ]
+   max: [ 436.224 ]
+ - time: 6.3072e+07
+   region: .side_x0
+   area: 360000
+   average: [ 433.147 ]
+   min: [ 424.646 ]
+   max: [ 441.639 ]
+ - time: 6.3072e+07
+   region: .side_x1
+   area: 360000
+   average: [ 433.14 ]
+   min: [ 424.65 ]
+   max: [ 441.653 ]
+ - time: 6.3072e+07
+   region: .side_y0
+   area: 360000
+   average: [ 433.138 ]
+   min: [ 424.646 ]
+   max: [ 441.657 ]
+ - time: 6.3072e+07
+   region: .side_y1
+   area: 360000
+   average: [ 433.144 ]
+   min: [ 424.646 ]
+   max: [ 441.656 ]
+ - time: 6.3072e+07
+   region: .side_z0
+   area: 360000
+   average: [ 441.921 ]
+   min: [ 441.852 ]
+   max: [ 441.984 ]
+ - time: 6.3072e+07
+   region: .side_z1
+   area: 360000
+   average: [ 424.382 ]
+   min: [ 424.305 ]
+   max: [ 424.446 ]
+ - time: 6.3072e+07
+   region: box
+   area: 2.15946e+08
+   average: [ 427.565 ]
+   min: [ 288.105 ]
+   max: [ 441.803 ]
+ - time: 6.3072e+07
+   region: fr
+   area: 244268
+   average: [ 354.509 ]
+   min: [ 287.432 ]
+   max: [ 437.67 ]
+ - time: 6.3072e+07
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 347.734 ]
+   min: [ 286.747 ]
+   max: [ 437.721 ]
+ - time: 9.4608e+07
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 9.4608e+07
+   region: .fr_right_well
+   area: 126.409
+   average: [ 433.54 ]
+   min: [ 430.555 ]
+   max: [ 435.856 ]
+ - time: 9.4608e+07
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 9.4608e+07
+   region: .right_well
+   area: 6583.69
+   average: [ 397.409 ]
+   min: [ 305.064 ]
+   max: [ 436.602 ]
+ - time: 9.4608e+07
+   region: .side_x0
+   area: 360000
+   average: [ 433.149 ]
+   min: [ 424.668 ]
+   max: [ 441.603 ]
+ - time: 9.4608e+07
+   region: .side_x1
+   area: 360000
+   average: [ 433.135 ]
+   min: [ 424.676 ]
+   max: [ 441.626 ]
+ - time: 9.4608e+07
+   region: .side_y0
+   area: 360000
+   average: [ 433.132 ]
+   min: [ 424.672 ]
+   max: [ 441.63 ]
+ - time: 9.4608e+07
+   region: .side_y1
+   area: 360000
+   average: [ 433.142 ]
+   min: [ 424.672 ]
+   max: [ 441.629 ]
+ - time: 9.4608e+07
+   region: .side_z0
+   area: 360000
+   average: [ 441.841 ]
+   min: [ 441.771 ]
+   max: [ 441.924 ]
+ - time: 9.4608e+07
+   region: .side_z1
+   area: 360000
+   average: [ 424.462 ]
+   min: [ 424.363 ]
+   max: [ 424.539 ]
+ - time: 9.4608e+07
+   region: box
+   area: 2.15946e+08
+   average: [ 425.158 ]
+   min: [ 287.977 ]
+   max: [ 441.752 ]
+ - time: 9.4608e+07
+   region: fr
+   area: 244268
+   average: [ 343.823 ]
+   min: [ 287.743 ]
+   max: [ 437.961 ]
+ - time: 9.4608e+07
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 336.357 ]
+   min: [ 287.567 ]
+   max: [ 438.002 ]
+ - time: 1.26144e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 1.26144e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 433.261 ]
+   min: [ 430.276 ]
+   max: [ 436.008 ]
+ - time: 1.26144e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 1.26144e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 386.536 ]
+   min: [ 293.416 ]
+   max: [ 436.827 ]
+ - time: 1.26144e+08
+   region: .side_x0
+   area: 360000
+   average: [ 433.156 ]
+   min: [ 424.691 ]
+   max: [ 441.566 ]
+ - time: 1.26144e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.13 ]
+   min: [ 424.701 ]
+   max: [ 441.601 ]
+ - time: 1.26144e+08
+   region: .side_y0
+   area: 360000
+   average: [ 433.126 ]
+   min: [ 424.698 ]
+   max: [ 441.604 ]
+ - time: 1.26144e+08
+   region: .side_y1
+   area: 360000
+   average: [ 433.139 ]
+   min: [ 424.698 ]
+   max: [ 441.602 ]
+ - time: 1.26144e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.774 ]
+   min: [ 441.686 ]
+   max: [ 441.873 ]
+ - time: 1.26144e+08
+   region: .side_z1
+   area: 360000
+   average: [ 424.53 ]
+   min: [ 424.414 ]
+   max: [ 424.614 ]
+ - time: 1.26144e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 422.963 ]
+   min: [ 287.795 ]
+   max: [ 441.709 ]
+ - time: 1.26144e+08
+   region: fr
+   area: 244268
+   average: [ 337.961 ]
+   min: [ 287.389 ]
+   max: [ 438.197 ]
+ - time: 1.26144e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 330.367 ]
+   min: [ 287.676 ]
+   max: [ 438.237 ]
+ - time: 1.5768e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 1.5768e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 432.865 ]
+   min: [ 429.987 ]
+   max: [ 436.088 ]
+ - time: 1.5768e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 1.5768e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 378.211 ]
+   min: [ 289.579 ]
+   max: [ 436.91 ]
+ - time: 1.5768e+08
+   region: .side_x0
+   area: 360000
+   average: [ 433.163 ]
+   min: [ 424.715 ]
+   max: [ 441.529 ]
+ - time: 1.5768e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.125 ]
+   min: [ 424.726 ]
+   max: [ 441.575 ]
+ - time: 1.5768e+08
+   region: .side_y0
+   area: 360000
+   average: [ 433.119 ]
+   min: [ 424.724 ]
+   max: [ 441.579 ]
+ - time: 1.5768e+08
+   region: .side_y1
+   area: 360000
+   average: [ 433.136 ]
+   min: [ 424.724 ]
+   max: [ 441.575 ]
+ - time: 1.5768e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.716 ]
+   min: [ 441.611 ]
+   max: [ 441.826 ]
+ - time: 1.5768e+08
+   region: .side_z1
+   area: 360000
+   average: [ 424.587 ]
+   min: [ 424.46 ]
+   max: [ 424.681 ]
+ - time: 1.5768e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 420.932 ]
+   min: [ 287.765 ]
+   max: [ 441.672 ]
+ - time: 1.5768e+08
+   region: fr
+   area: 244268
+   average: [ 334.317 ]
+   min: [ 287.356 ]
+   max: [ 439.248 ]
+ - time: 1.5768e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 326.808 ]
+   min: [ 287.636 ]
+   max: [ 439.49 ]
+ - time: 1.89216e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 1.89216e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 432.359 ]
+   min: [ 428.457 ]
+   max: [ 436.104 ]
+ - time: 1.89216e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 1.89216e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 371.893 ]
+   min: [ 288.492 ]
+   max: [ 436.841 ]
+ - time: 1.89216e+08
+   region: .side_x0
+   area: 360000
+   average: [ 433.161 ]
+   min: [ 424.742 ]
+   max: [ 441.491 ]
+ - time: 1.89216e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.12 ]
+   min: [ 424.75 ]
+   max: [ 441.55 ]
+ - time: 1.89216e+08
+   region: .side_y0
+   area: 360000
+   average: [ 433.113 ]
+   min: [ 424.75 ]
+   max: [ 441.553 ]
+ - time: 1.89216e+08
+   region: .side_y1
+   area: 360000
+   average: [ 433.134 ]
+   min: [ 424.751 ]
+   max: [ 441.547 ]
+ - time: 1.89216e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.664 ]
+   min: [ 441.543 ]
+   max: [ 441.783 ]
+ - time: 1.89216e+08
+   region: .side_z1
+   area: 360000
+   average: [ 424.639 ]
+   min: [ 424.502 ]
+   max: [ 424.741 ]
+ - time: 1.89216e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 419.026 ]
+   min: [ 287.697 ]
+   max: [ 441.639 ]
+ - time: 1.89216e+08
+   region: fr
+   area: 244268
+   average: [ 331.781 ]
+   min: [ 287.353 ]
+   max: [ 440.495 ]
+ - time: 1.89216e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 324.429 ]
+   min: [ 287.632 ]
+   max: [ 440.839 ]
+ - time: 2.20752e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 2.20752e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 431.756 ]
+   min: [ 426.138 ]
+   max: [ 436.738 ]
+ - time: 2.20752e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 2.20752e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 367.001 ]
+   min: [ 288.219 ]
+   max: [ 436.624 ]
+ - time: 2.20752e+08
+   region: .side_x0
+   area: 360000
+   average: [ 433.132 ]
+   min: [ 424.77 ]
+   max: [ 441.453 ]
+ - time: 2.20752e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.115 ]
+   min: [ 424.774 ]
+   max: [ 441.525 ]
+ - time: 2.20752e+08
+   region: .side_y0
+   area: 360000
+   average: [ 433.107 ]
+   min: [ 424.775 ]
+   max: [ 441.528 ]
+ - time: 2.20752e+08
+   region: .side_y1
+   area: 360000
+   average: [ 433.131 ]
+   min: [ 424.777 ]
+   max: [ 441.521 ]
+ - time: 2.20752e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.618 ]
+   min: [ 441.481 ]
+   max: [ 441.743 ]
+ - time: 2.20752e+08
+   region: .side_z1
+   area: 360000
+   average: [ 424.685 ]
+   min: [ 424.541 ]
+   max: [ 424.795 ]
+ - time: 2.20752e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 417.218 ]
+   min: [ 287.564 ]
+   max: [ 441.61 ]
+ - time: 2.20752e+08
+   region: fr
+   area: 244268
+   average: [ 329.837 ]
+   min: [ 287.353 ]
+   max: [ 441.416 ]
+ - time: 2.20752e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 322.655 ]
+   min: [ 287.632 ]
+   max: [ 441.864 ]
+ - time: 2.52288e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 2.52288e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 431.069 ]
+   min: [ 423.625 ]
+   max: [ 437.357 ]
+ - time: 2.52288e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 2.52288e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 363.078 ]
+   min: [ 287.728 ]
+   max: [ 436.299 ]
+ - time: 2.52288e+08
+   region: .side_x0
+   area: 360000
+   average: [ 433.054 ]
+   min: [ 424.8 ]
+   max: [ 441.415 ]
+ - time: 2.52288e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.11 ]
+   min: [ 424.798 ]
+   max: [ 441.501 ]
+ - time: 2.52288e+08
+   region: .side_y0
+   area: 360000
+   average: [ 433.102 ]
+   min: [ 424.799 ]
+   max: [ 441.504 ]
+ - time: 2.52288e+08
+   region: .side_y1
+   area: 360000
+   average: [ 433.129 ]
+   min: [ 424.803 ]
+   max: [ 441.494 ]
+ - time: 2.52288e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.574 ]
+   min: [ 441.423 ]
+   max: [ 441.705 ]
+ - time: 2.52288e+08
+   region: .side_z1
+   area: 360000
+   average: [ 424.728 ]
+   min: [ 424.578 ]
+   max: [ 424.846 ]
+ - time: 2.52288e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 415.49 ]
+   min: [ 287.466 ]
+   max: [ 441.918 ]
+ - time: 2.52288e+08
+   region: fr
+   area: 244268
+   average: [ 328.238 ]
+   min: [ 287.353 ]
+   max: [ 441.896 ]
+ - time: 2.52288e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 321.207 ]
+   min: [ 286.932 ]
+   max: [ 442.442 ]
+ - time: 2.83824e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 2.83824e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 430.304 ]
+   min: [ 420.969 ]
+   max: [ 437.839 ]
+ - time: 2.83824e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 2.83824e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 359.815 ]
+   min: [ 287.476 ]
+   max: [ 436.109 ]
+ - time: 2.83824e+08
+   region: .side_x0
+   area: 360000
+   average: [ 432.899 ]
+   min: [ 424.831 ]
+   max: [ 441.377 ]
+ - time: 2.83824e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.105 ]
+   min: [ 424.821 ]
+   max: [ 441.477 ]
+ - time: 2.83824e+08
+   region: .side_y0
+   area: 360000
+   average: [ 433.096 ]
+   min: [ 424.823 ]
+   max: [ 441.481 ]
+ - time: 2.83824e+08
+   region: .side_y1
+   area: 360000
+   average: [ 433.127 ]
+   min: [ 424.828 ]
+   max: [ 441.469 ]
+ - time: 2.83824e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.534 ]
+   min: [ 441.357 ]
+   max: [ 441.668 ]
+ - time: 2.83824e+08
+   region: .side_z1
+   area: 360000
+   average: [ 424.769 ]
+   min: [ 424.614 ]
+   max: [ 424.894 ]
+ - time: 2.83824e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 413.828 ]
+   min: [ 285.604 ]
+   max: [ 441.988 ]
+ - time: 2.83824e+08
+   region: fr
+   area: 244268
+   average: [ 326.859 ]
+   min: [ 287.352 ]
+   max: [ 441.872 ]
+ - time: 2.83824e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 319.95 ]
+   min: [ 286.887 ]
+   max: [ 442.505 ]
+ - time: 3.1536e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 3.1536e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 429.468 ]
+   min: [ 418.201 ]
+   max: [ 438.166 ]
+ - time: 3.1536e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 3.1536e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 357.013 ]
+   min: [ 287.441 ]
+   max: [ 435.801 ]
+ - time: 3.1536e+08
+   region: .side_x0
+   area: 360000
+   average: [ 432.641 ]
+   min: [ 424.291 ]
+   max: [ 441.34 ]
+ - time: 3.1536e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.1 ]
+   min: [ 424.843 ]
+   max: [ 441.453 ]
+ - time: 3.1536e+08
+   region: .side_y0
+   area: 360000
+   average: [ 433.092 ]
+   min: [ 424.846 ]
+   max: [ 441.458 ]
+ - time: 3.1536e+08
+   region: .side_y1
+   area: 360000
+   average: [ 433.125 ]
+   min: [ 424.853 ]
+   max: [ 441.444 ]
+ - time: 3.1536e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.496 ]
+   min: [ 441.286 ]
+   max: [ 441.633 ]
+ - time: 3.1536e+08
+   region: .side_z1
+   area: 360000
+   average: [ 424.809 ]
+   min: [ 424.648 ]
+   max: [ 424.94 ]
+ - time: 3.1536e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 412.224 ]
+   min: [ 283.955 ]
+   max: [ 443.024 ]
+ - time: 3.1536e+08
+   region: fr
+   area: 244268
+   average: [ 325.635 ]
+   min: [ 287.352 ]
+   max: [ 441.32 ]
+ - time: 3.1536e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 318.816 ]
+   min: [ 287.072 ]
+   max: [ 442.029 ]
+ - time: 3.46896e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 3.46896e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 428.564 ]
+   min: [ 415.344 ]
+   max: [ 438.332 ]
+ - time: 3.46896e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 3.46896e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 354.548 ]
+   min: [ 287.469 ]
+   max: [ 435.359 ]
+ - time: 3.46896e+08
+   region: .side_x0
+   area: 360000
+   average: [ 432.256 ]
+   min: [ 419.958 ]
+   max: [ 441.302 ]
+ - time: 3.46896e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.095 ]
+   min: [ 424.864 ]
+   max: [ 441.431 ]
+ - time: 3.46896e+08
+   region: .side_y0
+   area: 360000
+   average: [ 433.087 ]
+   min: [ 424.868 ]
+   max: [ 441.436 ]
+ - time: 3.46896e+08
+   region: .side_y1
+   area: 360000
+   average: [ 433.123 ]
+   min: [ 424.877 ]
+   max: [ 441.419 ]
+ - time: 3.46896e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.46 ]
+   min: [ 441.206 ]
+   max: [ 441.6 ]
+ - time: 3.46896e+08
+   region: .side_z1
+   area: 360000
+   average: [ 424.847 ]
+   min: [ 424.68 ]
+   max: [ 425.034 ]
+ - time: 3.46896e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 410.672 ]
+   min: [ 282.984 ]
+   max: [ 444.033 ]
+ - time: 3.46896e+08
+   region: fr
+   area: 244268
+   average: [ 324.53 ]
+   min: [ 287.352 ]
+   max: [ 440.245 ]
+ - time: 3.46896e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 317.771 ]
+   min: [ 286.527 ]
+   max: [ 441.293 ]
+ - time: 3.78432e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 3.78432e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 427.597 ]
+   min: [ 412.412 ]
+   max: [ 438.34 ]
+ - time: 3.78432e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 3.78432e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 352.34 ]
+   min: [ 287.511 ]
+   max: [ 434.771 ]
+ - time: 3.78432e+08
+   region: .side_x0
+   area: 360000
+   average: [ 431.726 ]
+   min: [ 414.886 ]
+   max: [ 441.264 ]
+ - time: 3.78432e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.091 ]
+   min: [ 424.878 ]
+   max: [ 441.412 ]
+ - time: 3.78432e+08
+   region: .side_y0
+   area: 360000
+   average: [ 433.084 ]
+   min: [ 424.889 ]
+   max: [ 441.416 ]
+ - time: 3.78432e+08
+   region: .side_y1
+   area: 360000
+   average: [ 433.121 ]
+   min: [ 424.901 ]
+   max: [ 441.396 ]
+ - time: 3.78432e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.425 ]
+   min: [ 441.098 ]
+   max: [ 441.571 ]
+ - time: 3.78432e+08
+   region: .side_z1
+   area: 360000
+   average: [ 424.886 ]
+   min: [ 424.703 ]
+   max: [ 425.194 ]
+ - time: 3.78432e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 409.165 ]
+   min: [ 282.429 ]
+   max: [ 445.005 ]
+ - time: 3.78432e+08
+   region: fr
+   area: 244268
+   average: [ 323.523 ]
+   min: [ 287.352 ]
+   max: [ 438.669 ]
+ - time: 3.78432e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 316.798 ]
+   min: [ 286.266 ]
+   max: [ 441.671 ]
+ - time: 4.09968e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 4.09968e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 426.573 ]
+   min: [ 409.417 ]
+   max: [ 438.2 ]
+ - time: 4.09968e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 4.09968e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 350.336 ]
+   min: [ 287.552 ]
+   max: [ 434.711 ]
+ - time: 4.09968e+08
+   region: .side_x0
+   area: 360000
+   average: [ 431.038 ]
+   min: [ 409.192 ]
+   max: [ 441.227 ]
+ - time: 4.09968e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.086 ]
+   min: [ 424.888 ]
+   max: [ 441.396 ]
+ - time: 4.09968e+08
+   region: .side_y0
+   area: 360000
+   average: [ 433.081 ]
+   min: [ 424.909 ]
+   max: [ 441.396 ]
+ - time: 4.09968e+08
+   region: .side_y1
+   area: 360000
+   average: [ 433.119 ]
+   min: [ 424.923 ]
+   max: [ 441.373 ]
+ - time: 4.09968e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.391 ]
+   min: [ 440.966 ]
+   max: [ 441.576 ]
+ - time: 4.09968e+08
+   region: .side_z1
+   area: 360000
+   average: [ 424.924 ]
+   min: [ 424.724 ]
+   max: [ 425.394 ]
+ - time: 4.09968e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 407.701 ]
+   min: [ 282.133 ]
+   max: [ 445.929 ]
+ - time: 4.09968e+08
+   region: fr
+   area: 244268
+   average: [ 322.597 ]
+   min: [ 287.352 ]
+   max: [ 438.647 ]
+ - time: 4.09968e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 315.888 ]
+   min: [ 286.073 ]
+   max: [ 441.954 ]
+ - time: 4.41504e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 4.41504e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 425.496 ]
+   min: [ 406.373 ]
+   max: [ 437.923 ]
+ - time: 4.41504e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 4.41504e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 348.502 ]
+   min: [ 287.589 ]
+   max: [ 434.773 ]
+ - time: 4.41504e+08
+   region: .side_x0
+   area: 360000
+   average: [ 430.188 ]
+   min: [ 403.02 ]
+   max: [ 441.198 ]
+ - time: 4.41504e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.081 ]
+   min: [ 424.896 ]
+   max: [ 441.385 ]
+ - time: 4.41504e+08
+   region: .side_y0
+   area: 360000
+   average: [ 433.079 ]
+   min: [ 424.928 ]
+   max: [ 441.377 ]
+ - time: 4.41504e+08
+   region: .side_y1
+   area: 360000
+   average: [ 433.116 ]
+   min: [ 424.945 ]
+   max: [ 441.351 ]
+ - time: 4.41504e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.358 ]
+   min: [ 440.803 ]
+   max: [ 441.626 ]
+ - time: 4.41504e+08
+   region: .side_z1
+   area: 360000
+   average: [ 424.963 ]
+   min: [ 424.745 ]
+   max: [ 425.635 ]
+ - time: 4.41504e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 406.275 ]
+   min: [ 282.004 ]
+   max: [ 446.8 ]
+ - time: 4.41504e+08
+   region: fr
+   area: 244268
+   average: [ 321.741 ]
+   min: [ 287.352 ]
+   max: [ 438.783 ]
+ - time: 4.41504e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 315.033 ]
+   min: [ 285.582 ]
+   max: [ 442.141 ]
+ - time: 4.7304e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 4.7304e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 424.395 ]
+   min: [ 403.364 ]
+   max: [ 437.536 ]
+ - time: 4.7304e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 4.7304e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 346.815 ]
+   min: [ 287.621 ]
+   max: [ 434.799 ]
+ - time: 4.7304e+08
+   region: .side_x0
+   area: 360000
+   average: [ 429.175 ]
+   min: [ 396.525 ]
+   max: [ 441.169 ]
+ - time: 4.7304e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.077 ]
+   min: [ 424.905 ]
+   max: [ 441.376 ]
+ - time: 4.7304e+08
+   region: .side_y0
+   area: 360000
+   average: [ 433.077 ]
+   min: [ 424.946 ]
+   max: [ 441.358 ]
+ - time: 4.7304e+08
+   region: .side_y1
+   area: 360000
+   average: [ 433.112 ]
+   min: [ 424.966 ]
+   max: [ 441.33 ]
+ - time: 4.7304e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.325 ]
+   min: [ 440.602 ]
+   max: [ 441.701 ]
+ - time: 4.7304e+08
+   region: .side_z1
+   area: 360000
+   average: [ 425.003 ]
+   min: [ 424.763 ]
+   max: [ 425.913 ]
+ - time: 4.7304e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 404.885 ]
+   min: [ 281.982 ]
+   max: [ 447.607 ]
+ - time: 4.7304e+08
+   region: fr
+   area: 244268
+   average: [ 320.946 ]
+   min: [ 287.352 ]
+   max: [ 438.91 ]
+ - time: 4.7304e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 314.23 ]
+   min: [ 285.256 ]
+   max: [ 442.234 ]
+ - time: 5.04576e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 5.04576e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 423.235 ]
+   min: [ 400.263 ]
+   max: [ 437.031 ]
+ - time: 5.04576e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 5.04576e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 345.244 ]
+   min: [ 287.651 ]
+   max: [ 434.78 ]
+ - time: 5.04576e+08
+   region: .side_x0
+   area: 360000
+   average: [ 428.004 ]
+   min: [ 389.856 ]
+   max: [ 441.14 ]
+ - time: 5.04576e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.072 ]
+   min: [ 424.913 ]
+   max: [ 441.366 ]
+ - time: 5.04576e+08
+   region: .side_y0
+   area: 360000
+   average: [ 433.075 ]
+   min: [ 424.963 ]
+   max: [ 441.341 ]
+ - time: 5.04576e+08
+   region: .side_y1
+   area: 360000
+   average: [ 433.106 ]
+   min: [ 424.987 ]
+   max: [ 441.31 ]
+ - time: 5.04576e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.291 ]
+   min: [ 440.357 ]
+   max: [ 441.801 ]
+ - time: 5.04576e+08
+   region: .side_z1
+   area: 360000
+   average: [ 425.042 ]
+   min: [ 424.781 ]
+   max: [ 426.218 ]
+ - time: 5.04576e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 403.528 ]
+   min: [ 282.034 ]
+   max: [ 448.346 ]
+ - time: 5.04576e+08
+   region: fr
+   area: 244268
+   average: [ 320.203 ]
+   min: [ 287.352 ]
+   max: [ 439.028 ]
+ - time: 5.04576e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 313.474 ]
+   min: [ 285.044 ]
+   max: [ 442.235 ]
+ - time: 5.36112e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 5.36112e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 422.045 ]
+   min: [ 397.156 ]
+   max: [ 436.434 ]
+ - time: 5.36112e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 5.36112e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 343.781 ]
+   min: [ 287.679 ]
+   max: [ 434.719 ]
+ - time: 5.36112e+08
+   region: .side_x0
+   area: 360000
+   average: [ 426.686 ]
+   min: [ 383.148 ]
+   max: [ 441.11 ]
+ - time: 5.36112e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.067 ]
+   min: [ 424.92 ]
+   max: [ 441.36 ]
+ - time: 5.36112e+08
+   region: .side_y0
+   area: 360000
+   average: [ 433.073 ]
+   min: [ 424.98 ]
+   max: [ 441.324 ]
+ - time: 5.36112e+08
+   region: .side_y1
+   area: 360000
+   average: [ 433.095 ]
+   min: [ 425.006 ]
+   max: [ 441.29 ]
+ - time: 5.36112e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.256 ]
+   min: [ 440.059 ]
+   max: [ 441.922 ]
+ - time: 5.36112e+08
+   region: .side_z1
+   area: 360000
+   average: [ 425.081 ]
+   min: [ 424.799 ]
+   max: [ 426.536 ]
+ - time: 5.36112e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 402.202 ]
+   min: [ 282.135 ]
+   max: [ 449.009 ]
+ - time: 5.36112e+08
+   region: fr
+   area: 244268
+   average: [ 319.506 ]
+   min: [ 287.352 ]
+   max: [ 439.136 ]
+ - time: 5.36112e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 312.764 ]
+   min: [ 284.915 ]
+   max: [ 442.146 ]
+ - time: 5.67648e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 5.67648e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 420.835 ]
+   min: [ 394.061 ]
+   max: [ 435.76 ]
+ - time: 5.67648e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 5.67648e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 342.411 ]
+   min: [ 287.704 ]
+   max: [ 434.618 ]
+ - time: 5.67648e+08
+   region: .side_x0
+   area: 360000
+   average: [ 425.232 ]
+   min: [ 376.519 ]
+   max: [ 441.08 ]
+ - time: 5.67648e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.063 ]
+   min: [ 424.928 ]
+   max: [ 441.355 ]
+ - time: 5.67648e+08
+   region: .side_y0
+   area: 360000
+   average: [ 433.068 ]
+   min: [ 424.995 ]
+   max: [ 441.308 ]
+ - time: 5.67648e+08
+   region: .side_y1
+   area: 360000
+   average: [ 433.08 ]
+   min: [ 425.025 ]
+   max: [ 441.27 ]
+ - time: 5.67648e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.219 ]
+   min: [ 439.703 ]
+   max: [ 442.057 ]
+ - time: 5.67648e+08
+   region: .side_z1
+   area: 360000
+   average: [ 425.119 ]
+   min: [ 424.815 ]
+   max: [ 426.848 ]
+ - time: 5.67648e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 400.906 ]
+   min: [ 282.267 ]
+   max: [ 449.591 ]
+ - time: 5.67648e+08
+   region: fr
+   area: 244268
+   average: [ 318.849 ]
+   min: [ 287.352 ]
+   max: [ 439.235 ]
+ - time: 5.67648e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 312.096 ]
+   min: [ 284.846 ]
+   max: [ 441.967 ]
+ - time: 5.99184e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 5.99184e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 419.609 ]
+   min: [ 390.994 ]
+   max: [ 435.022 ]
+ - time: 5.99184e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 5.99184e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 341.126 ]
+   min: [ 287.727 ]
+   max: [ 434.479 ]
+ - time: 5.99184e+08
+   region: .side_x0
+   area: 360000
+   average: [ 423.657 ]
+   min: [ 369.763 ]
+   max: [ 441.05 ]
+ - time: 5.99184e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.058 ]
+   min: [ 424.934 ]
+   max: [ 441.351 ]
+ - time: 5.99184e+08
+   region: .side_y0
+   area: 360000
+   average: [ 433.06 ]
+   min: [ 425.01 ]
+   max: [ 441.292 ]
+ - time: 5.99184e+08
+   region: .side_y1
+   area: 360000
+   average: [ 433.058 ]
+   min: [ 425.044 ]
+   max: [ 441.252 ]
+ - time: 5.99184e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.178 ]
+   min: [ 439.28 ]
+   max: [ 442.195 ]
+ - time: 5.99184e+08
+   region: .side_z1
+   area: 360000
+   average: [ 425.154 ]
+   min: [ 424.831 ]
+   max: [ 427.13 ]
+ - time: 5.99184e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 399.638 ]
+   min: [ 282.421 ]
+   max: [ 450.086 ]
+ - time: 5.99184e+08
+   region: fr
+   area: 244268
+   average: [ 318.227 ]
+   min: [ 287.352 ]
+   max: [ 439.325 ]
+ - time: 5.99184e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 311.466 ]
+   min: [ 284.82 ]
+   max: [ 441.703 ]
+ - time: 6.3072e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 6.3072e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 418.376 ]
+   min: [ 387.968 ]
+   max: [ 434.231 ]
+ - time: 6.3072e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 6.3072e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 339.917 ]
+   min: [ 287.749 ]
+   max: [ 434.304 ]
+ - time: 6.3072e+08
+   region: .side_x0
+   area: 360000
+   average: [ 421.973 ]
+   min: [ 363.086 ]
+   max: [ 441.02 ]
+ - time: 6.3072e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.054 ]
+   min: [ 424.941 ]
+   max: [ 441.346 ]
+ - time: 6.3072e+08
+   region: .side_y0
+   area: 360000
+   average: [ 433.046 ]
+   min: [ 425.025 ]
+   max: [ 441.277 ]
+ - time: 6.3072e+08
+   region: .side_y1
+   area: 360000
+   average: [ 433.028 ]
+   min: [ 425.062 ]
+   max: [ 441.233 ]
+ - time: 6.3072e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.132 ]
+   min: [ 438.785 ]
+   max: [ 442.324 ]
+ - time: 6.3072e+08
+   region: .side_z1
+   area: 360000
+   average: [ 425.185 ]
+   min: [ 424.846 ]
+   max: [ 427.36 ]
+ - time: 6.3072e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 398.396 ]
+   min: [ 282.587 ]
+   max: [ 450.491 ]
+ - time: 6.3072e+08
+   region: fr
+   area: 244268
+   average: [ 317.637 ]
+   min: [ 287.352 ]
+   max: [ 439.404 ]
+ - time: 6.3072e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 310.873 ]
+   min: [ 284.826 ]
+   max: [ 441.354 ]
+ - time: 6.62256e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 6.62256e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 417.14 ]
+   min: [ 384.996 ]
+   max: [ 433.399 ]
+ - time: 6.62256e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 6.62256e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 338.775 ]
+   min: [ 287.77 ]
+   max: [ 434.095 ]
+ - time: 6.62256e+08
+   region: .side_x0
+   area: 360000
+   average: [ 420.198 ]
+   min: [ 356.741 ]
+   max: [ 440.989 ]
+ - time: 6.62256e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.049 ]
+   min: [ 424.947 ]
+   max: [ 441.342 ]
+ - time: 6.62256e+08
+   region: .side_y0
+   area: 360000
+   average: [ 433.026 ]
+   min: [ 425.039 ]
+   max: [ 441.262 ]
+ - time: 6.62256e+08
+   region: .side_y1
+   area: 360000
+   average: [ 432.987 ]
+   min: [ 425.079 ]
+   max: [ 441.215 ]
+ - time: 6.62256e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.079 ]
+   min: [ 438.213 ]
+   max: [ 442.43 ]
+ - time: 6.62256e+08
+   region: .side_z1
+   area: 360000
+   average: [ 425.209 ]
+   min: [ 424.664 ]
+   max: [ 427.546 ]
+ - time: 6.62256e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 397.179 ]
+   min: [ 282.761 ]
+   max: [ 450.801 ]
+ - time: 6.62256e+08
+   region: fr
+   area: 244268
+   average: [ 317.075 ]
+   min: [ 287.352 ]
+   max: [ 439.471 ]
+ - time: 6.62256e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 310.313 ]
+   min: [ 284.855 ]
+   max: [ 440.924 ]
+ - time: 6.93792e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 6.93792e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 415.905 ]
+   min: [ 382.089 ]
+   max: [ 433.175 ]
+ - time: 6.93792e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 6.93792e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 337.694 ]
+   min: [ 287.789 ]
+   max: [ 433.855 ]
+ - time: 6.93792e+08
+   region: .side_x0
+   area: 360000
+   average: [ 418.343 ]
+   min: [ 350.79 ]
+   max: [ 440.958 ]
+ - time: 6.93792e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.045 ]
+   min: [ 424.953 ]
+   max: [ 441.338 ]
+ - time: 6.93792e+08
+   region: .side_y0
+   area: 360000
+   average: [ 432.997 ]
+   min: [ 425.052 ]
+   max: [ 441.248 ]
+ - time: 6.93792e+08
+   region: .side_y1
+   area: 360000
+   average: [ 432.933 ]
+   min: [ 425.097 ]
+   max: [ 441.198 ]
+ - time: 6.93792e+08
+   region: .side_z0
+   area: 360000
+   average: [ 441.017 ]
+   min: [ 437.56 ]
+   max: [ 442.497 ]
+ - time: 6.93792e+08
+   region: .side_z1
+   area: 360000
+   average: [ 425.226 ]
+   min: [ 424.404 ]
+   max: [ 427.7 ]
+ - time: 6.93792e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 395.985 ]
+   min: [ 282.937 ]
+   max: [ 451.015 ]
+ - time: 6.93792e+08
+   region: fr
+   area: 244268
+   average: [ 316.539 ]
+   min: [ 287.352 ]
+   max: [ 439.527 ]
+ - time: 6.93792e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 309.783 ]
+   min: [ 284.901 ]
+   max: [ 440.414 ]
+ - time: 7.25328e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 7.25328e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 414.676 ]
+   min: [ 379.254 ]
+   max: [ 433.105 ]
+ - time: 7.25328e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 7.25328e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 336.669 ]
+   min: [ 287.807 ]
+   max: [ 433.586 ]
+ - time: 7.25328e+08
+   region: .side_x0
+   area: 360000
+   average: [ 416.424 ]
+   min: [ 345.252 ]
+   max: [ 440.927 ]
+ - time: 7.25328e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.041 ]
+   min: [ 424.959 ]
+   max: [ 441.334 ]
+ - time: 7.25328e+08
+   region: .side_y0
+   area: 360000
+   average: [ 432.956 ]
+   min: [ 425.065 ]
+   max: [ 441.235 ]
+ - time: 7.25328e+08
+   region: .side_y1
+   area: 360000
+   average: [ 432.864 ]
+   min: [ 425.113 ]
+   max: [ 441.181 ]
+ - time: 7.25328e+08
+   region: .side_z0
+   area: 360000
+   average: [ 440.944 ]
+   min: [ 436.821 ]
+   max: [ 442.508 ]
+ - time: 7.25328e+08
+   region: .side_z1
+   area: 360000
+   average: [ 425.232 ]
+   min: [ 424.062 ]
+   max: [ 427.756 ]
+ - time: 7.25328e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 394.814 ]
+   min: [ 283.115 ]
+   max: [ 451.13 ]
+ - time: 7.25328e+08
+   region: fr
+   area: 244268
+   average: [ 316.026 ]
+   min: [ 287.352 ]
+   max: [ 439.588 ]
+ - time: 7.25328e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 309.282 ]
+   min: [ 284.96 ]
+   max: [ 440.018 ]
+ - time: 7.56864e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 7.56864e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 413.454 ]
+   min: [ 376.496 ]
+   max: [ 433.025 ]
+ - time: 7.56864e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 7.56864e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 335.695 ]
+   min: [ 287.825 ]
+   max: [ 433.291 ]
+ - time: 7.56864e+08
+   region: .side_x0
+   area: 360000
+   average: [ 414.452 ]
+   min: [ 340.131 ]
+   max: [ 440.896 ]
+ - time: 7.56864e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.037 ]
+   min: [ 424.964 ]
+   max: [ 441.331 ]
+ - time: 7.56864e+08
+   region: .side_y0
+   area: 360000
+   average: [ 432.901 ]
+   min: [ 425.078 ]
+   max: [ 441.221 ]
+ - time: 7.56864e+08
+   region: .side_y1
+   area: 360000
+   average: [ 432.777 ]
+   min: [ 425.13 ]
+   max: [ 441.164 ]
+ - time: 7.56864e+08
+   region: .side_z0
+   area: 360000
+   average: [ 440.858 ]
+   min: [ 435.996 ]
+   max: [ 442.449 ]
+ - time: 7.56864e+08
+   region: .side_z1
+   area: 360000
+   average: [ 425.226 ]
+   min: [ 423.631 ]
+   max: [ 427.694 ]
+ - time: 7.56864e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 393.664 ]
+   min: [ 283.291 ]
+   max: [ 451.147 ]
+ - time: 7.56864e+08
+   region: fr
+   area: 244268
+   average: [ 315.533 ]
+   min: [ 287.352 ]
+   max: [ 439.646 ]
+ - time: 7.56864e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 308.807 ]
+   min: [ 285.027 ]
+   max: [ 440.181 ]
+ - time: 7.884e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 7.884e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 412.244 ]
+   min: [ 373.82 ]
+   max: [ 432.936 ]
+ - time: 7.884e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 7.884e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 334.767 ]
+   min: [ 287.841 ]
+   max: [ 432.972 ]
+ - time: 7.884e+08
+   region: .side_x0
+   area: 360000
+   average: [ 412.44 ]
+   min: [ 335.418 ]
+   max: [ 440.865 ]
+ - time: 7.884e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.032 ]
+   min: [ 424.969 ]
+   max: [ 441.327 ]
+ - time: 7.884e+08
+   region: .side_y0
+   area: 360000
+   average: [ 432.831 ]
+   min: [ 425.09 ]
+   max: [ 441.208 ]
+ - time: 7.884e+08
+   region: .side_y1
+   area: 360000
+   average: [ 432.672 ]
+   min: [ 425.146 ]
+   max: [ 441.147 ]
+ - time: 7.884e+08
+   region: .side_z0
+   area: 360000
+   average: [ 440.757 ]
+   min: [ 435.082 ]
+   max: [ 442.304 ]
+ - time: 7.884e+08
+   region: .side_z1
+   area: 360000
+   average: [ 425.205 ]
+   min: [ 423.103 ]
+   max: [ 427.499 ]
+ - time: 7.884e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 392.535 ]
+   min: [ 283.463 ]
+   max: [ 451.065 ]
+ - time: 7.884e+08
+   region: fr
+   area: 244268
+   average: [ 315.06 ]
+   min: [ 287.352 ]
+   max: [ 439.703 ]
+ - time: 7.884e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 308.355 ]
+   min: [ 285.101 ]
+   max: [ 440.337 ]
+ - time: 8.19936e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 8.19936e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 411.046 ]
+   min: [ 371.228 ]
+   max: [ 432.838 ]
+ - time: 8.19936e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 8.19936e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 333.882 ]
+   min: [ 287.856 ]
+   max: [ 432.631 ]
+ - time: 8.19936e+08
+   region: .side_x0
+   area: 360000
+   average: [ 410.397 ]
+   min: [ 331.097 ]
+   max: [ 440.833 ]
+ - time: 8.19936e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.028 ]
+   min: [ 424.974 ]
+   max: [ 441.324 ]
+ - time: 8.19936e+08
+   region: .side_y0
+   area: 360000
+   average: [ 432.743 ]
+   min: [ 425.103 ]
+   max: [ 441.195 ]
+ - time: 8.19936e+08
+   region: .side_y1
+   area: 360000
+   average: [ 432.545 ]
+   min: [ 424.398 ]
+   max: [ 441.131 ]
+ - time: 8.19936e+08
+   region: .side_z0
+   area: 360000
+   average: [ 440.64 ]
+   min: [ 434.08 ]
+   max: [ 442.285 ]
+ - time: 8.19936e+08
+   region: .side_z1
+   area: 360000
+   average: [ 425.167 ]
+   min: [ 422.47 ]
+   max: [ 427.155 ]
+ - time: 8.19936e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 391.425 ]
+   min: [ 283.632 ]
+   max: [ 450.886 ]
+ - time: 8.19936e+08
+   region: fr
+   area: 244268
+   average: [ 314.604 ]
+   min: [ 287.352 ]
+   max: [ 439.756 ]
+ - time: 8.19936e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 307.925 ]
+   min: [ 285.179 ]
+   max: [ 440.486 ]
+ - time: 8.51472e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 8.51472e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 409.861 ]
+   min: [ 368.721 ]
+   max: [ 432.731 ]
+ - time: 8.51472e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 8.51472e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 333.036 ]
+   min: [ 287.871 ]
+   max: [ 432.271 ]
+ - time: 8.51472e+08
+   region: .side_x0
+   area: 360000
+   average: [ 408.333 ]
+   min: [ 327.132 ]
+   max: [ 440.801 ]
+ - time: 8.51472e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.024 ]
+   min: [ 424.978 ]
+   max: [ 441.322 ]
+ - time: 8.51472e+08
+   region: .side_y0
+   area: 360000
+   average: [ 432.634 ]
+   min: [ 425.114 ]
+   max: [ 441.183 ]
+ - time: 8.51472e+08
+   region: .side_y1
+   area: 360000
+   average: [ 432.395 ]
+   min: [ 423.272 ]
+   max: [ 441.115 ]
+ - time: 8.51472e+08
+   region: .side_z0
+   area: 360000
+   average: [ 440.503 ]
+   min: [ 432.99 ]
+   max: [ 442.412 ]
+ - time: 8.51472e+08
+   region: .side_z1
+   area: 360000
+   average: [ 425.111 ]
+   min: [ 421.729 ]
+   max: [ 426.907 ]
+ - time: 8.51472e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 390.334 ]
+   min: [ 283.796 ]
+   max: [ 450.611 ]
+ - time: 8.51472e+08
+   region: fr
+   area: 244268
+   average: [ 314.164 ]
+   min: [ 287.352 ]
+   max: [ 439.799 ]
+ - time: 8.51472e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 307.516 ]
+   min: [ 285.259 ]
+   max: [ 440.629 ]
+ - time: 8.83008e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 8.83008e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 408.69 ]
+   min: [ 366.3 ]
+   max: [ 432.615 ]
+ - time: 8.83008e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 8.83008e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 332.226 ]
+   min: [ 287.885 ]
+   max: [ 431.892 ]
+ - time: 8.83008e+08
+   region: .side_x0
+   area: 360000
+   average: [ 406.256 ]
+   min: [ 323.486 ]
+   max: [ 440.768 ]
+ - time: 8.83008e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.02 ]
+   min: [ 424.98 ]
+   max: [ 441.319 ]
+ - time: 8.83008e+08
+   region: .side_y0
+   area: 360000
+   average: [ 432.503 ]
+   min: [ 425.126 ]
+   max: [ 441.17 ]
+ - time: 8.83008e+08
+   region: .side_y1
+   area: 360000
+   average: [ 432.221 ]
+   min: [ 422.057 ]
+   max: [ 441.099 ]
+ - time: 8.83008e+08
+   region: .side_z0
+   area: 360000
+   average: [ 440.346 ]
+   min: [ 431.815 ]
+   max: [ 442.532 ]
+ - time: 8.83008e+08
+   region: .side_z1
+   area: 360000
+   average: [ 425.033 ]
+   min: [ 420.876 ]
+   max: [ 427.158 ]
+ - time: 8.83008e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 389.26 ]
+   min: [ 283.76 ]
+   max: [ 450.242 ]
+ - time: 8.83008e+08
+   region: fr
+   area: 244268
+   average: [ 313.739 ]
+   min: [ 287.352 ]
+   max: [ 439.831 ]
+ - time: 8.83008e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 307.125 ]
+   min: [ 285.34 ]
+   max: [ 440.765 ]
+ - time: 9.14544e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 9.14544e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 407.535 ]
+   min: [ 363.964 ]
+   max: [ 432.491 ]
+ - time: 9.14544e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 9.14544e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 331.45 ]
+   min: [ 287.898 ]
+   max: [ 431.496 ]
+ - time: 9.14544e+08
+   region: .side_x0
+   area: 360000
+   average: [ 404.174 ]
+   min: [ 320.165 ]
+   max: [ 440.736 ]
+ - time: 9.14544e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.016 ]
+   min: [ 424.982 ]
+   max: [ 441.316 ]
+ - time: 9.14544e+08
+   region: .side_y0
+   area: 360000
+   average: [ 432.348 ]
+   min: [ 425.138 ]
+   max: [ 441.158 ]
+ - time: 9.14544e+08
+   region: .side_y1
+   area: 360000
+   average: [ 432.02 ]
+   min: [ 420.756 ]
+   max: [ 441.083 ]
+ - time: 9.14544e+08
+   region: .side_z0
+   area: 360000
+   average: [ 440.166 ]
+   min: [ 430.557 ]
+   max: [ 442.637 ]
+ - time: 9.14544e+08
+   region: .side_z1
+   area: 360000
+   average: [ 424.933 ]
+   min: [ 419.911 ]
+   max: [ 427.409 ]
+ - time: 9.14544e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 388.204 ]
+   min: [ 282.749 ]
+   max: [ 449.782 ]
+ - time: 9.14544e+08
+   region: fr
+   area: 244268
+   average: [ 313.328 ]
+   min: [ 287.352 ]
+   max: [ 439.853 ]
+ - time: 9.14544e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 306.752 ]
+   min: [ 285.423 ]
+   max: [ 440.896 ]
+ - time: 9.4608e+08
+   region: .fr_left_well
+   area: 134.832
+   average: [ 288.15 ]
+   min: [ 288.148 ]
+   max: [ 288.157 ]
+ - time: 9.4608e+08
+   region: .fr_right_well
+   area: 126.409
+   average: [ 406.396 ]
+   min: [ 361.712 ]
+   max: [ 432.359 ]
+ - time: 9.4608e+08
+   region: .left_well
+   area: 6600.14
+   average: [ 288.15 ]
+   min: [ 288.149 ]
+   max: [ 288.151 ]
+ - time: 9.4608e+08
+   region: .right_well
+   area: 6583.69
+   average: [ 330.705 ]
+   min: [ 287.911 ]
+   max: [ 431.086 ]
+ - time: 9.4608e+08
+   region: .side_x0
+   area: 360000
+   average: [ 402.091 ]
+   min: [ 317.146 ]
+   max: [ 440.702 ]
+ - time: 9.4608e+08
+   region: .side_x1
+   area: 360000
+   average: [ 433.012 ]
+   min: [ 424.984 ]
+   max: [ 441.314 ]
+ - time: 9.4608e+08
+   region: .side_y0
+   area: 360000
+   average: [ 432.168 ]
+   min: [ 424.704 ]
+   max: [ 441.146 ]
+ - time: 9.4608e+08
+   region: .side_y1
+   area: 360000
+   average: [ 431.793 ]
+   min: [ 419.374 ]
+   max: [ 441.068 ]
+ - time: 9.4608e+08
+   region: .side_z0
+   area: 360000
+   average: [ 439.962 ]
+   min: [ 429.22 ]
+   max: [ 442.722 ]
+ - time: 9.4608e+08
+   region: .side_z1
+   area: 360000
+   average: [ 424.809 ]
+   min: [ 418.834 ]
+   max: [ 427.656 ]
+ - time: 9.4608e+08
+   region: box
+   area: 2.15946e+08
+   average: [ 387.165 ]
+   min: [ 281.633 ]
+   max: [ 449.234 ]
+ - time: 9.4608e+08
+   region: fr
+   area: 244268
+   average: [ 312.93 ]
+   min: [ 287.352 ]
+   max: [ 439.862 ]
+ - time: 9.4608e+08
+   region: .IMPLICIT_BOUNDARY
+   area: 27230.5
+   average: [ 306.396 ]
+   min: [ 285.504 ]
+   max: [ 441.021 ]

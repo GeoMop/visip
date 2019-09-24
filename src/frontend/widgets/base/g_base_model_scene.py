@@ -40,6 +40,7 @@ class GBaseModelScene(QGraphicsScene):
         for action in self.actions:
             if action.name == name:
                 return action
+        assert False, "Action not found!"
 
     def data_changed(self):
         self.update_model = True
@@ -65,8 +66,9 @@ class GBaseModelScene(QGraphicsScene):
                     status = action_argument.status
                     if status != ActionInputStatus.missing:
                         action_argument = action_argument.value
-                        if self.get_action(action_argument.name) is not None:
-                            port1 = self.get_action(action_argument.name).out_ports[0]
+                        g_action = self.get_action(action_argument.name)
+                        port1 = g_action.out_ports[0]
+
                         g_action = self.get_action(action_name)
                         port2 = g_action.in_ports[i]
                         port1.connections.append(GConnection(port1, port2, status, self.root_item))
