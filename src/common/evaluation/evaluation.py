@@ -10,20 +10,19 @@ Evaluation of a workflow.
     relay on equality of the data if the hashes are equal.
 4. Tasks are assigned to the resources by scheduler,
 """
-from typing import Any, List, Optional
+from typing import List
 import attr
 import heapq
 import numpy as np
 import time
 
-
-import common.data as data
-import common.action_base as base
-from common import dfs
-from common.action_workflow import _Workflow
-from common import task as task_mod
-import common.action_instance as instance
-
+from . import data
+from ..dev import base
+from ..dev import dfs
+from ..dev.action_workflow import _Workflow
+from . import task as task_mod
+from ..dev import action_instance as instance
+from ..action.constructor import Value
 
 class Resource:
     """
@@ -278,7 +277,7 @@ class Evaluation:
 
         bind_action = instance.ActionInstance.create(action)
         for i, input in enumerate(inputs):
-            value_instance = instance.ActionInstance.create(base.Value(input))
+            value_instance = instance.ActionInstance.create(Value(input))
             workflow.set_action_input(bind_action, i, value_instance)
             assert bind_action.arguments[i].status >= instance.ActionInputStatus.seems_ok
         workflow.set_action_input(workflow.result, 0, bind_action)

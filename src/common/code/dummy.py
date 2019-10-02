@@ -1,8 +1,8 @@
 from typing import *
-from common import action_base as base
-from common import action_instance as instance
-from common.converter import GetAttribute, GetItem
-from common.action_instance import  ActionInstance
+from common.dev import base as base, action_instance as instance
+from ..action.converter import GetAttribute, GetItem
+from ..action.constructor import Value
+from ..dev.action_instance import ActionInstance
 
 
 def is_underscored(s:Any) -> bool:
@@ -40,7 +40,7 @@ class Dummy:
         return Dummy.wrap(action)
 
     def __getitem__(self, idx: int):
-        idx_wrap = ActionInstance.create(base.Value(idx))
+        idx_wrap = ActionInstance.create(Value(idx))
         action = ActionInstance.create(GetItem(), self._action, idx_wrap)
         return Dummy.wrap(action)
 

@@ -1,7 +1,6 @@
-import pytest
-import common.action_instance as instance
-import common.action_workflow as wf
-import common.action_base as base
+import common.dev.action_instance as instance
+import common.dev.action_workflow as wf
+import common.action.constructor as constructor
 
 def test_workflow_modification():
     w = wf._Workflow("tst_wf")
@@ -34,7 +33,7 @@ def test_workflow_modification():
     ## Action modifications
     result = w.result
     slots = w.slots
-    list_action =  base.List()
+    list_action =  constructor.List()
     list_1 = instance.ActionInstance.create(list_action)
     res = w.set_action_input(list_1, 0, slots[0])
     assert res
@@ -64,7 +63,7 @@ def test_workflow_modification():
 
     # Test cycle
     w.set_action_input(list_1, 0, slots[0])
-    list_2 = instance.ActionInstance.create(base.List())
+    list_2 = instance.ActionInstance.create(constructor.List())
     w.set_action_input(list_1, 1, list_2)
     # w:  (slot0 (B), List2) -> List1 -> result
     res = w.set_action_input(list_2, 0, list_1)     # Cycle

@@ -1,4 +1,4 @@
-import common.analysis as wf
+import common as wf
 import analysis_in as tool
 
 

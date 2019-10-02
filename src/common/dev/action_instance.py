@@ -2,14 +2,9 @@ import pytypes
 import enum
 import attr
 from typing import List, Dict, Union
-from numpy import array
-
-from common import action_base as base
-
-
-
-
-
+from . import base
+from .parameters import ActionParameter
+from ..action.constructor import Value
 
 class ActionInputStatus(enum.IntEnum):
     missing     = -3     # missing value
@@ -22,7 +17,7 @@ class ActionInputStatus(enum.IntEnum):
 
 @attr.s(auto_attribs=True)
 class ActionArgument:
-    parameter: base.ActionParameter
+    parameter: ActionParameter
     value: 'base._ActionBase' = None
     is_default: bool = False
     status: ActionInputStatus = ActionInputStatus.missing
@@ -102,7 +97,7 @@ class ActionInstance:
         if value is None:
             is_default, value = param.get_default()
             if is_default:
-                value = ActionInstance.create(base.Value(value))
+                value = ActionInstance.create(Value(value))
 
         if value is None:
             return ActionArgument(param, None, False, ActionInputStatus.missing)

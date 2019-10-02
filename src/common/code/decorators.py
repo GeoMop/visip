@@ -1,7 +1,9 @@
 import attr
-from common.code import dummy, wrap
-from common import action_workflow as wf
-from common import action_base as base
+from ..code import dummy, wrap
+from ..dev import base
+from ..dev import action_workflow as wf
+from ..action import constructor
+
 
 class _Variables:
     """
@@ -65,7 +67,7 @@ def Class(data_class):
     new_anns = {name:wrap.unwrap_type(ann) for name, ann in data_class.__annotations__.items()}
     data_class.__annotations__ = new_anns
     data_class = attr.s(data_class, auto_attribs=True)
-    dataclass_action = base.ClassActionBase(data_class)
+    dataclass_action = constructor.ClassActionBase(data_class)
     return wrap.public_action(dataclass_action)
 
 
@@ -76,5 +78,6 @@ def action(func):
     Input types are given by the type hints of the function params.
     """
     action_name = func.__name__
-    action = base._ActionBase(action_name, evaluate=func)
+    action = base._ActionBase(action_name)
+    action._evaluate = func
     return wrap.public_action(action)

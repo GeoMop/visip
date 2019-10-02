@@ -2,11 +2,16 @@
 Wrap an action instance construction in order to return the constructec ActionInstance be
 wrapped into Dummy object.
 """
-from typing import Any, Dict
-from numpy import array
-from common import action_base as base
-from common import action_instance as instance
-from common.code import dummy
+import typing
+import typing_inspect as ti
+
+
+from ..dev import type as dtype
+from ..dev import base
+from ..action import constructor
+from ..dev import action_instance as instance
+from ..evaluation import data
+from . import dummy
 
 
 
@@ -16,41 +21,52 @@ def into_action(value):
     :param value: Value can be raw value, List, Tuple, Dummy, etc.
     :return: ActionInstance that can be used as the input to other action instance.
     """
-    base_types = [bool, int, float, complex, str, array]
+
     if value is None:
         return None
     elif isinstance(value, instance.ActionInstance):
         return value
-    elif type(value) in base_types:
-        return instance.ActionInstance.create(base.Value(value))
+    elif dtype.is_base_type(type(value)):
+        return instance.ActionInstance.create(constructor.Value(value))
     elif type(value) in [tuple, list]:
         wrap_values = [into_action(val) for val in value]
-        return instance.ActionInstance.create(base.List(), *wrap_values)
+        return instance.ActionInstance.create(constructor.List(), *wrap_values)
     elif isinstance(value, dummy.Dummy):
         return value._action
     else:
         raise base.ExcActionExpected("Can not wrap into action, value: {}".format(str(value)))
 
 
-def unwrap_type(value):
+
+def unwrap_type(type_hint):
     """
-    Convert value to a type.
-    - unwrap DataClass
-    - check that output is a valid type
-    TODO: must be called recursively for composed data types or we must define our own typing
-    e.g. List[ActionWrapper(Point)]
-    :param value:
+    Remove ActionWrapper from (class) types.
+    :param type_hint:
     :return:
     """
-    if isinstance(value, ActionWrapper):
-        assert isinstance(value.action, base.ClassActionBase)
-        return value.action._data_class
-
+    if isinstance(type_hint, ActionWrapper):
+        assert isinstance(type_hint.action, constructor.ClassActionBase)
+        data_type = type_hint.action._data_class
+        #assert issubclass(dtype, data.DataClassBase)
+        return data_type
+    elif dtype.is_base_type(type_hint):
+        return type_hint
+    elif issubclass(type_hint, data.DataClassBase):
+        return type_hint
+    elif type_hint is typing.Any:
+        return type_hint
     else:
-        return value
+        type_name = type_hint.__name__
+        if type_name == 'List':
+            type_args = ti.get_args(type_hint)
+            assert len(type_args) == 1
+            item_type = type_args[0]
+            return typing.List[unwrap_type(item_type)]
+        else:
+            assert False, "No code representation for the type: {}".format(type_hint)
 
 
-def separate_underscored_keys(arg_dict: Dict[str, Any]):
+def separate_underscored_keys(arg_dict: typing.Dict[str, typing.Any]):
     underscored = {}
     regular = {}
     for key, value in arg_dict.items():

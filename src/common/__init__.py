@@ -1,14 +1,21 @@
-from common.action_base import Value, List
-from common.action_workflow import _ResultAction, Slot
-from common.code.decorators import workflow, analysis, action, Class
-from common.converter import GetAttribute, GetItem
-from .action import *
+from common.action.constructor import Pass, Value, List
+from common.dev.action_workflow import Slot
+from common.code.decorators import workflow, analysis, Class
+from common.action.converter import GetAttribute, GetItem
+#from common.dev.base import *
 
 base_system_actions = [Slot(),
                        Value(None),
                        List(),
                        GetAttribute(None),
-                       GetItem()]
+                       GetItem(),
+                       Pass()]
+
+# Following imports are necessary for access to submodules
+# How to omit these from this public API?
+from . import action
+
+
 
 """
 # Minimalistic implementation of the analysis data layer for the GUI.
@@ -79,7 +86,7 @@ TODO:
     code, workflow_dag, task_dag, scheduler
 
 
-0: base actions overview
+0: dev actions overview
     data manipulation:
     - Value
     - Class ..
