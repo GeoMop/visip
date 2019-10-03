@@ -1,4 +1,5 @@
 import common as wf
+import typing
 
 
 # Class decorator creates the data class
@@ -11,7 +12,7 @@ class Point:
 
 @wf.Class
 class Quadrature:
-    points: wf.type.List[Point]
+    points: typing.List[Point]
     weights: float
 
 # Workflow decorator creates the 'mid_rule' workflow action.

@@ -41,7 +41,7 @@ TODO:
 - set_input check and exception when loading out of GUI
 
 FUTURE:
-- possibly have different actions as instances of few base classes carring just
+- possibly have different actions as instances of few dev classes carring just
   different evaluate functions. Separate class only if code mechanism is substantialy different.
   e.g. GenericAction, ListAction, OperatorAction, MetaAction (workflow, foreach, while, ..)
 - have another object to keep arguments, ... connection within workflow 
