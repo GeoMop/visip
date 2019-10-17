@@ -3,10 +3,15 @@ from common import module
 import common.evaluation as evaluation
 from common import task
 #import common.action_base as base
+import os
 
 @pytest.mark.parametrize("src_file", ["analysis_in.py"])
 def test_evaluation(src_file):
-    mod = module.Module(src_file)
+    base_dir = "visip_sources"
+    source_in_path = os.path.join(base_dir, src_file)
+
+
+    mod = module.Module(source_in_path)
     wf_test_class = mod.get_workflow(name='test_class')
     assert sorted(list(wf_test_class._actions.keys())) == ['Point_1', '__result__', 'a', 'a_x', 'b', 'b_y']
     Point = mod.get_workflow(name='Point')
