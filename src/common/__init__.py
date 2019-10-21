@@ -1,7 +1,7 @@
-from common.action_base import Value, List
-from common.action_workflow import _ResultAction, Slot
-from common.code.decorators import workflow, analysis, action, Class
-from common.converter import GetAttribute, GetItem
+from .action_base import Value, List
+from .action_workflow import _ResultAction, Slot
+from .code.decorators import workflow, analysis, action, Class
+from .converter import GetAttribute, GetItem
 from .action import *
 
 base_system_actions = [Slot(),

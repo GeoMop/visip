@@ -294,17 +294,16 @@ class Evaluation:
 
     def __init__(self, analysis:base._ActionBase):
         """
-        Create object for evaluation of the analysis created from the workflow 'wf' using
-        values 'inputs' as its arguments.
+        Create object for evaluation of the workflow 'analysis' with no parameters.
+        Use 'make_analysis' to substitute arguments to arbitrary action.
+
         :param analysis: an action without inputs
         """
         self.resources = [ Resource() ]
         self.scheduler = Scheduler(self.resources)
         self.result_db = ResultDB()
 
-
-        self.final_task = analysis.task_class(analysis)
-        self.final_task.set_id(self.final_task, '__root__')
+        self.final_task = task_mod._TaskBase._create_task(None, '__root__', analysis, [])
 
         self.composed_id = 0
         # Auxiliary ID of composed tasks to break ties

@@ -33,6 +33,11 @@ class ExcDuplicateArgument(Exception):
 class NoDefault:
     pass
 
+class TaskType(enum.Enum):
+    Atomic = 1
+    Composed = 2
+
+
 
 @attr.s(auto_attribs=True)
 class ActionParameter:
@@ -100,7 +105,9 @@ def extract_func_signature(func, skip_self=True):
     Inspect function signature and extract parameters, their types and return type.
     :param func: Function to inspect.
     :param skip_self: Skip first parameter if its name is 'self'.
-    :return:
+    :return: Parameters instance, return_type
+    - parameter names are given by the signature of the function
+
     """
     signature = inspect.signature(func)
     parameters = Parameters()
@@ -135,7 +142,7 @@ class _ActionBase:
     - have _code representation
     """
     def __init__(self, action_name = None ):
-        self.task_class = task.Atomic
+        self.task_type = TaskType.Atomic
         self.is_analysis = False
         self.name = action_name or self.__class__.__name__
         self._module = "wf"

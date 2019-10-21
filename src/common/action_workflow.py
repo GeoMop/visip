@@ -87,7 +87,7 @@ class _Workflow(base._ActionBase):
         :param output_type:
         """
         super().__init__(name)
-        self.task_class = task.Composed
+        self.task_type = base.TaskType.Composed
         self._result = Result()
         # Result subaction.
         self._slots = []
@@ -371,13 +371,20 @@ class _Workflow(base._ActionBase):
             self.parameters.append(p)
 
 
-    def expand(self, inputs):
+    def expand(self, inputs, task_creator):
         """
         Expansion of the composed task with given data inputs (possibly None if not evaluated yet).
         :param inputs: List[Task]
-        :return: None if can not be expanded yet, otherwise return dict mapping action instance names to the created tasks.
-        In particular slots are named ('__slot__', i) and result task have name '__result__'
-        The composed task is then responsible for replacement of the slots by the input tasks and the result by the the composed task itself.
+        :param task_creator: Dependency injection method for creating tasks from action instances:
+            task_creator(instance_name, action, input_tasks)
+        :return:
+            None if can not be expanded yet.
+            Dict action_instance_name -> (TaskType, task_spec)
+                task_spec:
+                    - existing task from 'inputs', in the case of task type 'Slot'
+                    - (action, arguments) where arguments are the action_instance_names
+
+            In particular slots are named by corresponding parameter name and result task have name '__result__'
         """
         childs = {}
         assert len(self._slots) == len(inputs)
@@ -388,7 +395,7 @@ class _Workflow(base._ActionBase):
             if action_instance_name not in childs:
                 action_instance = self._actions[action_instance_name]
                 arg_tasks = [childs[arg.value.name] for arg in action_instance.arguments]
-                childs[action_instance.name] = action_instance.action.task_class(action_instance.action, arg_tasks)
+                childs[action_instance.name] = task_creator(action_instance.name, action_instance.action, arg_tasks)
         return childs
 
 
