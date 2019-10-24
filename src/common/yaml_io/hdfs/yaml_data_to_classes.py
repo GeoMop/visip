@@ -1,6 +1,6 @@
 import attr
 
-import load_yaml
+import common.yaml_io.hdfs.load_yaml as load_yaml
 
 
 class Flow_input(object):

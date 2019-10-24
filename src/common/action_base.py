@@ -11,20 +11,24 @@ from common.code import format
 
 # Name for the first parameter of the workflow definiton function that is used
 # to capture instance names.
-_VAR_="self"
+_VAR_ = "self"
 
 
 class ExcMissingArgument(Exception):
     pass
 
+
 class ExcActionExpected(Exception):
     pass
+
 
 class ExcTooManyArguments(Exception):
     pass
 
+
 class ExcUnknownArgument(Exception):
     pass
+
 
 class ExcDuplicateArgument(Exception):
     pass
@@ -47,6 +51,7 @@ class ActionParameter:
         else:
             return False, None
 
+
 class Parameters:
     def __init__(self):
         self.parameters = []
@@ -57,14 +62,13 @@ class Parameters:
         # indicates variable number of parameters, the last param have None name
         self.no_default = NoDefault()
 
-
     def is_variadic(self):
         return self._variable
 
     def size(self):
         return len(self.parameters)
 
-    def append(self, param : ActionParameter):
+    def append(self, param: ActionParameter):
         assert not self._variable, "Duplicate definition of variadic parameter."
         if param.name is None:
             self._variable = True
@@ -73,10 +77,8 @@ class Parameters:
             self._name_dict[param.name] = param
         self.parameters.append(param)
 
-
     def get_name(self, name):
         return self._name_dict.get(name, None)
-
 
     def get_index(self, idx):
         if idx >= len(self.parameters):
@@ -85,7 +87,6 @@ class Parameters:
             else:
                 return None
         return self.parameters[idx]
-
 
     def __iter__(self):
         """
@@ -126,7 +127,6 @@ def extract_func_signature(func, skip_self=True):
 
 
 class _ActionBase:
-
     """
     Base of all actions.
     - have defined parameters
@@ -134,7 +134,8 @@ class _ActionBase:
     - implement expansion to the Task DAG.
     - have _code representation
     """
-    def __init__(self, action_name = None ):
+
+    def __init__(self, action_name=None):
         self.task_class = task.Atomic
         self.is_analysis = False
         self.name = action_name or self.__class__.__name__
@@ -154,7 +155,6 @@ class _ActionBase:
         else:
             return self.__module__
 
-
     def _extract_input_type(self, func=None, skip_self=True):
         """
         Extract input and output types of the action from its evaluate method.
@@ -172,7 +172,6 @@ class _ActionBase:
         """
         return data.hash(self.name)
 
-
     def evaluate(self, inputs):
         """
         Common evaluation function for all actions.
@@ -181,7 +180,6 @@ class _ActionBase:
         :return: action result
         """
         return self._evaluate(*inputs)
-
 
     def _evaluate(self):
         """
@@ -193,7 +191,6 @@ class _ActionBase:
         :return:
         """
         assert False, "Implementation has to be provided."
-
 
     def format(self, full_action_name, arg_names):
         """
@@ -209,16 +206,11 @@ class _ActionBase:
         for i, arg in enumerate(arg_names):
             param = self.parameters.get_index(i)
             assert param is not None
-            args.append( (param.name, arg) )
+            args.append((param.name, arg))
         return format.Format.action_call(full_action_name, args)
-
-
 
     def validate(self, inputs):
         return self.evaluate(inputs)
-
-
-
 
 
 class Value(_ActionBase):
@@ -246,13 +238,12 @@ class Pass(_ActionBase):
     """
     Do nothing action. Meant for internal usage in particular.
     """
+
     def __init__(self):
         super().__init__()
 
-    def _evaluate(self, input:data.DataType):
+    def _evaluate(self, input: data.DataType):
         return input
-
-
 
 
 class _ListBase(_ActionBase):
@@ -284,19 +275,16 @@ class List(_ListBase):
         return list(inputs)
 
 
-
-
-
 class ClassActionBase(_ActionBase):
     """
     Dataclass action
     """
+
     def __init__(self, data_class):
         super().__init__(data_class.__name__)
         self._data_class = data_class
         self._module = self._data_class.__module__
         self._extract_input_type(func=data_class.__init__, skip_self=True)
-
 
     @staticmethod
     def construct_from_params(name: str, params: Parameters):
@@ -309,7 +297,7 @@ class ClassActionBase(_ActionBase):
         attributes = {}
         for param in params:
             attributes[param.name] = attr.ib(default=param.default, type=param.type)
-        data_class = type(name, (data.DataClassBase, ), attributes)
+        data_class = type(name, (data.DataClassBase,), attributes)
         data_class = attr.s(data_class)
         return ClassActionBase(data_class)
 
@@ -319,7 +307,6 @@ class ClassActionBase(_ActionBase):
 
     def _evaluate(self, *args) -> data.DataClassBase:
         return self._data_class(*args)
-
 
     def code_of_definition(self, make_rel_name):
         lines = ['@wf.Class']
@@ -337,5 +324,3 @@ class ClassActionBase(_ActionBase):
             lines.append("    {}:{}{}".format(attribute.name, type_str, default))
 
         return "\n".join(lines)
-
-

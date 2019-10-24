@@ -1,4 +1,3 @@
-
 from typing import List
 import common.action_base as base
 import common.code.decorators as wf
@@ -9,6 +8,7 @@ import common.code.wrap as wrap
 class Point:
     x: float = 0.0
     y: float = 0.0
+
 
 @wf.Class
 class Element:
@@ -22,7 +22,6 @@ class Mesh:
     elements: List[Element] = []
 
 
-
 def test_dataclass_modification():
     #
     point_wrap = Point
@@ -30,15 +29,12 @@ def test_dataclass_modification():
     params = list(point_action.parameters)
     param_z = base.ActionParameter(2, "z", float, 0.0)
     params.append(param_z)
-    point_xyz = wrap.public_action( base.ClassActionBase.construct_from_params("PointXYZ", params) )
+    point_xyz = wrap.public_action(base.ClassActionBase.construct_from_params("PointXYZ", params))
     xyz_instance = point_xyz(x=1, y=2, z=3)._action
     assert len(xyz_instance.arguments) == 3
     assert xyz_instance.arguments[0].value.action.value == 1.0
     assert xyz_instance.arguments[1].value.action.value == 2.0
     assert xyz_instance.arguments[2].value.action.value == 3.0
-
-
-
 
 # def test_classtypes():
 #     mesh = Mesh()

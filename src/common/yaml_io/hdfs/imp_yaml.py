@@ -1,6 +1,10 @@
 import sys
 import ruamel.yaml
 
+from common.code import wrap
+import common.action_base as base
+from src.common.action_base import ClassActionBase
+
 
 # yaml_str = """\
 # foo:
@@ -35,6 +39,11 @@ class GenericScalar(Generic):
     @staticmethod
     def construct(constructor, node):
         return constructor.construct_scalar(node)
+
+
+tagy = ['!Coupling_Sequential', '!Flow_Darcy_MH', '!Petsc', '!vtk', '!Coupling_OperatorSplitting',
+        '!Solute_Advection_FV', '!DualPorosity',
+        '!SorptionMobile', '!FirstOrderReaction', '!SorptionImmobile']
 
 
 class GenericMapping(Generic):
@@ -80,14 +89,33 @@ yaml.register_class(GenericScalar)
 yaml.register_class(GenericMapping)
 yaml.register_class(GenericSequence)
 
+'''
+načíst yaml do slovníku, vytvorit moji tridu a potom projít klíče ve slovníku ( ty tridy co mám uedelat ) a vytvorit je.
+'''
 with open("flow_input.yaml", 'r')as stream:
     data = yaml.load(stream)
+    print(data)
     # print(data)
     # print('___')
-    vys = yaml.dump(data, sys.stdout)  # dump lze i do složky!!
-    print(vys)
+    # print(slovnik['problem'].description)
 
-    # print(data)
+    # pokus = ClassActionBase(slovnik)
+    # print(pokus)
+
+    yaml.dump(data, sys.stdout)  # dump lze i do složky!!
+    # print('_')
+
+#
+# def create_classes(slovnik):
+#     for keys, values in slovnik.items():
+#         print(keys, values)
+#         if isinstance(values, Generic):
+#             ClassActionBase(values)
+#             print(ClassActionBase(create_classes(slovnik)))
+#
+#
+# create_classes(slovnik)
+
 
 # base = yaml.load(yaml_str)
 # base['bar'] = {
