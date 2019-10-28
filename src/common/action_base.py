@@ -4,9 +4,8 @@ import enum
 import attr
 import pytypes
 from typing import *
-from collections import defaultdict
+
 from common import data
-from common import task
 from common.code import format
 
 # Name for the first parameter of the workflow definiton function that is used
@@ -290,8 +289,33 @@ class List(_ListBase):
     def evaluate(self, inputs):
         return list(inputs)
 
+class Pair():
+    def __init__(self):
+        super().__init__()
+        self.parameters = Parameters()
+        self.parameters.append(ActionParameter(idx=0, name="a", type=Any, default=self.parameters.no_default))
+        self.parameters.append(ActionParameter(idx=1, name="b", type=Any, default=self.parameters.no_default))
+
+    def format(self, action_name, arg_names):
+        a, b = arg_names
+        return format.Format.list("(", ")", [a, b])
+
+    def evaluate(self, inputs):
+        return tuple(inputs)
 
 
+class Dict():
+    def __init__(self):
+        super().__init__()
+        self.parameters = Parameters()
+        self.parameters.append(ActionParameter(idx=0, name=None, type=Tuple[Any, Any], default=self.parameters.no_default))
+
+    def format(self, action_name, arg_names):
+        # Todo: check that inputs are pairs, extract key/value
+        return format.Format.list("{", "}", [(None, arg) for arg in arg_names])
+
+    def evaluate(self, inputs):
+        return { key: val for key, val in inputs}
 
 
 class ClassActionBase(_ActionBase):

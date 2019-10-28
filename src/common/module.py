@@ -115,6 +115,7 @@ class Module:
 
         self.extract_definitions()
 
+    # TODO: reintroduce _load_from_source for unit tests
 
     def load_module(self, file_path: str) -> ModuleType:
         """
