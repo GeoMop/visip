@@ -1,5 +1,5 @@
 import common as an
-from common import types
+from common.dev import type
 import os
 import pytest
 
@@ -17,7 +17,7 @@ class E(B):
 
 
 def test_closest_common_ancestor():
-    cca = types.closest_common_ancestor
+    cca = type.closest_common_ancestor
     assert cca(D, E) is B
     assert cca(C, D) is A
     assert cca(A, B) is A

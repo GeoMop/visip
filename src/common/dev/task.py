@@ -1,9 +1,10 @@
 import enum
-import functools
 from typing import Optional, Union, List
 
-from common import data
-from common import action_base as base
+from . import data
+from ..action.constructor import Pass
+from . import base
+
 
 
 class Status(enum.IntEnum):
@@ -19,7 +20,7 @@ class Status(enum.IntEnum):
 
 
 class _TaskBase:
-    def __init__(self, action: 'base._ActionBase', inputs: List['Atomic'] = []):
+    def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'] = []):
         self.action = action
         # Action (like function definition) of the task (like function call).
         self.inputs = inputs
@@ -131,8 +132,8 @@ class Composed(Atomic):
     preferences assigned by the Scheduler. It also keeps a map from
     """
 
-    def __init__(self, action: 'base._ActionBase', inputs: List['Atomic'] = []):
-        heads = [ComposedHead(base.Pass(), [input]) for input in inputs]
+    def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'] = []):
+        heads = [ComposedHead(Pass(), [input]) for input in inputs]
         super().__init__(action, heads)
         self.time_estimate = 0
         # estimate of the start time, used as expansion priority

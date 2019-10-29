@@ -1,9 +1,8 @@
 import pytest
 from common import module
-import common.evaluation as evaluation
-from common import task
-#import common.action_base as base
+from common.dev import evaluation, task
 import os
+#import common.action_base as dev
 
 @pytest.mark.parametrize("src_file", ["analysis_in.py"])
 def test_evaluation(src_file):

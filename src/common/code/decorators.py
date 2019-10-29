@@ -1,7 +1,10 @@
 import attr
-from common.code import dummy, wrap
-from common import action_workflow as wf
-from common import action_base as base
+from ..code import dummy, wrap
+from ..dev import base
+from ..dev import action_workflow as wf
+from ..action import constructor
+from ..dev.parameters import ActionParameter, Parameters
+
 
 class _Variables:
     """
@@ -58,15 +61,27 @@ def analysis(func):
 
 def Class(data_class):
     """
-    Decorator to add dunder methods using attr.
-    Moreover dot access returns the converter.Get action instead of the value itself.
-    This is necessary to catch it in the workflow decorator.
+    Decorator to convert a data class definition into the constructor action.
+    The data_class__annotations__ are converted into Parameters object.
+
+    Usage:
+    @Class
+    class Point:
+        x:float         # attribute with given type
+        y:float = 0.0   # attribute with defined type and default value
+
+    The resulting constructor action is wrapped into a function in order to convert passed parameters
+    to the connected actions.
     """
-    new_anns = {name:wrap.unwrap_type(ann) for name, ann in data_class.__annotations__.items()}
-    data_class.__annotations__ = new_anns
-    data_class = attr.s(data_class, auto_attribs=True)
-    dataclass_action = base.ClassActionBase(data_class)
+    params = Parameters()
+    for name, ann in data_class.__annotations__.items():
+        attr_type = wrap.unwrap_type(ann)
+        attr_default = data_class.__dict__.get(name, params.no_default)
+        # Unwrapping of default value and type checking should be part of the Action creation.
+        params.append(ActionParameter(name, attr_type, attr_default))
+    dataclass_action = constructor.ClassActionBase.construct_from_params(data_class.__name__,  params, module=data_class.__module__)
     return wrap.public_action(dataclass_action)
+
 
 
 def action(func):
@@ -76,5 +91,6 @@ def action(func):
     Input types are given by the type hints of the function params.
     """
     action_name = func.__name__
-    action = base._ActionBase(action_name, evaluate=func)
+    action = base._ActionBase(action_name)
+    action._evaluate = func
     return wrap.public_action(action)

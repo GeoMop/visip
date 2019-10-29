@@ -5,11 +5,11 @@ import traceback
 from typing import Callable
 from types import ModuleType
 
-from common.code import wrap
-from common import action_workflow as wf
-from common import data
-from common import action_base as base
-from common.action_instance import ActionInstance
+from .code import wrap
+from .dev import base, action_workflow as wf
+from .dev.action_instance import ActionInstance
+from .code.representer import Representer
+from .dev import type as dtype
 
 class InterpreterError(Exception): pass
 
@@ -210,6 +210,7 @@ class Module:
         Generate the source code of the whole module.
         :return:
         """
+        representer = Representer()
         source = []
         # make imports
         for impr in self.imported_modules:
@@ -223,9 +224,15 @@ class Module:
 
         # make definitions
         for v in self.definitions:
+            # TODO:
+            # Definitions are not arbitrary actions, currently only Workflow and DataClass
+            # currently these provides the cond_of_definition method.
+            # We should move the code definition routines into Representer as the representation
+            # should not specialized for user defined actions since the representation is given by the Python syntax.
             action = v
             source.extend(["", ""])     # two empty lines as separator
-            source.append(action.code_of_definition(self.relative_name))
+            def_code = action.code_of_definition(representer, self.relative_name)
+            source.append(def_code)
         return "\n".join(source)
 
 
@@ -261,7 +268,7 @@ class Module:
         """
         return self._name_to_def[name]
 
-    def get_dataclass(self, name:str) -> Callable[..., data.DataClassBase]:
+    def get_dataclass(self, name:str) -> Callable[..., dtype.DataClassBase]:
         dclass = self._name_to_def[name]
         return dclass._evaluate
 
