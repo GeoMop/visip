@@ -10,17 +10,8 @@ Same special dataclasses are implemented, in particular:
 - file wrapper
 - ...
 """
+from typing import NewType
 
-#import hashlib
-from typing import Union, List, NewType
-
-
-BasicType = Union[bool, int, float, complex, str]
-DataType = Union[BasicType, List['DataType'], 'DataClassBase']
-
-# Just an empty data class to check the types.
-class DataClassBase:
-    pass
 
 
 HashValue = NewType('HashValue', int)

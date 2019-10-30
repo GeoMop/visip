@@ -1,8 +1,11 @@
+import enum
 from typing import Optional, Union, List
 
-from common import data
-from common import action_base as base
-import enum
+from . import data
+from ..action.constructor import Pass
+from . import base
+
+
 
 class Status(enum.IntEnum):
     none = 0
@@ -15,14 +18,15 @@ class Status(enum.IntEnum):
     finished = 7
 
 
-class Atomic:
-    def __init__(self, action: 'base._ActionBase', inputs: List['Atomic'] = []):
+
+class _TaskBase:
+    def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'] = []):
         self.action = action
         # Action (like function definition) of the task (like function call).
         self.inputs = inputs
         # Input tasks for the action's arguments.
         for input in inputs:
-            assert isinstance(input, Atomic)
+            assert isinstance(input, _TaskBase)
             input.outputs.append(self)
         self.outputs: List['Atomic'] = []
         # List of tasks dependent on the result. (Try to not use and eliminate.)
@@ -51,14 +55,46 @@ class Atomic:
         return self._result
 
     def evaluate(self):
-        assert self.is_ready()
-        data_inputs = [i.result for i in self.inputs]
-        self._result = self.action.evaluate(data_inputs)
-        self.status = Status.finished
-        assert self.result is not None
+        assert False, "Not implemented."
 
     def is_finished(self):
         return self.result is not None
+
+    def is_ready(self):
+        assert False, "Not implemented."
+
+
+    def set_id(self, parent_task, child_id):
+        self.parent = parent_task
+        if parent_task is None:
+            parent_hash = data.hash(None)
+        else:
+            parent_hash = parent_task.id
+        self.id = data.hash(child_id, previous=parent_hash)
+
+    def __lt__(self, other):
+        return self.priority < other.priority
+
+    @staticmethod
+    def _create_task(parent_task, child_name, action, input_tasks):
+        """
+        Create task from the given action and its input tasks.
+        """
+        task_type = action.task_type
+        if task_type == base.TaskType.Atomic:
+            child = Atomic(action, input_tasks)
+        elif task_type == base.TaskType.Composed:
+            child = Composed(action, input_tasks)
+        else:
+            assert False
+        child.set_id(parent_task, child_name)
+        return child
+
+
+class Atomic(_TaskBase):
+    pass
+
+
 
     def is_ready(self):
         """
@@ -71,12 +107,13 @@ class Atomic:
                 self.status = Status.ready
         return self.status == Status.ready
 
-    def set_id(self, parent_task, child_id):
-        self.parent = parent_task
-        self.id = data.hash(child_id, previous=parent_task.id)
+    def evaluate(self):
+        assert self.is_ready()
+        data_inputs = [i.result for i in self.inputs]
+        self._result = self.action.evaluate(data_inputs)
+        self.status = Status.finished
+        assert self.result is not None
 
-    def __lt__(self, other):
-        return self.priority < other.priority
 
 class ComposedHead(Atomic):
     """
@@ -95,8 +132,8 @@ class Composed(Atomic):
     preferences assigned by the Scheduler. It also keeps a map from
     """
 
-    def __init__(self, action: 'base._ActionBase', inputs: List['Atomic'] = []):
-        heads = [ComposedHead(base.Pass(), [input]) for input in inputs]
+    def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'] = []):
+        heads = [ComposedHead(Pass(), [input]) for input in inputs]
         super().__init__(action, heads)
         self.time_estimate = 0
         # estimate of the start time, used as expansion priority
@@ -130,6 +167,10 @@ class Composed(Atomic):
     def is_expanded(self):
         return self.childs is not None
 
+
+    def create_child_task(self, name, action, inputs):
+        return _TaskBase._create_task(self, name, action, inputs)
+
     def expand(self):
         """
         Composed task expansion.
@@ -138,30 +179,33 @@ class Composed(Atomic):
         action instance of the body. Auxiliary tasks for the heads, result and tail
         are used in order to minimize modification of the task links.
 
-        :return: List of child tasks or None if the expansion can not be performed.
-        Empty list is valid result, used to indicate end of a loop e.g. in the case of ForEach and While actions.
+        :return:
+            None if the expansion can not be performed.
+            Dictionary of child tasks (action_instance_name -> task)
+            Empty dict is valid result, used to indicate end of a loop e.g. in the case of ForEach and While actions.
         """
+        assert self.action.task_type == base.TaskType.Composed
         assert hasattr(self.action, 'expand')
+
         # Disconnect composed task heads.
         heads = self.inputs.copy()
         for head in heads:
             head.outputs = []
         # Generate and connect body tasks.
-        self.childs = self.action.expand(self.inputs)
+        self.childs = self.action.expand(self.inputs, self.create_child_task)
         if self.childs:
-            for name, child in self.childs.items():
-                child.set_id(self, name)
-
             result_task = self.childs['__result__']
             assert len(result_task.outputs) == 0
             result_task.outputs.append(self)
             self.inputs = [result_task]
+            # After expansion the composed task is just a dummy task dependent on the previoous result.
+            # This works with Workflow, see how it will work with other composed actions:
+            # if, reduce (for, while)
 
         else:
             # No expansion: reconnect heads
             for head in heads:
                 head.outputs = [self]
-
         return self.childs
 
     def evaluate(self):

@@ -1,15 +1,10 @@
-import pytypes
 import enum
 import attr
 from typing import List, Dict, Union
-from numpy import array
-
-from common import action_base as base
-
-
-
-
-
+from . import base
+from .parameters import ActionParameter
+from ..action.constructor import Value
+from . import type as dtype
 
 class ActionInputStatus(enum.IntEnum):
     missing     = -3     # missing value
@@ -22,7 +17,7 @@ class ActionInputStatus(enum.IntEnum):
 
 @attr.s(auto_attribs=True)
 class ActionArgument:
-    parameter: base.ActionParameter
+    parameter: ActionParameter
     value: 'base._ActionBase' = None
     is_default: bool = False
     status: ActionInputStatus = ActionInputStatus.missing
@@ -102,7 +97,7 @@ class ActionInstance:
         if value is None:
             is_default, value = param.get_default()
             if is_default:
-                value = ActionInstance.create(base.Value(value))
+                value = ActionInstance.create(Value(value))
 
         if value is None:
             return ActionArgument(param, None, False, ActionInputStatus.missing)
@@ -110,7 +105,7 @@ class ActionInstance:
         # if not isinstance(value, ActionInstance):
         #     x = 1
         assert isinstance(value, ActionInstance), type(value)
-        if not pytypes.is_subtype(value.output_type, param.type):
+        if not dtype.is_subtype(value.output_type, param.type):
             return  ActionArgument(param, value, is_default, ActionInputStatus.error_type)
 
         return ActionArgument(param, value, is_default, ActionInputStatus.seems_ok)
@@ -204,7 +199,7 @@ class ActionInstance:
             return 0.5
 
 
-    def code(self, make_rel_name):
+    def code(self, representer, make_rel_name):
         """
         Return a representation of the action instance.
         This is generic representation code that calls the constructor.
@@ -218,5 +213,6 @@ class ActionInstance:
         """
         arg_names = [arg.value.get_code_instance_name() for arg in self.arguments]
         full_action_name = make_rel_name(self.action.module, self.action_name)
-        expr_format = self.action.format(full_action_name, arg_names)
+        #print(self.action)
+        expr_format = self.action.format(representer, full_action_name, arg_names)
         return expr_format

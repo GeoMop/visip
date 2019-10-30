@@ -1,8 +1,9 @@
 
 from typing import List
-import common.action_base as base
-import common.code.decorators as wf
-import common.code.wrap as wrap
+from common.dev.parameters import ActionParameter
+from common.action.constructor import ClassActionBase
+from common.code import decorators as wf
+from common.code import wrap
 
 
 @wf.Class
@@ -28,9 +29,9 @@ def test_dataclass_modification():
     point_wrap = Point
     point_action = point_wrap.action
     params = list(point_action.parameters)
-    param_z = base.ActionParameter(2, "z", float, 0.0)
+    param_z = ActionParameter("z", float, 0.0)
     params.append(param_z)
-    point_xyz = wrap.public_action( base.ClassActionBase.construct_from_params("PointXYZ", params) )
+    point_xyz = wrap.public_action(ClassActionBase.construct_from_params("PointXYZ", params) )
     xyz_instance = point_xyz(x=1, y=2, z=3)._action
     assert len(xyz_instance.arguments) == 3
     assert xyz_instance.arguments[0].value.action.value == 1.0

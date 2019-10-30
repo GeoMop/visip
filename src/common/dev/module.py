@@ -6,12 +6,31 @@ from typing import Callable
 from types import ModuleType
 
 from common.code import wrap
-from common import action_workflow as wf
-from common import data
-from common import action_base
-from common.action_instance import ActionInstance
+from common.dev import base, action_workflow as wf
+from common.dev.action_instance import ActionInstance
+from common.code.representer import Representer
+from common.dev import type as dtype
 
 class InterpreterError(Exception): pass
+
+
+class sys_path_append:
+    """
+    Context manager for adding a path to the sys.path
+    """
+    def __init__(self, path):
+        self.path = path
+
+    def __enter__(self):
+        sys.path.insert(0, self.path)
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            sys.path.remove(self.path)
+        except ValueError:
+            pass
+
+
 
 def my_exec(cmd, globals=None, locals=None, description='source string'):
     try:
@@ -99,28 +118,22 @@ class Module:
 
     def load_module(self, file_path: str) -> ModuleType:
         """
-        Import the python module from the file. Create an empty module if the file doesn't exist.
+        Import the python module from the file.
+        Temporary add its directory to the sys.path in order to find modules in the same directory.
+
+        TODO: Create an empty module if the file doesn't exist.
         :param file:
         :return:
         """
-
-        base = os.path.basename(file_path)
-        base, ext = os.path.splitext(base)
+        module_dir = os.path.dirname(file_path)
+        module_name = os.path.basename(file_path)
+        module_name, ext = os.path.splitext(module_name)
         assert ext == ".py"
         with open(file_path, "r") as f:
             source = f.read()
-        return self._load_from_source(name=base, source=source)
-
-
-    def _load_from_source(self, name, source) -> ModuleType:
-        """
-        Create the _Module object from the source string 'source'.
-        Should not be used.
-        Named 'name'.
-        """
-        assert source, "Can not load empty source."
-        new_module = imp.new_module(name)
-        my_exec(source, new_module.__dict__, locals=None, description=name)
+        with sys_path_append(module_dir):
+            new_module = imp.new_module(module_name)
+            my_exec(source, new_module.__dict__, locals=None, description=module_name)
         return new_module
 
 
@@ -135,7 +148,7 @@ class Module:
             if isinstance(obj, wrap.ActionWrapper):
                 action = obj.action
                 self.insert_definition(action)
-                assert isinstance(action, action_base._ActionBase)
+                assert isinstance(action, base._ActionBase)
                 assert name == action.name
                 if action.is_analysis:
                     analysis.append(action)
@@ -157,7 +170,7 @@ class Module:
             self.analysis = None
 
 
-    def insert_definition(self, action: action_base._ActionBase, pos:int=None):
+    def insert_definition(self, action: base._ActionBase, pos:int=None):
         """
         Insert a new definition of the 'action' to given position 'pos'.
         :param action: An action class (including dataclass construction actions).
@@ -166,7 +179,7 @@ class Module:
         """
         if pos is None:
             pos = len(self.definitions)
-        assert isinstance(action, action_base._ActionBase)
+        assert isinstance(action, base._ActionBase)
         self.definitions.insert(pos, action)
         self._name_to_def[action.name] = action
 
@@ -197,6 +210,7 @@ class Module:
         Generate the source code of the whole module.
         :return:
         """
+        representer = Representer()
         source = []
         # make imports
         for impr in self.imported_modules:
@@ -210,9 +224,15 @@ class Module:
 
         # make definitions
         for v in self.definitions:
+            # TODO:
+            # Definitions are not arbitrary actions, currently only Workflow and DataClass
+            # currently these provides the cond_of_definition method.
+            # We should move the code definition routines into Representer as the representation
+            # should not specialized for user defined actions since the representation is given by the Python syntax.
             action = v
             source.extend(["", ""])     # two empty lines as separator
-            source.append(action.code_of_definition(self.relative_name))
+            def_code = action.code_of_definition(representer, self.relative_name)
+            source.append(def_code)
         return "\n".join(source)
 
 
@@ -248,7 +268,7 @@ class Module:
         """
         return self._name_to_def[name]
 
-    def get_dataclass(self, name:str) -> Callable[..., data.DataClassBase]:
+    def get_dataclass(self, name:str) -> Callable[..., dtype.DataClassBase]:
         dclass = self._name_to_def[name]
         return dclass._evaluate
 

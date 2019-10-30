@@ -10,20 +10,15 @@ Evaluation of a workflow.
     relay on equality of the data if the hashes are equal.
 4. Tasks are assigned to the resources by scheduler,
 """
-from typing import Any, List, Optional
+from typing import List
 import attr
 import heapq
 import numpy as np
 import time
 
-
-import common.data as data
-import common.action_base as base
-from common import dfs
-from common.action_workflow import _Workflow
-from common import task as task_mod
-import common.action_instance as instance
-
+from . import data, task as task_mod, base, dfs,  type as dtype, action_instance as instance
+from .action_workflow import _Workflow
+from ..action.constructor import Value
 
 class Resource:
     """
@@ -263,7 +258,7 @@ class Evaluation:
     :return: List of all tasks.
     """
     @staticmethod
-    def make_analysis(action:base._ActionBase, inputs:List[data.DataType]):
+    def make_analysis(action:base._ActionBase, inputs:List[dtype.DataType]):
         """
         Bind values 'inputs' as parameters of the action using the Value action wrappers,
         returns a workflow without parameters.
@@ -278,7 +273,7 @@ class Evaluation:
 
         bind_action = instance.ActionInstance.create(action)
         for i, input in enumerate(inputs):
-            value_instance = instance.ActionInstance.create(base.Value(input))
+            value_instance = instance.ActionInstance.create(Value(input))
             workflow.set_action_input(bind_action, i, value_instance)
             assert bind_action.arguments[i].status >= instance.ActionInputStatus.seems_ok
         workflow.set_action_input(workflow.result, 0, bind_action)
@@ -294,17 +289,16 @@ class Evaluation:
 
     def __init__(self, analysis:base._ActionBase):
         """
-        Create object for evaluation of the analysis created from the workflow 'wf' using
-        values 'inputs' as its arguments.
+        Create object for evaluation of the workflow 'analysis' with no parameters.
+        Use 'make_analysis' to substitute arguments to arbitrary action.
+
         :param analysis: an action without inputs
         """
         self.resources = [ Resource() ]
         self.scheduler = Scheduler(self.resources)
         self.result_db = ResultDB()
 
-
-        self.final_task = analysis.task_class(analysis)
-        self.final_task.set_id(self.final_task, '__root__')
+        self.final_task = task_mod._TaskBase._create_task(None, '__root__', analysis, [])
 
         self.composed_id = 0
         # Auxiliary ID of composed tasks to break ties

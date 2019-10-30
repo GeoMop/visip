@@ -1,13 +1,14 @@
-
-from functools import partial
-from typing import List, Any
-from common import action_base as base
-from common import task
-from common import dfs
-from common.action_instance import ActionInstance
-from common.code import format
-
 import attr
+from typing import Any
+
+from . import base
+from . import dfs
+from .action_instance import ActionInstance
+from .list_base import _ListBase
+#from ..code import format
+from . parameters import Parameters, ActionParameter
+
+
 """
 Implementation of the Workflow composed action.
 - creating the 
@@ -37,10 +38,10 @@ class SlotInstance(ActionInstance):
     def substitution_probability(self):
         return 1.0
 
-    def code(self, module_dict):
+    def code(self, representer, module_dict):
         return None
 
-class _ResultAction(base._ListBase):
+class _ResultAction(_ListBase):
     """
      Auxiliary result action.
      Takes arbitrary number of inputs, at leas one input must be provided.
@@ -50,10 +51,10 @@ class _ResultAction(base._ListBase):
     """
     def __init__(self):
         super().__init__()
-        self.parameters = base.Parameters()
+        self.parameters = Parameters()
         # todo: check if first parameter is supposed to have default value none or no_default
-        self.parameters.append(base.ActionParameter(idx=0, name="result", type=Any, default=self.parameters.no_default))
-        self.parameters.append(base.ActionParameter(idx=1, name=None, type=Any, default=self.parameters.no_default))
+        self.parameters.append(ActionParameter(name="result", type=Any, default=self.parameters.no_default))
+        self.parameters.append(ActionParameter(name=None, type=Any, default=self.parameters.no_default))
 
 
     def evaluate(self, inputs):
@@ -64,7 +65,7 @@ class Result(ActionInstance):
     def __init__(self):
         super().__init__(_ResultAction(), "__result__")
 
-    def code(self, module_dict):
+    def code(self, representer, module_dict):
         return None
 
 
@@ -87,7 +88,7 @@ class _Workflow(base._ActionBase):
         :param output_type:
         """
         super().__init__(name)
-        self.task_class = task.Composed
+        self.task_type = base.TaskType.Composed
         self._result = Result()
         # Result subaction.
         self._slots = []
@@ -190,8 +191,10 @@ class _Workflow(base._ActionBase):
 
     @attr.s(auto_attribs=True)
     class InstanceRepr:
-        code: format.Format
+        code: 'format.Format'
+        # A formatting string for the code.
         subst_prob: float
+        # Preference of inline substitution.
         n_uses: int = 0
 
         def prob(self):
@@ -200,7 +203,7 @@ class _Workflow(base._ActionBase):
             else:
                 return self.subst_prob
     
-    def code_of_definition(self, make_rel_name):
+    def code_of_definition(self, representer, make_rel_name):
         """
         Represent workflow by its source.
         :return: list of lines containing representation of the workflow as a decorated function.
@@ -222,7 +225,7 @@ class _Workflow(base._ActionBase):
             action_instance = self._actions[iname]
             full_name = action_instance.get_code_instance_name()
             subst_prob = action_instance.substitution_probability()
-            code = action_instance.code(make_rel_name)
+            code = action_instance.code(representer, make_rel_name)
             if code:
                 inst_repr = self.InstanceRepr(code, subst_prob)
                 for name in code.placeholders:
@@ -363,21 +366,28 @@ class _Workflow(base._ActionBase):
         Update outer interface: parameters and result_type according to slots and result actions.
         TODO: Check and set types.
         """
-        self.parameters = base.Parameters()
+        self.parameters = Parameters()
         for i_param, slot in enumerate(self._slots):
             slot_expected_types = [a.arguments[i_arg].parameter.type  for a, i_arg in slot.output_actions]
             common_type = None #types.closest_common_ancestor(slot_expected_types)
-            p = base.ActionParameter(i_param, slot.name, common_type)
+            p = ActionParameter(slot.name, common_type)
             self.parameters.append(p)
 
 
-    def expand(self, inputs):
+    def expand(self, inputs, task_creator):
         """
         Expansion of the composed task with given data inputs (possibly None if not evaluated yet).
         :param inputs: List[Task]
-        :return: None if can not be expanded yet, otherwise return dict mapping action instance names to the created tasks.
-        In particular slots are named ('__slot__', i) and result task have name '__result__'
-        The composed task is then responsible for replacement of the slots by the input tasks and the result by the the composed task itself.
+        :param task_creator: Dependency injection method for creating tasks from action instances:
+            task_creator(instance_name, action, input_tasks)
+        :return:
+            None if can not be expanded yet.
+            Dict action_instance_name -> (TaskType, task_spec)
+                task_spec:
+                    - existing task from 'inputs', in the case of task type 'Slot'
+                    - (action, arguments) where arguments are the action_instance_names
+
+            In particular slots are named by corresponding parameter name and result task have name '__result__'
         """
         childs = {}
         assert len(self._slots) == len(inputs)
@@ -388,7 +398,7 @@ class _Workflow(base._ActionBase):
             if action_instance_name not in childs:
                 action_instance = self._actions[action_instance_name]
                 arg_tasks = [childs[arg.value.name] for arg in action_instance.arguments]
-                childs[action_instance.name] = action_instance.action.task_class(action_instance.action, arg_tasks)
+                childs[action_instance.name] = task_creator(action_instance.name, action_instance.action, arg_tasks)
         return childs
 
 

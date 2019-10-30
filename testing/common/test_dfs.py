@@ -1,5 +1,5 @@
-import pytest
-from common import dfs
+from common.dev import dfs
+
 
 class GraphDFS:
     def __init__(self, n_vtx):
