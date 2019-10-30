@@ -5,11 +5,11 @@ import traceback
 from typing import Callable
 from types import ModuleType
 
-from .code import wrap
-from .dev import base, action_workflow as wf
-from .dev.action_instance import ActionInstance
-from .code.representer import Representer
-from .dev import type as dtype
+from common.code import wrap
+from common.dev import base, action_workflow as wf
+from common.dev.action_instance import ActionInstance
+from common.code.representer import Representer
+from common.dev import type as dtype
 
 class InterpreterError(Exception): pass
 

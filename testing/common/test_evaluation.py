@@ -1,6 +1,5 @@
 import pytest
-from common import module
-from common.dev import evaluation, task
+from common.dev import evaluation, task, module
 import os
 #import common.action_base as dev
 

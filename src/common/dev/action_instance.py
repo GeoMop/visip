@@ -1,10 +1,10 @@
-import pytypes
 import enum
 import attr
 from typing import List, Dict, Union
 from . import base
 from .parameters import ActionParameter
 from ..action.constructor import Value
+from . import type as dtype
 
 class ActionInputStatus(enum.IntEnum):
     missing     = -3     # missing value
@@ -105,7 +105,7 @@ class ActionInstance:
         # if not isinstance(value, ActionInstance):
         #     x = 1
         assert isinstance(value, ActionInstance), type(value)
-        if not pytypes.is_subtype(value.output_type, param.type):
+        if not dtype.is_subtype(value.output_type, param.type):
             return  ActionArgument(param, value, is_default, ActionInputStatus.error_type)
 
         return ActionArgument(param, value, is_default, ActionInputStatus.seems_ok)
