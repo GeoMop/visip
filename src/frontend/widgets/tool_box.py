@@ -1,14 +1,14 @@
 from PyQt5.QtWidgets import QToolBox
 
-from common import Slot
-from common.dev.action_workflow import SlotInstance
+from visip import Slot
+from visip import SlotInstance
 from frontend.data.tree_item import TreeItem
 from frontend.graphical_items.g_action import GAction
 from frontend.graphical_items.g_input_action import GInputAction
 from frontend.widgets.action_category import ActionCategory
 
-import common as analysis
-import common.dev.action_instance as instance
+import visip as analysis
+import visip.dev.action_instance as instance
 
 from frontend.widgets.toolbox_view import ToolboxView
 
