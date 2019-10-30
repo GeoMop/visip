@@ -1,9 +1,10 @@
 import attr
+import typing
 
 from ..dev.base import _ActionBase
-from ..dev.list_base import _ListBase
 from ..dev import dtype as dtype
-from ..dev.parameters import Parameters
+from ..dev.parameters import Parameters, ActionParameter
+
 
 
 class Value(_ActionBase):
@@ -42,22 +43,63 @@ class Pass(_ActionBase):
 
 
 
-# class Tuple(_ListBase):
-#     #__action_parameters = [('input', 'Any')]
-#     """ Merge any number of parameters into tuple."""
-#     def _code(self):
-#         return self._code_with_brackets(format = "({})")
-#
-#     def evaluate(self, inputs):
-#         return tuple(inputs)
+class _ListBase(_ActionBase):
+    """
+    Base action class for actions accepting any number of unnamed parameters.
+    """
+    # We assume that parameters are used only in reinit, which do not use it
+    # in this case. After reinit one should use only self.arguments.
+
+    def __init__(self, action_name):
+        super().__init__(action_name)
+        self.parameters = Parameters()
+        self.parameters.append(
+            ActionParameter(name=None, type=typing.Any,
+                                       default=self.parameters.no_default))
 
 
-class List(_ListBase):
+class list_constr(_ListBase):
+    def __init__(self):
+        super().__init__(action_name='list')
+
     def format(self, representer, action_name, arg_names):
         return representer.list("[", "]", [(None, arg) for arg in arg_names])
 
     def evaluate(self, inputs):
         return list(inputs)
+
+
+class tuple_constr(_ListBase):
+    """
+    This action is necessary only for better typechecking, using fixed number of items
+    of given type.
+    """
+    def __init__(self):
+        super().__init__(action_name='tuple')
+
+    def format(self, representer, action_name, arg_names):
+        return representer.list("(", ")", [(None, arg) for arg in arg_names])
+
+    def evaluate(self, inputs):
+        return tuple(inputs)
+
+
+class dict():
+    def __init__(self):
+        super().__init__()
+        self.parameters = Parameters()
+        self.parameters.append(ActionParameter(name=None, type=typing.Tuple[typing.Any, typing.Any], default=self.parameters.no_default))
+
+    def format(self, representer, action_name, arg_names):
+        # Todo: check that inputs are pairs, extract key/value
+        #return format.Format.list("{", "}", [(None, arg) for arg in arg_names])
+
+        return _ActionBase.format(representer, action_name, arg_names)
+
+
+
+    def evaluate(self, inputs):
+        return { key: val for key, val in inputs}
 
 
 

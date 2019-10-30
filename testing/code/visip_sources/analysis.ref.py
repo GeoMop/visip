@@ -5,8 +5,8 @@ import visip as wf
 def test_list(self, a, b):
     self.c = [a]
     self.e = [self.c, [a, b]]
-    List_2 = [self.e[1][0], self.e[0]]
-    return List_2
+    list_2 = [self.e[1][0], self.e[0]]
+    return list_2
 
 
 @wf.Class
@@ -29,5 +29,5 @@ def test_analysis(self):
     self.point = test_list(a=Point(x=20, y=30), b=Point(x=40, y=50))
     self.list = test_list(a=1, b=2)
     self.extract = self.list[1]
-    List_1 = [self.tuple, self.point, self.extract]
-    return List_1
+    list_0 = [self.tuple, self.point, self.extract]
+    return list_0

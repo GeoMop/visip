@@ -1,24 +1,20 @@
 import visip as wf
-import typing
 
 
-# Class decorator creates the data class
-# and the constructor action.
 @wf.Class
 class Point:
-    x: float
-    y: float
+    x:float
+    y:float
 
 
 @wf.Class
 class Quadrature:
-    points: typing.List[Point]
-    weights: float
+    points:wf.List[Point]
+    weights:float
 
-# Workflow decorator creates the 'mid_rule' workflow action.
-# Auxiliary variable 'self' is used to keep variable names
+
 @wf.workflow
-def mid_rule(self) -> Quadrature:
-    points = [Point(0.5, 0.5)]
+def mid_rule(self):
     self.weights = [1]
-    return Quadrature(points, self.weights)
+    Quadrature_1 = Quadrature(points=[Point(x=0.5, y=0.5)], weights=self.weights)
+    return Quadrature_1

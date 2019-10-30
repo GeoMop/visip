@@ -211,7 +211,7 @@ class Composed(Atomic):
     def evaluate(self):
         assert self.is_ready()
         assert len(self.inputs) == 1
-        assert self.inputs[0].action.name == "_ResultAction"
+        assert self.inputs[0].action.name == "result"
 
         self._result = self.inputs[0].result
         self.status = Status.finished

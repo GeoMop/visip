@@ -4,30 +4,14 @@ import os
 import pytest
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
-class A:
-    pass
-class B(A):
-    pass
-class C(A):
-    pass
-class D(B):
-    pass
-class E(B):
-    pass
-
-
-def test_closest_common_ancestor():
-    cca = dtype.closest_common_ancestor
-    assert cca(D, E) is B
-    assert cca(C, D) is A
-    assert cca(A, B) is A
-    assert cca(A, int) is object
 
 
 
 
-#@pytest.mark.parametrize("src_file", ["analysis_in.py", "dep_module_in.py", 'quadrature_in.py'])
-@pytest.mark.parametrize("src_file", ["analysis_in.py", "dep_module_in.py"])
+
+
+@pytest.mark.parametrize("src_file", ["analysis_in.py", "dep_module_in.py", 'quadrature_in.py'])
+#@pytest.mark.parametrize("src_file", ["analysis_in.py", "dep_module_in.py"])
 def test_representation(src_file):
     base, ext = os.path.splitext(src_file)
     assert ext == ".py"

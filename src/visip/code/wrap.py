@@ -27,9 +27,15 @@ def into_action(value):
         return value
     elif dtype.is_base_type(type(value)):
         return instance.ActionInstance.create(constructor.Value(value))
-    elif type(value) in [tuple, list]:
+    elif type(value) is list:
         wrap_values = [into_action(val) for val in value]
-        return instance.ActionInstance.create(constructor.List(), *wrap_values)
+        return instance.ActionInstance.create(constructor.list_constr(), *wrap_values)
+    elif type(value) is tuple:
+        wrap_values = [into_action(val) for val in value]
+        return instance.ActionInstance.create(constructor.tuple_constr(), *wrap_values)
+    elif type(value) is dict:
+        wrap_values = [into_action(val) for val in value]
+        return instance.ActionInstance.create(constructor.dict_constr(), *wrap_values)
     elif isinstance(value, dummy.Dummy):
         return value._action
     else:

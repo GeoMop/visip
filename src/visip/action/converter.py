@@ -45,7 +45,9 @@ class GetKey(base._ActionBase):
         a_dict, a_key = arg_names
         return format.Format([format.Token(a_dict), "[", format.Token(a_key), "]"])
 
-    def _evaluate(self, data_dict: Dict[Any], key: Any) -> Any:
+    KeyType = TypeVar('Key')
+    ValType = TypeVar('Value')
+    def _evaluate(self, data_dict: Dict[KeyType, ValType], key: KeyType) -> ValType:
         return data_dict[key]
 
 

@@ -1,13 +1,18 @@
-from .action.constructor import Value, List
+from .action.constructor import Value, list_constr, tuple_constr, dict
 from .dev.action_workflow import Slot
 from .code.decorators import workflow, analysis, action, Class
-from visip.action.converter import GetAttribute, GetItem
+from visip.action.converter import GetAttribute, GetItem, GetKey
+from typing import List
 
+# TODO: do not form instances, just list of types.
 base_system_actions = [Slot(),
                        Value(None),
-                       List(),
+                       list_constr(),
+                       tuple_constr(),
+                       dict(),
                        GetAttribute(None),
-                       GetItem()]
+                       GetItem(),
+                       GetKey()]
 
 """
 # Minimalistic implementation of the analysis data layer for the GUI.

@@ -32,11 +32,11 @@ class Representer:
                 type_args = ti.get_args(type_hint)
                 assert len(type_args) == 1
                 item_type = type_args[0]
-                return 'typing.List[{}]'.format(self.type_code(item_type))
+                return 'wf.List[{}]'.format(self.type_code(item_type))
             else:
                 print("No code representation for the type: {}[{}]"
                       .format(type_name, ti.get_args(type_hint)))
-                return 'typing.Any'
+                return 'wf.Any'
 
     #TODO: Move Format into this file. Replace Format static methods by these two directly.
     @staticmethod

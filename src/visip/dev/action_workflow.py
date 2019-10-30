@@ -4,8 +4,7 @@ from typing import Any
 from . import base
 from . import dfs
 from .action_instance import ActionInstance
-from .list_base import _ListBase
-#from ..code import format
+from ..action.constructor import _ListBase
 from . parameters import Parameters, ActionParameter
 
 
@@ -50,7 +49,7 @@ class _ResultAction(_ListBase):
      Workflow decorator automatically connects all Save actions to the ignored result inputs.
     """
     def __init__(self):
-        super().__init__()
+        super().__init__(action_name='result')
         self.parameters = Parameters()
         # todo: check if first parameter is supposed to have default value none or no_default
         self.parameters.append(ActionParameter(name="result", type=Any, default=self.parameters.no_default))
