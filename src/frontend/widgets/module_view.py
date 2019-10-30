@@ -4,7 +4,7 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QFont, QIcon
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 
-from common.action_workflow import _Workflow
+from visip import _Workflow
 from frontend.menu.module_view_menu import ModuleViewMenu
 from .workspace import Workspace
 

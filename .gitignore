@@ -1,9 +1,6 @@
-src_/*
-src_ref/*
-testing/*/*.round.py
-testing/*/*.round2.py
-testing_/*
-testing_ref/*
+# test results
+*.round.py
+*.round2.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -1,4 +1,4 @@
-import common as wf
+import visip as wf
 
 
 @wf.Class

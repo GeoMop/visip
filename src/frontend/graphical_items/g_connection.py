@@ -6,7 +6,7 @@ Representation of connection between two ports.
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt
-from common.action_instance import ActionInputStatus
+from visip import ActionInputStatus
 
 from .g_port import GPort, GOutputPort
 
