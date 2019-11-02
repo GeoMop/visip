@@ -84,22 +84,28 @@ class tuple_constr(_ListBase):
         return tuple(inputs)
 
 
-class dict():
+class dict(_ActionBase):
     def __init__(self):
         super().__init__()
         self.parameters = Parameters()
         self.parameters.append(ActionParameter(name=None, type=typing.Tuple[typing.Any, typing.Any], default=self.parameters.no_default))
 
     def format(self, representer, action_name, arg_names):
+        # TODO: dict as action_name with prefix
         # Todo: check that inputs are pairs, extract key/value
         #return format.Format.list("{", "}", [(None, arg) for arg in arg_names])
 
-        return _ActionBase.format(representer, action_name, arg_names)
+        return _ActionBase.format(self, representer, action_name, arg_names)
 
 
 
     def evaluate(self, inputs):
         return { key: val for key, val in inputs}
+
+"""
+TODO: 
+- test for construction of list and tuple using action names
+"""
 
 
 

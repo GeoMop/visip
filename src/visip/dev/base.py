@@ -59,10 +59,8 @@ class _ActionBase:
         Module prefix used in code generationn.
         :return:
         """
-        if self._module:
-            return self._module
-        else:
-            return self.__module__
+        assert self._module
+        return self._module
 
 
     def _extract_input_type(self, func=None, skip_self=True):

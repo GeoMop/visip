@@ -30,8 +30,8 @@ RemainingArgs = Dict[Union[int, str], '_ActionBase']
 
 class ActionInstance:
     """
-    A building block of the workflow. Vertex of its (unexpanded) DAG.
-
+    The call of an action within a workflow. ActionInstance objects are vertices of the
+    call graph (DAG).
     """
     def __init__(self, action : base._ActionBase, name : str = None) -> None:
         self.name = name

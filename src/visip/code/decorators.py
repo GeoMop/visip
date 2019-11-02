@@ -41,9 +41,9 @@ def workflow(func):
     func_args.extend(dummies)
     #print(func)
     output_action = wrap.into_action(func(*func_args))
-
     new_workflow = wf._Workflow(workflow_name)
     new_workflow.set_from_source(slots, output_type, output_action)
+    new_workflow._module = func.__module__
     return wrap.public_action(new_workflow)
 
 
@@ -93,3 +93,5 @@ def action(func):
     action = base._ActionBase(action_name)
     action._evaluate = func
     return wrap.public_action(action)
+
+

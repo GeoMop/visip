@@ -87,6 +87,7 @@ class _Workflow(base._ActionBase):
         :param output_type:
         """
         super().__init__(name)
+        self._module = None
         self.task_type = base.TaskType.Composed
         self._result = Result()
         # Result subaction.

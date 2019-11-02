@@ -31,3 +31,11 @@ def test_analysis(self):
     self.extract = self.list[1]
     list_0 = [self.tuple, self.point, self.extract]
     return list_0
+
+
+@wf.workflow
+def test_dict(self, a, b, c):
+    self.direct_dict = wf.dict((2, a), (3, b), (5, c))
+    self.brace_dict = wf.dict((2, a), (3, b), (5, c))
+    tuple_7 = (self.direct_dict[5], self.brace_dict[3])
+    return tuple_7
