@@ -33,7 +33,7 @@ def test_workflow_modification():
     ## Action modifications
     result = w.result
     slots = w.slots
-    list_action =  constructor.List()
+    list_action =  constructor.list_constr()
     list_1 = instance.ActionInstance.create(list_action)
     res = w.set_action_input(list_1, 0, slots[0])
     assert res
@@ -44,7 +44,7 @@ def test_workflow_modification():
     assert slots[0].output_actions[0][0] == list_1
     assert slots[1].output_actions[0][0] == list_1
     assert list_1.output_actions[0][0] == result
-    assert list_1.name == 'List_1'
+    assert list_1.name == 'list_1'
     assert len(w._actions) == 4
     # w:  (slot0 (B), slot2 (A)) -> List1 -> result
 
@@ -63,7 +63,7 @@ def test_workflow_modification():
 
     # Test cycle
     w.set_action_input(list_1, 0, slots[0])
-    list_2 = instance.ActionInstance.create(constructor.List())
+    list_2 = instance.ActionInstance.create(constructor.list_constr())
     w.set_action_input(list_1, 1, list_2)
     # w:  (slot0 (B), List2) -> List1 -> result
     res = w.set_action_input(list_2, 0, list_1)     # Cycle

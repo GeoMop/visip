@@ -1,18 +1,29 @@
-from .action.constructor import Value, List
+from .action.wrapped import *
 from .dev.action_workflow import Slot
 from .code.decorators import workflow, analysis, action, Class
-from visip.action.converter import GetAttribute, GetItem
+from visip.action.converter import GetAttribute, GetItem #,GetKey
+from typing import List
 
+
+# TODO: do not form instances, just list of types.
 base_system_actions = [Slot(),
                        Value(None),
-                       List(),
+                       list_constr(),
+                       tuple_constr(),
+                       dict(),
                        GetAttribute(None),
-                       GetItem()]
+                       GetItem(), #GetKey()
+                       ]
 
 """
-# Minimalistic implementation of the analysis data layer for the GUI.
-
-
+FUTURE:
+- possibly have different actions as instances of few dev classes carring just
+  different evaluate functions. Separate class only if code mechanism is substantialy different.
+  e.g. GenericAction, ListAction, OperatorAction, MetaAction (workflow, foreach, while, ..)
+- Resources:
+    latency, speed, tags (supported features, HW, SW)  
+"""
+"""
 TODO:  
 - side_effect results - perform some actions for their sideefect, need a way to connect them to the result action instance
   that way result should have arbitrary number of parameters, but only the first is used (not good for a workflow with side effect but no true return value)

@@ -30,21 +30,16 @@ def test_analysis(self):
     self.extract = self.list[1]
     return [self.tuple, self.point, self.extract]
 
+@wf.workflow
+def test_dict(self, a: float, b:float, c:float):
+    self.direct_dict = wf.dict((2, a), (3, b), (5, c))
+    self.brace_dict = {2:a, 3:b, 5:c}
+    return (self.direct_dict[5], self.brace_dict[3])
+    #return (self.brace_dict[3], )
+
+
 """
 TODO:
-- rethink organisation, move public stuff
-- remove data.py
-- finish test debugging
-- improve exception forwarding form exec
-- distinct errors for system (asserts), actions impl., workflow
-- specific report of workflow errors (line, problem type)
-- set_input check and exception when loading out of GUI
-
-FUTURE:
-- possibly have different actions as instances of few dev classes carring just
-  different evaluate functions. Separate class only if code mechanism is substantialy different.
-  e.g. GenericAction, ListAction, OperatorAction, MetaAction (workflow, foreach, while, ..)
-- have another object to keep arguments, ... connection within workflow 
-- Resources:
-    latency, speed, tags (supported features, HW, SW)  
+- missing type hints in fn declaration
+- results should be substituted
 """

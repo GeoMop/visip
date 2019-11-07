@@ -116,6 +116,7 @@ class Module:
 
         self.extract_definitions()
 
+    # TODO: reintroduce _load_from_source for unit tests
 
     def load_module(self, file_path: str) -> ModuleType:
         """
@@ -191,11 +192,10 @@ class Module:
         :param module_dict: A dict mapping the full module path to its imported alias.
         :return: The action name using the alias instead of the full module path.
         """
-        alias = self._full_name_dict.get(module)
-        if alias:
-            return "{}.{}".format(alias, name)
-        else:
+        alias = self._full_name_dict.get(module, module)
+        if alias in {'builtins', 'typing', self.name}:
             return name
+        return "{}.{}".format(alias, name)
 
 
 

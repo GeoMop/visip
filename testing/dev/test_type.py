@@ -21,3 +21,24 @@ def test_is_subtype():
     assert dtype.is_subtype(Point2d, dtype.DataClassBase)
     assert dtype.is_subtype(Point3d, Point2d)
 
+
+
+
+
+class A:
+    pass
+class B(A):
+    pass
+class C(A):
+    pass
+class D(B):
+    pass
+class E(B):
+    pass
+
+def test_closest_common_ancestor():
+    cca = dtype.closest_common_ancestor
+    assert cca(D, E) is B
+    assert cca(C, D) is A
+    assert cca(A, B) is A
+    assert cca(A, int) is object
