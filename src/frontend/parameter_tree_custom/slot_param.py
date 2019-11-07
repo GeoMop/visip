@@ -67,7 +67,8 @@ class SlotParam(parametertree.parameterTypes.GroupParameter):
                 #new_parent = parametertree.Parameter.create(name=f"[{data.__class__.__name__}]", type='group')
                 #item.addChild(new_parent)
                 for key, value in data.items():
-                    child = parametertree.Parameter.create(name="'" + key + "' = {" + type(value).__name__ + '}', type='group')
+                    child = parametertree.Parameter.create(name="'" + key + "' = {" + type(value).__name__ + '}',
+                                                           type='group')
                     item.addChild(child)
                     fill_item(child, (key, value))
 

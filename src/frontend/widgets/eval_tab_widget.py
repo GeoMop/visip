@@ -5,7 +5,9 @@ class EvalTabWidget(QTabWidget):
     def __init__(self):
         super(EvalTabWidget, self).__init__()
         self.evals = {}
-        self.setwid
+        self.setTabsClosable(True)
+        self.setTabShape(1)
+        self.tabCloseRequested.connect(self.on_close_tab)
 
     def add_tab(self, eval_gui):
         name = eval_gui.view.scene.workflow.name
@@ -19,5 +21,9 @@ class EvalTabWidget(QTabWidget):
 
     def get_eval_gui(self, index):
         return self.evals[self.tabText(index)]
+
+    def on_close_tab(self, index):
+        self.module_views.pop(self.tabText(index), None)
+        self.removeTab(index)
 
 

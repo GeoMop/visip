@@ -11,12 +11,16 @@ class EvalWindow(QMainWindow):
     def __init__(self):
         super(EvalWindow, self).__init__()
         self.tab_widget = QTabWidget()
+        self.tab_widget.setTabsClosable(True)
+        self.tab_widget.setTabShape(1)
+        self.tab_widget.tabCloseRequested.connect(self.on_close_tab)
+
         self.tab_widget.currentChanged.connect(self.tab_changed)
         self.setCentralWidget(self.tab_widget)
 
         self.data_editor_dock = QDockWidget("Data Inspection", self)
-        self.data_editor_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.data_editor_dock)
+        self.data_editor_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.data_editor_dock)
 
         self.data_editor = DataEditor()
         self.data_editor_dock.setWidget(self.data_editor)
@@ -26,8 +30,8 @@ class EvalWindow(QMainWindow):
 
 
 
-        self.navigation_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.navigation_dock)
+        self.navigation_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.navigation_dock)
         self.last_tab_widget = None
 
         self.resize(1000, 700)
@@ -47,5 +51,8 @@ class EvalWindow(QMainWindow):
         curr_widget.view.scene.on_selection_changed()
         self.navigation_dock.setWidget(curr_widget.navigation)
         self.last_tab_widget = curr_widget
+
+    def on_close_tab(self, index):
+        self.tab_widget.removeTab(index)
 
 
