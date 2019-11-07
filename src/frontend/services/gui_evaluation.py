@@ -4,8 +4,8 @@ import threading
 from PyQt5.QtCore import QTimer, QObject, pyqtSignal, QThread, Qt
 from PyQt5.QtWidgets import QApplication, QMainWindow, QDockWidget, QListWidgetItem, QWidget, QVBoxLayout, QLayout
 
-from common.evaluation import Evaluation
-from common.task import Composed, Atomic
+from visip.dev.evaluation import Evaluation
+from visip.dev.task import Composed, Atomic
 from frontend.widgets.evaluation_navigation import EvaluationNavigation
 from frontend.widgets.evaluation_scene import EvaluationScene
 from frontend.widgets.evaluation_view import EvaluationView

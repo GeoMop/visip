@@ -3,8 +3,8 @@ from PyQt5.QtWidgets import QTreeWidget
 from pyqtgraph import parametertree, TreeWidget
 from pyqtgraph.parametertree import ParameterItem
 
-from common import Value
-from common.action_instance import ActionInstance
+from visip import Value
+from visip.dev.action_instance import ActionInstance
 from frontend.graphical_items.g_action import GAction
 from frontend.menu.param_menu import ParamMenu
 from frontend.parameter_tree_custom.root_param import RootParam

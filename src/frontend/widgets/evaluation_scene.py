@@ -5,10 +5,10 @@ Scene of currently running evaluation.
 """
 from PyQt5.QtCore import QPoint
 
-from common import Value
-from common.action_instance import ActionInstance
-from common.action_workflow import SlotInstance
-from common.task import Status
+from visip import Value
+from visip.dev.action_instance import ActionInstance
+from visip.dev.action_workflow import SlotInstance
+from visip.dev.task import Status
 from frontend.data.g_action_data_model import GActionData
 from frontend.graphical_items.g_action import GAction
 from frontend.graphical_items.g_action_background import ActionStatus

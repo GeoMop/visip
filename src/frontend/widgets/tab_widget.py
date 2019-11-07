@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QTabWidget
 from frontend.config.config_data import ConfigData
 from frontend.widgets.home_tab_widget import HomeTabWidget
 from frontend.widgets.module_view import ModuleView
-from visip import Module
+from visip.dev.module import Module
 from frontend.widgets.tab import Tab
 
 

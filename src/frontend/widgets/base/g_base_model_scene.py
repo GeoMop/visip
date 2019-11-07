@@ -9,9 +9,9 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtWidgets import QGraphicsScene
 
-from common import Value
-from common.action_instance import ActionInputStatus, ActionInstance
-from common.action_workflow import SlotInstance
+from visip import Value
+from visip.dev.action_instance import ActionInputStatus, ActionInstance
+from visip.dev.action_workflow import SlotInstance
 from frontend.data.g_action_data_model import GActionData, GActionDataModel
 from frontend.graphical_items.g_action import GAction
 from frontend.graphical_items.g_connection import GConnection

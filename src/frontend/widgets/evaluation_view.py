@@ -13,7 +13,7 @@ class EvaluationView(GBaseModelView):
     def __init__(self, eval_gui, task=None,  parent=None):
         super(EvaluationView, self).__init__(parent)
         if task is None:
-            task = eval_gui.evaluation.final_task.parent
+            task = eval_gui.evaluation.final_task
         self.scene = EvaluationScene(eval_gui, task)
         self.setScene(self.scene)
         self.centerOn(self.scene.root_item)

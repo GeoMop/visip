@@ -2,8 +2,7 @@ from PyQt5 import QtGui, QtCore
 from PyQt5.QtWidgets import QSizePolicy
 from pyqtgraph import parametertree
 
-from common import Value
-from common.action_instance import ActionInstance
+from visip import Value
 
 
 class SlotParamItem(parametertree.parameterTypes.WidgetParameterItem):
@@ -61,7 +60,7 @@ class SlotParamItem(parametertree.parameterTypes.WidgetParameterItem):
                     elif val == 'None':
                         self.param.arg.value.action.value = None
                     else:
-                        print('bad')
+                        print('Changing composite type not implemented yet!')
                         return
 
         self.hideEditor()
