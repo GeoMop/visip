@@ -3,9 +3,9 @@ from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QStaticText
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsItem
 
-from common import Value
-from common.action_instance import ActionInstance, ActionInputStatus
-from common.action_workflow import SlotInstance
+from visip import Value
+from visip import ActionInstance, ActionInputStatus
+from visip import SlotInstance
 from frontend.graphical_items.g_input_action import GInputAction
 from frontend.graphical_items.root_action import RootAction
 from frontend.graphical_items.g_action import GAction

@@ -2,9 +2,9 @@ import importlib.util
 
 from PyQt5.QtWidgets import QToolBox
 
-from common import Slot
-from common.action_workflow import SlotInstance, _Workflow
-from common.code.wrap import ActionWrapper
+from visip import Slot
+from visip import SlotInstance
+from visip.code.wrap import ActionWrapper
 from frontend.config.config_data import ConfigData
 from frontend.data.tree_item import TreeItem
 from frontend.dialogs.import_module import ImportModule
@@ -12,8 +12,8 @@ from frontend.graphical_items.g_action import GAction
 from frontend.graphical_items.g_input_action import GInputAction
 from frontend.widgets.action_category import ActionCategory
 
-import common as analysis
-import common.action_instance as instance
+import visip as analysis
+import visip.dev.action_instance as instance
 
 from frontend.widgets.toolbox_view import ToolboxView
 
@@ -41,7 +41,7 @@ class ToolBox(QToolBox):
 
             self.action_database[action.module][action.name] = action
 
-        # ToolboxView(GAction(TreeItem(["List", 0, 0, 50, 50]), instance.ActionInstance.create( base.List())), toolbox_layout2)
+        # ToolboxView(GAction(TreeItem(["List", 0, 0, 50, 50]), instance.ActionInstance.create( dev.List())), toolbox_layout2)
         self.setMinimumWidth(180)
         self.addItem(self.system_actions_layout, "System actions")
         # self.toolBox.addItem(toolbox_layout2, "Data manipulation")
