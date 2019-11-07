@@ -39,11 +39,6 @@ class ToolBox(QToolBox):
                 inst = instance.ActionInstance.create(action)
                 ToolboxView(GAction(TreeItem([action.name, 0, 0, 50, 50]),
                                     inst), self.system_actions_layout)
-            else:
-                inst = action._action
-                action = inst.action
-                ToolboxView(GAction(TreeItem([action.name, 0, 0, 50, 50]),
-                                    inst), self.system_actions_layout)
 
             self.action_database[action.module][action.name] = action
 

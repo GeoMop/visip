@@ -7,10 +7,9 @@ from typing import List
 
 # TODO: do not form instances, just list of types.
 base_system_actions = [Slot(),
-                       Value(None),
-                       list_constr(),
-                       tuple_constr(),
-                       dict(),
+                       list_constr.action,
+                       tuple_constr.action,
+                       dict.action,
                        GetAttribute(None),
                        GetItem(), #GetKey()
                        ]

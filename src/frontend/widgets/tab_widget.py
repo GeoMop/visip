@@ -60,7 +60,7 @@ class TabWidget(QTabWidget):
             if not filename.endswith(".py"):
                 filename = filename + ".py"
             with open(filename, "w") as file:
-                file.write("import common as wf")
+                file.write("import visip as wf")
             module = Module(filename)
             self._add_tab(os.path.basename(filename), module)
 
