@@ -42,6 +42,13 @@ class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.setCursor(Qt.ArrowCursor)
         self.setAcceptHoverEvents(True)
 
+    @property
+    def name(self):
+        if self.connection_set:
+            return "Connection from: (" + str(self.port1) + ") to: (" + str(self.port2) + ")"
+        else:
+            return "Connection from: (" + str(self.port1) + ")"
+
     def is_connected(self, port):
         """Returns True if this connection is attached to specified port."""
         if port == self.port1 or port == self.port2:
@@ -50,10 +57,7 @@ class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
             return False
 
     def __repr__(self):
-        if self.connection_set:
-            return "Connection from: (" + str(self.port1) + ") to: (" + str(self.port2) + ")"
-        else:
-            return "Connection from: (" + str(self.port1) + ")"
+        return self.name
 
     def mousePressEvent(self, event):
         """Mouse press is ignored by this connection if it is inside port."""

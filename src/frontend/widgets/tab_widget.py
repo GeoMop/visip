@@ -50,6 +50,7 @@ class TabWidget(QTabWidget):
     def change_workspace(self, workspace):
         self.currentWidget().setCurrentWidget(workspace)
         workspace.workflow.update()
+        self.main_widget.property_editor.clear()
 
     def create_new_module(self, module_name=None):
         if not isinstance(module_name, str):

@@ -14,3 +14,8 @@ class ModuleViewMenu(QMenu):
         self.remove_workflow = QAction("Remove workflow")
         self.addAction(self.remove_workflow)
 
+        self.mark_wf = QAction("Mark as analysis")
+        self.addAction(self.mark_wf)
+
+
+

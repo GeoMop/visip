@@ -5,6 +5,7 @@ Representation of ports to which a connection can be attached.
 """
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import QPoint
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QApplication
 
 
@@ -23,6 +24,8 @@ class GPort(QtWidgets.QGraphicsPathItem):
         self.name = name
         if pos is not None:
             self.setPos(pos)
+        self.connections = []
+        self.default = False
 
         self._appending_port = False
         self.setPath(self.draw_port_path())
@@ -47,6 +50,10 @@ class GPort(QtWidgets.QGraphicsPathItem):
         if value != self._appending_port:
             self._appending_port = value
             self.setPath(self.draw_port_path())
+
+    def set_default(self, b):
+        self.default = b
+        self.setPath(self.draw_port_path())
 
     def draw_port_path(self):
         if self.appending_port:
@@ -82,6 +89,13 @@ class GPort(QtWidgets.QGraphicsPathItem):
     def get_connection_point(self):
         """Return scene coordinates to draw connection."""
         return self.mapToScene(QtCore.QPoint(self.RADIUS, self.RADIUS))
+
+    def paint(self, painter, style, widget=None):
+        super(GPort, self).paint(painter, style, widget)
+        if self.default:
+            p = QtGui.QPainterPath()
+            p.addEllipse(QPoint(self.RADIUS, self.RADIUS), self.RADIUS*0.6, self.RADIUS*0.6)
+            painter.fillPath(p, QtCore.Qt.darkGray)
 
 class GInputPort(GPort):
     """Class for input data."""

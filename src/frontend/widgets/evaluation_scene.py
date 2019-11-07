@@ -5,6 +5,7 @@ Scene of currently running evaluation.
 """
 from PyQt5.QtCore import QPoint
 
+from common import Value
 from common.action_instance import ActionInstance
 from common.action_workflow import SlotInstance
 from common.task import Status
@@ -35,6 +36,7 @@ class EvaluationScene(GBaseModelScene):
         self.task = task
         self.initialize_scene_from_workflow(task.action)
         self.update_states()
+        self.selectionChanged.connect(self.on_selection_changed)
 
     def initialize_scene_from_workflow(self, workflow):
         self._clear_actions()
@@ -49,22 +51,34 @@ class EvaluationScene(GBaseModelScene):
 
     def draw_action(self, item):
         action = {**self.workflow._actions, "__result__":self.workflow._result}.get(item.data(GActionData.NAME))
+
         if action is None:
             action = self.unconnected_actions.get(item.data(GActionData.NAME))
-        if isinstance(action, SlotInstance):
-            self.actions.append(GInputAction(item, action, self.root_item, self.eval_gui, False))
-        elif isinstance(action, ActionInstance):
-            self.actions.append(GAction(item, action, self.root_item, self.eval_gui, False))
 
-        self.actions[-1].widget = CompositeTypeView()
-        for child in item.children():
-            self.draw_action(child)
+        if not isinstance(action.action, Value):
+            if isinstance(action, SlotInstance):
+                self.actions.append(GInputAction(item, action, self.root_item, self.eval_gui, False))
+            elif isinstance(action, ActionInstance):
+                self.actions.append(GAction(item, action, self.root_item, self.eval_gui, False))
 
-        self.update()
+            self.actions[-1].widget = CompositeTypeView()
+            for child in item.children():
+                self.draw_action(child)
+
+            self.update()
 
     def update_states(self):
         for instance_name, instance in self.task.childs.items():
-            action = self.get_action(instance_name)
-            action.status = StatusMaping[instance.status]
-            action.widget.set_data(instance._result)
+            if not isinstance(instance.action, Value):
+                action = self.get_action(instance_name)
+                action.status = StatusMaping[instance.status]
+                action.widget.set_data(instance._result)
+
+    def on_selection_changed(self):
+        data_editor = self.eval_gui.eval_window.data_editor
+        if len(self.selectedItems()) == 1:
+            data_editor.set_action(self.workflow, self.selectedItems()[0])
+
+        else:
+            data_editor.clear()
 

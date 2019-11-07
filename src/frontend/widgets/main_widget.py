@@ -7,13 +7,15 @@ Main window.
 import os
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QMessageBox, QTabWidget
 
 from frontend.config.config_data import ConfigData
 from frontend.menu.eval_menu import EvalMenu
 from frontend.menu.file_menu import FileMenu
 from frontend.services.gui_evaluation import GUIEvaluation
 from frontend.widgets.composite_type_view import CompositeTypeView
+from frontend.widgets.eval_window import EvalWindow
+from frontend.widgets.property_editor import PropertyEditor
 from frontend.widgets.tool_box import ToolBox
 
 from .tab_widget import TabWidget
@@ -45,7 +47,12 @@ class MainWidget(QtWidgets.QMainWindow):
         #self.data_view.model()
         #self.data_dock.setWidget(self.data_view)
 
+        self.property_editor = PropertyEditor()
+        self.properities_dock.setWidget(self.property_editor)
+
         self.resize(1000, 500)
+
+        self.evaluation_window = EvalWindow()
 
         app.aboutToQuit.connect(self.before_exit)
 
@@ -76,10 +83,9 @@ class MainWidget(QtWidgets.QMainWindow):
         self.toolbox_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.toolbox_dock)
 
-        #self.data_dock = QtWidgets.QDockWidget("Data/Config", self)
-        #self.data_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-        #self.addDockWidget(Qt.RightDockWidgetArea, self.data_dock)
-        #self.data_dock.hide()
+        self.properities_dock = QtWidgets.QDockWidget("Parameters Editor", self)
+        self.properities_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.properities_dock)
 
     def export_to_file(self):
         filename = QtWidgets.QFileDialog.getSaveFileName(self.parent(), "Export Module", self.cfg.last_opened_directory, "Python File (*.py)")[0]
@@ -92,7 +98,8 @@ class MainWidget(QtWidgets.QMainWindow):
     def evaluate(self):
         workflow = self.tab_widget.current_workspace().workflow
         if workflow.is_analysis:
-            self.eval = GUIEvaluation(workflow)
+            self.evaluation_window.add_eval(GUIEvaluation(workflow, self.evaluation_window))
+            #self.eval = GUIEvaluation(workflow)
         else:
             msg = QMessageBox(self)
             msg.setText( "This isn't analysis. Todo: make a dialog to fill empty slots!")

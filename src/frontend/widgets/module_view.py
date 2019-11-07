@@ -1,13 +1,12 @@
 import os
 
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import pyqtSignal, QVariant
 from PyQt5.QtGui import QFont, QIcon
 from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 
 from common.action_workflow import _Workflow
 from frontend.menu.module_view_menu import ModuleViewMenu
 from .workspace import Workspace
-
 
 class ModuleView(QTreeWidget):
     workspace_changed = pyqtSignal(int)
@@ -20,6 +19,7 @@ class ModuleView(QTreeWidget):
         self.menu.show_wf.triggered.connect(self._change_workflow)
         self.menu.new_workflow.triggered.connect(self.create_new_workflow)
         self.menu.remove_workflow.triggered.connect(self.remove_workflow)
+        self.menu.mark_wf.triggered.connect(self.mark_wf_as_analysis)
 
         self._module = module
         self._current_workspace = None
@@ -28,9 +28,10 @@ class ModuleView(QTreeWidget):
 
         self.workspaces = {}
 
+
         for wf in module.definitions:
             if issubclass(type(wf), _Workflow):
-                self.workspaces[wf.name] = (Workspace(wf, edit_menu, self.tab_widget.main_widget.toolbox.action_database))
+                self.workspaces[wf.name] = (Workspace(wf, self.tab_widget.main_widget, self.tab_widget.main_widget.toolbox.action_database))
                 item = QTreeWidgetItem(self, [wf.name])
                 item.setExpanded(True)
                 self.addTopLevelItem(item)
@@ -91,7 +92,7 @@ class ModuleView(QTreeWidget):
         wf = _Workflow(wf_name)
         self.module.insert_definition(wf)
 
-        self.workspaces[wf_name] = (Workspace(wf, self.edit_menu, self.tab_widget.main_widget.toolbox.action_database))
+        self.workspaces[wf_name] = (Workspace(wf, self.tab_widget.main_widget, self.tab_widget.main_widget.toolbox.action_database))
         self.tab_widget.currentWidget().addWidget(self.workspaces[wf_name])
 
         self.mark_active_wf_item(item)
@@ -151,4 +152,12 @@ class ModuleView(QTreeWidget):
             self.menu.remove_workflow.setEnabled(True)
 
         self.menu.exec_(event.globalPos())
+
+    def mark_wf_as_analysis(self):
+        curr_item = self.currentItem()
+        while curr_item.parent() is not None:
+            curr_item = curr_item.parent()
+        self.workspaces[curr_item.data(0, 0)].workflow.is_analysis = True
+
+
 

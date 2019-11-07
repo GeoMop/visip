@@ -68,11 +68,15 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
 
         #self._status = ActionStatus.IDLE
 
-    def update_ports(self):
-        self.in_ports.clear()
-        self.out_ports.clear()
+    def has_const_params(self):
         if len(self.w_data_item.parameters.parameters) > 0:
-            self._add_ports(len(self.w_data_item.arguments), self.w_data_item.parameters.parameters[-1].name is None)
+            return self.w_data_item.parameters.parameters[-1].name is not None
+        else:
+            return True
+
+    def update_ports(self):
+        if len(self.w_data_item.parameters.parameters) > 0:
+            self._add_ports(len(self.w_data_item.arguments), not self.has_const_params())
         else:
             self._add_ports(len(self.w_data_item.arguments))
 
@@ -181,7 +185,7 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         for i in range(n_ports):
             self.add_g_port(True, "Input Port" + str(i))
         if appending and self.appending_ports:
-            self.add_g_port(True, "Input Port" + str(0))
+            self.add_g_port(True, "Appending port")
             self.in_ports[-1].appending_port = True
 
         self.add_g_port(False, "Output Port")
@@ -310,4 +314,10 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         """Returns input and output ports."""
         return self.in_ports + self.out_ports
 
+    def get_arg_action(self, arg):
+        index = self.w_data_item.arguments.index(arg)
+        if len(self.in_ports[index].connections) == 1:
+            return self.in_ports[index].connections[0].port1.parentItem()
+        else:
+            return None
 

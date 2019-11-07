@@ -2,26 +2,31 @@ import time
 import threading
 
 from PyQt5.QtCore import QTimer, QObject, pyqtSignal, QThread, Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow, QDockWidget, QListWidgetItem
+from PyQt5.QtWidgets import QApplication, QMainWindow, QDockWidget, QListWidgetItem, QWidget, QVBoxLayout, QLayout
 
 from common.evaluation import Evaluation
 from common.task import Composed, Atomic
 from frontend.widgets.evaluation_navigation import EvaluationNavigation
+from frontend.widgets.evaluation_scene import EvaluationScene
 from frontend.widgets.evaluation_view import EvaluationView
 
 
-class GUIEvaluation(QMainWindow):
+class GUIEvaluation(QWidget):
     finished = pyqtSignal()
-    def __init__(self, analysis):
+    def __init__(self, analysis, eval_window):
         super(GUIEvaluation, self).__init__()
+        self.eval_window = eval_window
+
         self.analysis = analysis
         self.evaluation = Evaluation(self.analysis)
         thread = threading.Thread(target=self.evaluation.execute, args=())
         thread.start()
+        self.layout = QVBoxLayout(self)
+        self.layout.setSizeConstraint(QLayout.SetNoConstraint)
+        self.layout.setContentsMargins(0, 0, 0, 0)
 
-        self.view = EvaluationView(self)
-        self.setWindowTitle("Evaluating: \"" + self.view.scene.workflow.name + "\"")
-        self.setCentralWidget(self.view)
+        self.view = EvaluationView(self, parent=self)
+        self.layout.addWidget(self.view)
 
         self.view.scene.update_states()
         temp = self.evaluation.final_task
@@ -29,16 +34,7 @@ class GUIEvaluation(QMainWindow):
         self.navigation = EvaluationNavigation(self)
         self.navigation.add_item(self.evaluation.final_task, self.analysis.name)
 
-        self.navigation_dock = QDockWidget("Navigation Stack", self)
-        self.navigation_dock.setMinimumWidth(150)
-
-        self.navigation_dock.setWidget(self.navigation)
-
-        self.navigation_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.navigation_dock)
-        self.navigation_dock.show()
-        self.show()
-        self.navigation_dock.hide()
+        self.navigation_dock = eval_window.navigation_dock
 
         timer = QTimer()
         timer.start(0.25)
@@ -66,6 +62,9 @@ class GUIEvaluation(QMainWindow):
             self.navigation_dock.show()
 
     def change_view(self, task):
+        self.layout.removeWidget(self.view)
         self.view = EvaluationView(self, task)
-        self.setCentralWidget(self.view)
+        self.layout.addWidget(self.view)
+        self.eval_window.data_editor.clear()
+
 

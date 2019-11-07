@@ -15,18 +15,18 @@ from .scene import Scene
 
 class Workspace(GBaseModelView):
     """Graphics scene which handles user input and shows user the results."""
-    def __init__(self, workflow, edit_menu, available_actions, parent=None):
+    def __init__(self, workflow, main_widget, available_actions, parent=None):
         """Initializes class."""
         super(Workspace, self).__init__(parent)
         self.workflow = workflow
-        self.scene = Scene(workflow, available_actions, self)
+        self.scene = Scene(main_widget, workflow, available_actions, self)
         self.setScene(self.scene)
         self.available_actions = available_actions
 
         # for deciding if context menu should appear
         self.viewport_moved = False
 
-        self.edit_menu = edit_menu
+        self.edit_menu = main_widget.edit_menu
 
         self.setAcceptDrops(True)
 

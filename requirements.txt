@@ -4,6 +4,7 @@ indexed.py
 attrs
 pytypes
 pytest
+pyqtgraph
 
 # pip3
 # setuptools

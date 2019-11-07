@@ -9,6 +9,7 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtWidgets import QGraphicsScene
 
+from common import Value
 from common.action_instance import ActionInputStatus, ActionInstance
 from common.action_workflow import SlotInstance
 from frontend.data.g_action_data_model import GActionData, GActionDataModel
@@ -47,6 +48,7 @@ class GBaseModelScene(QGraphicsScene):
 
     def update_scene(self):
         if self.update_model and self.new_connection is None:
+            selected = [item.name + 'g' if isinstance(item, GAction) else 'c' for item in self.selectedItems()]
             self.update_model = False
             self.clear()
             self.actions.clear()
@@ -65,16 +67,28 @@ class GBaseModelScene(QGraphicsScene):
                 for action_argument in action.arguments:
                     status = action_argument.status
                     if status != ActionInputStatus.missing:
-                        action_argument = action_argument.value
-                        g_action = self.get_action(action_argument.name)
-                        port1 = g_action.out_ports[0]
+                        if not isinstance(action_argument.value.action, Value):
+                            action_argument = action_argument.value
+                            g_action = self.get_action(action_argument.name)
+                            port1 = g_action.out_ports[0]
 
-                        g_action = self.get_action(action_name)
-                        port2 = g_action.in_ports[i]
-                        port1.connections.append(GConnection(port1, port2, status, self.root_item))
-                        port2.connections.append(port1.connections[-1])
-                        #self.addItem(port1.connections[-1])
+                            g_action = self.get_action(action_name)
+                            port2 = g_action.in_ports[i]
+                            port1.connections.append(GConnection(port1, port2, status, self.root_item))
+                            port2.connections.append(port1.connections[-1])
+                            #self.addItem(port1.connections[-1])
+                        else:
+                            g_action = self.get_action(action_name)
+                            g_action.in_ports[i].set_default(True)
+
                     i += 1
+            actions = {item.name + 'g' if isinstance(item, GAction) else 'c': item for item in self.items() if hasattr(item, 'name')}
+            for uid in selected:
+                select = actions.get(uid, None)
+                if select is None:
+                    print('Ooops...')
+                select.setSelected(True)
+
             self.update()
 
     def draw_action(self, item):

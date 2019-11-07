@@ -3,6 +3,7 @@ from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QStaticText
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsItem
 
+from common import Value
 from common.action_instance import ActionInstance, ActionInputStatus
 from common.action_workflow import SlotInstance
 from frontend.graphical_items.g_input_action import GInputAction
@@ -24,21 +25,31 @@ class ActionTypes:
 
 
 class Scene(GBaseModelScene):
-    def __init__(self, workflow, available_actions, parent=None):
+    def __init__(self, main_widget, workflow, available_actions, parent=None):
         super(Scene, self).__init__(workflow, parent)
         self.detached_port = None
         self.available_actions = available_actions
 
+        self.main_widget = main_widget
         self.workflow_name = QGraphicsSimpleTextItem(workflow.name)
         self.workflow_name.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
+        self.selectionChanged.connect(self.on_selection_changed)
 
         self.new_action_pos = QtCore.QPoint()
 
         self.initialize_workspace_from_workflow()
 
+    def on_selection_changed(self):
+        if len(self.selectedItems()) == 1:
+            self.main_widget.property_editor.set_action( self.workflow, self.selectedItems()[0])
+            pass
+        else:
+            self.main_widget.property_editor.clear()
+
     def initialize_workspace_from_workflow(self):
-        for action_name in {**self.workflow._actions, "__result__": self.workflow._result}:
-            self._add_action(QPoint(0.0, 0.0), action_name)
+        for action_name, action in {**self.workflow._actions, "__result__": self.workflow._result}.items():
+            if not isinstance(action.action, Value):
+                self._add_action(QPoint(0.0, 0.0), action_name)
 
         self.update_scene()
         self.order_diagram()
@@ -47,17 +58,20 @@ class Scene(GBaseModelScene):
 
     def draw_action(self, item):
         action = {**self.workflow._actions, "__result__":self.workflow._result}.get(item.data(GActionData.NAME))
+
         if action is None:
             action = self.unconnected_actions.get(item.data(GActionData.NAME))
-        if isinstance(action, SlotInstance):
-            self.actions.append(GInputAction(item, action, self.root_item))
-        elif isinstance(action, ActionInstance):
-            self.actions.append(GAction(item, action, self.root_item))
 
-        for child in item.children():
-            self.draw_action(child)
+        if not isinstance(action.action, Value):
+            if isinstance(action, SlotInstance):
+                self.actions.append(GInputAction(item, action, self.root_item))
+            elif isinstance(action, ActionInstance):
+                self.actions.append(GAction(item, action, self.root_item))
 
-        self.update()
+            for child in item.children():
+                self.draw_action(child)
+
+            self.update()
 
     def drawForeground(self, painter, rectf):
         super(Scene, self).drawForeground(painter, rectf)

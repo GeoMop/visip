@@ -1,26 +1,28 @@
 import common as wf
-from frontend.test_files import home
+import frontend.test_files.home as home
 
 
 @wf.workflow
 def test_list(self, a, b):
     self.c = [a]
-    d = [a, b]
-    self.e = [self.c, d]
-    return [self.e[1][0], self.e[0]]
+    self.e = [self.c, [a, b]]
+    List_3 = [self.e[1][0], 10, [1, 3, 3, 4, 'str']]
+    return List_3
 
 
 @wf.workflow
-def test_class(self, a: home.Point, b: home.Point):
+def test_class(self, a, b):
     self.a_x = a.x
     self.b_y = b.y
-    return home.Point(self.a_x, self.b_y)
+    Point_1 = home.Point(x=self.a_x, y=self.b_y)
+    return Point_1
 
 
 @wf.analysis
 def test_analysis(self):
-    self.tuple = test_list(10, "hallo")
-    self.point = test_list(home.Point(20, 30), home.Point(40, 50))
-    self.list = test_list(1, 2)
+    self.tuple = test_list(a=10, b='hallo')
+    self.point = test_list(a=home.Point(x=20, y=30), b=home.Point(x=40, y=50))
+    self.list = test_list(a=1, b=2)
     self.extract = self.list[1]
-    return [self.tuple, self.point, self.extract]
+    List_1 = [self.tuple, self.point, self.extract]
+    return List_1
