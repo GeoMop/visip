@@ -1,7 +1,7 @@
 from .action.wrapped import *
 from .dev.action_workflow import Slot
 from .code.decorators import workflow, analysis, action, Class
-from visip.action.converter import GetAttribute, GetItem, GetKey
+from visip.action.converter import GetAttribute, GetItem #,GetKey
 from typing import List
 
 
@@ -12,8 +12,8 @@ base_system_actions = [Slot(),
                        tuple_constr(),
                        dict(),
                        GetAttribute(None),
-                       GetItem(),
-                       GetKey()]
+                       GetItem(), #GetKey()
+                       ]
 
 """
 FUTURE:

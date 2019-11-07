@@ -21,7 +21,8 @@ class GetAttribute(base._ActionBase):
 
 class GetItem(base._ActionBase):
     """
-    Return item of a list given by index.
+    Return item of a list or dict given by index or key.
+    Note: Possibly we can distinguish GetItem and GetKey and have better typechecking for the index.
     """
     def __init__(self):
         super().__init__()
@@ -34,20 +35,20 @@ class GetItem(base._ActionBase):
         return data_list[idx]
 
 
-class GetKey(base._ActionBase):
-    """
-    Return item of a dict for given key.
-    """
-    def __init__(self):
-        super().__init__()
-
-    def format(self, action_name, arg_names):
-        a_dict, a_key = arg_names
-        return format.Format([format.Token(a_dict), "[", format.Token(a_key), "]"])
-
-    KeyType = TypeVar('Key')
-    ValType = TypeVar('Value')
-    def _evaluate(self, data_dict: Dict[KeyType, ValType], key: KeyType) -> ValType:
-        return data_dict[key]
-
+# class GetKey(base._ActionBase):
+#     """
+#     Return item of a dict for given key.
+#     """
+#     def __init__(self):
+#         super().__init__()
+#
+#     def format(self, action_name, arg_names):
+#         a_dict, a_key = arg_names
+#         return format.Format([format.Token(a_dict), "[", format.Token(a_key), "]"])
+#
+#     KeyType = TypeVar('Key')
+#     ValType = TypeVar('Value')
+#     def _evaluate(self, data_dict: Dict[KeyType, ValType], key: KeyType) -> ValType:
+#         return data_dict[key]
+#
 
