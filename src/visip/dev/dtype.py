@@ -13,7 +13,9 @@ heavy development.
 import pytypes
 import itertools
 import inspect
+from . import tools
 from typing import Union, List
+
 
 
 # valid_base_types = (bool, int, float, complex, str)
@@ -21,9 +23,37 @@ BasicType = Union[bool, int, float, complex, str]
 DataType = Union[BasicType, List['DataType'], 'DataClassBase']
 
 
+# class DataBase:
+#     def hash(self):
+#         pass
+#
+#     def
+#
+# class List(list, DataBase):
+#     ..
+
+
+
+
 # Just an empty data class to check the types.
 class DataClassBase:
-    pass
+
+    @tools.classproperty
+    def yaml_tag(cls):
+        """
+        Provides yaml_tag for class resolution in yaml.load.
+        The class has to be registered.
+        :return:
+        """
+        return '!{}'.format(cls.__name__)
+
+    def from_yaml(self):
+        pass
+
+    def to_yaml(self):
+        pass
+
+
 
 
 def is_base_type(dtype):

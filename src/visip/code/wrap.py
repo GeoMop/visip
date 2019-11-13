@@ -34,7 +34,7 @@ def into_action(value):
         return instance.ActionInstance.create(constructor.tuple_constr(), *wrap_values)
     elif type(value) is dict:
         wrap_values = [into_action((key, val)) for key, val in value.items()]
-        return instance.ActionInstance.create(constructor.dict(), *wrap_values)
+        return instance.ActionInstance.create(constructor.dict_constr(), *wrap_values)
     elif isinstance(value, dummy.Dummy):
         return value._action
     else:

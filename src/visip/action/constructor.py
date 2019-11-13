@@ -84,9 +84,9 @@ class tuple_constr(_ListBase):
         return tuple(inputs)
 
 
-class dict(_ActionBase):
+class dict_constr(_ActionBase):
     def __init__(self):
-        super().__init__()
+        super().__init__(action_name='dict')
         self.parameters = Parameters()
         self.parameters.append(ActionParameter(name=None, type=typing.Tuple[typing.Any, typing.Any], default=self.parameters.no_default))
 
@@ -101,6 +101,9 @@ class dict(_ActionBase):
 
     def evaluate(self, inputs):
         return { key: val for key, val in inputs}
+
+        item_pairs = ( (key, val) for key, val in inputs)
+        return dict(item_pairs)
 
 """
 TODO: 
@@ -123,22 +126,29 @@ class ClassActionBase(_ActionBase):
         self._module = self._data_class.__module__
         self._extract_input_type(func=data_class.__init__, skip_self=True)
 
-
     @staticmethod
-    def construct_from_params(name: str, params: Parameters, module=None):
+    def dataclass_from_params(name: str, params: Parameters, module=None):
+        attributes = {}
+        for param in params:
+            attributes[param.name] = attr.ib(default=param.default, type=param.type)
+        # 'yaml_tag' is not processed by attr.s and thus ignored by visip code representer.
+        # however it allows correct serialization to yaml
+        # Note: replaced by the DataClassBase classproperty 'yaml_tag'.
+        #attributes['yaml_tag'] = u'!{}'.format(name)
+        data_class = type(name, (dtype.DataClassBase,), attributes)
+        if module:
+            data_class.__module__ = module
+        return attr.s(data_class)
+
+    @classmethod
+    def construct_from_params(cls, name: str, params: Parameters, module=None):
         """
         Use Params to consturct the data_class and then instance of ClassActionBase.
         :param name: name of the class
         :param params: instance of Parameters
         :return:
         """
-        attributes = {}
-        for param in params:
-            attributes[param.name] = attr.ib(default=param.default, type=param.type)
-        data_class = type(name, (dtype.DataClassBase,), attributes)
-        if module:
-            data_class.__module__ = module
-        return ClassActionBase(attr.s(data_class))
+        return cls(cls.dataclass_from_params(name, params, module))
 
 
 
