@@ -22,19 +22,19 @@ def into_action(value):
 
     if value is None:
         return None
-    elif isinstance(value, instance.ActionInstance):
+    elif isinstance(value, instance.ActionCall):
         return value
     elif dtype.is_base_type(type(value)):
-        return instance.ActionInstance.create(constructor.Value(value))
+        return instance.ActionCall.create(constructor.Value(value))
     elif type(value) is list:
         wrap_values = [into_action(val) for val in value]
-        return instance.ActionInstance.create(constructor.list_constr(), *wrap_values)
+        return instance.ActionCall.create(constructor.A_list(), *wrap_values)
     elif type(value) is tuple:
         wrap_values = [into_action(val) for val in value]
-        return instance.ActionInstance.create(constructor.tuple_constr(), *wrap_values)
+        return instance.ActionCall.create(constructor.A_tuple(), *wrap_values)
     elif type(value) is dict:
         wrap_values = [into_action((key, val)) for key, val in value.items()]
-        return instance.ActionInstance.create(constructor.dict_constr(), *wrap_values)
+        return instance.ActionCall.create(constructor.A_dict(), *wrap_values)
     elif isinstance(value, dummy.Dummy):
         return value._action
     else:
@@ -102,7 +102,7 @@ class ActionWrapper:
         kwargs = { key: into_action(val) for key, val in kwargs.items() }
         regular_inputs, private_args = separate_underscored_keys(kwargs)
         # print("Instance: ", self.action.name, args, regular_inputs)
-        action_instance = instance.ActionInstance.create(self.action, *args, **regular_inputs)
+        action_instance = instance.ActionCall.create(self.action, *args, **regular_inputs)
         # TODO: check that inputs are connected.
         # action_instance.set_metadata(private_args)
         return dummy.Dummy.wrap(action_instance)

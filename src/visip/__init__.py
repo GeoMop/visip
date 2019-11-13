@@ -1,37 +1,53 @@
+"""
+This module provides public interface of the VISIP language.
+Public names are:
+
+Decorators: workflow, analysis, action, Class
+
+wrapped actions:
+    list, tuple, dict, ...
+
+All underscored names are private
+"""
+
 from .action.wrapped import *
-from .dev.action_workflow import Slot
+from .dev.action_workflow import _Slot as _Slot, _ResultCall as _Result
+from .action.constructor import Value as _Value
 from .code.decorators import workflow, analysis, action, Class
-from visip.action.converter import GetAttribute, GetItem #,GetKey
+from visip.action import converter as _converter
 from typing import List
 
 
 # TODO:
 # distinguish:
 # - wrapped actions, i.e. names used in workflow definitions
+#   e.g. list, dict, tuple, load_yaml
+#
 # - action instances, single instance for every base action class (used in following list and then in the frontend)
+#   list.action, dict.action, tuple.action, load_yaml.action
+#
 # - action classes (internal use only)
+#   A_list, A_dict, A_tuple
+#
 # Make unique naming scheme to clearly distinguish these objects.
 # Consider what should be in the visip namespace in particular which actions.
 #
 # Can we treat all actions in visip module directly instead of using following special list?
-base_system_actions = [Slot(),
-                       Value(None),   # can be deleted
+base_system_actions = [_Slot(),
+                       _Result(),
+                       _Value(None),   # can be deleted
                        list.action,
                        tuple.action,
                        dict.action,
-                       GetAttribute(None),
-                       GetItem(), #GetKey()
+                       _converter.GetAttribute(None),
+                       _converter.GetItem(), #GetKey()
                        ]
 
 """
 FUTURE:
-- possibly have different actions as instances of few dev classes carring just
-  different evaluate functions. Separate class only if code mechanism is substantialy different.
-  e.g. GenericAction, ListAction, OperatorAction, MetaAction (workflow, foreach, while, ..)
 - Resources:
     latency, speed, tags (supported features, HW, SW)  
-"""
-"""
+
 TODO:  
 - side_effect results - perform some actions for their sideefect, need a way to connect them to the result action instance
   that way result should have arbitrary number of parameters, but only the first is used (not good for a workflow with side effect but no true return value)
@@ -46,21 +62,7 @@ TODO:
     - must pass imports as a dictionalry to translate full module names to aliasses
     - implement full and iterative collection of used modules in definitions of the module
     #instance should  know its module path 
-4. test_gui_api, etc.
-
-1. Improved code generation:
-    - modify _code methods to return (instance_name, format, list of instance to substitute into the format)
-    - modify workspace code to dynamicaly expand format to obtain not extremaly long code representation:
-        try to expand:
-            - Value, dataclass instance, Tuple, List, GetAttribute ... should be the action property
-
-4. Simplest evaluation support.
-    - create Task DAG from the root analysis workflow.
-    - process the Task DAG (serialy directly in Python)
-
-
-
-
+4. test_gui_api, etc
 
 6. Typechecking
 

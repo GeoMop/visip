@@ -8,7 +8,7 @@ from types import ModuleType
 from ..code import wrap
 from ..code.representer import Representer
 from . import base, action_workflow as wf, dtype as dtype
-from .action_instance import ActionInstance
+from .action_instance import ActionCall
 
 
 
@@ -74,27 +74,29 @@ class Module:
     """
 
 
-    @staticmethod
-    def catch_object(name, object):
-        """
-        Predicate to identify Analysis definitions in the modlue dict.
-        TODO: possibly catch without decorators
-        Currently:
-        - ignore underscored names
-        - ignore non-classes
-        - ignore classes not derived from _ActionBase
-        - print all non-underscore ignored names
-        """
+    # @staticmethod
+    # def catch_object(name, object):
+    #     """
+    #     Predicate to identify Analysis definitions in the modlue dict.
+    #     TODO: possibly catch without decorators
+    #     Currently:
+    #     - ignore underscored names
+    #     - ignore non-classes
+    #     - ignore classes not derived from _ActionBase
+    #     - print all non-underscore ignored names
+    #     """
+    #     pass
 
 
-    def __init__(self, module_file: str) -> None:
+
+    def __init__(self, module_path:str) -> None:
         """
         Constructor of the _Module wrapper.
-        :param module: a python module object
+        :param module_obj: a python module object
         """
-        self.module_file = module_file
+        self.module_file = module_path
         # File with the module source code.
-        self.module = self.load_module(module_file)
+        self.module = self.load_module(module_path)
         # Ref to wrapped python module object.
 
         self.definitions = []
@@ -116,15 +118,13 @@ class Module:
 
         self.extract_definitions()
 
-    # TODO: reintroduce _load_from_source for unit tests
-
-    def load_module(self, file_path: str) -> ModuleType:
+    @classmethod
+    def load_module(cls, file_path: str) -> ModuleType:
         """
         Import the python module from the file.
         Temporary add its directory to the sys.path in order to find modules in the same directory.
-
         TODO: Create an empty module if the file doesn't exist.
-        :param file:
+        :param file_path: Module path to load.
         :return:
         """
         module_dir = os.path.dirname(file_path)
@@ -137,7 +137,6 @@ class Module:
             new_module = imp.new_module(module_name)
             my_exec(source, new_module.__dict__, locals=None, description=module_name)
         return new_module
-
 
     def extract_definitions(self):
         """
@@ -167,7 +166,7 @@ class Module:
         if analysis:
             # make instance of the main workflow
             analysis = analysis[0]
-            self.analysis = ActionInstance.create(analysis)
+            self.analysis = ActionCall.create(analysis)
         else:
             self.analysis = None
 
@@ -260,8 +259,7 @@ class Module:
         analysis = [d for d in self.definitions if d.is_analysis]
         return analysis
 
-
-    def get_workflow(self, name: str) -> wf._Workflow:
+    def get_action(self, name: str) -> wf._Workflow:
         """
         Get the workflow by the name.
         :param name:

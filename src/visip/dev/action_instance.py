@@ -28,7 +28,7 @@ RemainingArgs = Dict[Union[int, str], '_ActionBase']
 
 
 
-class ActionInstance:
+class ActionCall:
     """
     The call of an action within a workflow. ActionInstance objects are vertices of the
     call graph (DAG).
@@ -69,7 +69,7 @@ class ActionInstance:
         :return:
         """
         assert isinstance(action, base._ActionBase), action.__class__
-        instance = ActionInstance(action)
+        instance = ActionCall(action)
         remaining_args, duplicate = instance.set_inputs(input_list=args, input_dict=kwargs)
         if remaining_args:
             raise base.ExcUnknownArgument(remaining_args)
@@ -97,14 +97,14 @@ class ActionInstance:
         if value is None:
             is_default, value = param.get_default()
             if is_default:
-                value = ActionInstance.create(Value(value))
+                value = ActionCall.create(Value(value))
 
         if value is None:
             return ActionArgument(param, None, False, ActionInputStatus.missing)
 
         # if not isinstance(value, ActionInstance):
         #     x = 1
-        assert isinstance(value, ActionInstance), type(value)
+        assert isinstance(value, ActionCall), type(value)
         if not dtype.is_subtype(value.output_type, param.type):
             return  ActionArgument(param, value, is_default, ActionInputStatus.error_type)
 

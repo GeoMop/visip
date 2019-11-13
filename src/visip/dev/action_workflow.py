@@ -3,7 +3,7 @@ from typing import Any
 
 from . import base
 from . import dfs
-from .action_instance import ActionInstance
+from .action_instance import ActionCall
 from ..action.constructor import _ListBase
 from . parameters import Parameters, ActionParameter
 
@@ -14,16 +14,16 @@ Implementation of the Workflow composed action.
 """
 
 
-class Slot(base._ActionBase):
+class _Slot(base._ActionBase):
     pass
 
-class SlotInstance(ActionInstance):
+class SlotCall(ActionCall):
     def __init__(self, slot_name):
         """
         Auxiliary action to connect to a named input slot of the workflow.
         :param slot_name: Slot name gives also name of appropriate Workflow's parameter.
         """
-        super().__init__(Slot(), slot_name)
+        super().__init__(_Slot(), slot_name)
         self.arguments = []
         # self.rank = i_slot
         # """ Slot rank. """
@@ -40,10 +40,10 @@ class SlotInstance(ActionInstance):
     def code(self, representer, module_dict):
         return None
 
-class _ResultAction(_ListBase):
+class _Result(_ListBase):
     """
      Auxiliary result action.
-     Takes arbitrary number of inputs, at leas one input must be provided.
+     Takes arbitrary number of inputs, at least one input must be provided.
      Returns the first input, other inputs are used just for their side effects (using the Save action).
 
      Workflow decorator automatically connects all Save actions to the ignored result inputs.
@@ -59,10 +59,10 @@ class _ResultAction(_ListBase):
     def evaluate(self, inputs):
         return inputs[0]
 
-class Result(ActionInstance):
+class _ResultCall(ActionCall):
     """ Auxiliary result action instance, used to treat the result connecting in the consistnet way."""
     def __init__(self):
-        super().__init__(_ResultAction(), "__result__")
+        super().__init__(_Result(), "__result__")
 
     def code(self, representer, module_dict):
         return None
@@ -88,21 +88,24 @@ class _Workflow(base._ActionBase):
         """
         super().__init__(name)
         self._module = None
+        # Name of the module were the workflow is defined.
         self.task_type = base.TaskType.Composed
-        self._result = Result()
-        # Result subaction.
+        # Task type determines how the actions are converted to the tasks.
+        # Composed tasks are expanded.
+        self._result_call = _ResultCall()
+        # Result action instance.
         self._slots = []
         # Definition of the workspace parameters ?
-        self._actions = {}
+        self._action_calls = {}
         # Dict:  unique action instance name -> action instance.
-        self._topology_sort = []
+        self._sorted_calls = []
         # topologically sorted action instance names
 
         self.update_parameters()
 
     @property
     def result(self):
-        return self._result
+        return self._result_call
 
     @property
     def slots(self):
@@ -113,66 +116,65 @@ class _Workflow(base._ActionBase):
         Used by the workflow decorator to setup the instance.
         """
         self._slots = slots
-        self._result.set_single_input(0, output_action)
-        self._result.action.output_type = output_type
+        self._result_call.set_single_input(0, output_action)
+        self._result_call.action.output_type = output_type
 
-        is_dfs = self.update()
+        is_dfs = self.update(self._result_call)
         assert is_dfs
         self.update_parameters()
 
 
-    def update(self):
+    def update(self, result_instance):
         """
         DFS through the workflow DAG given be the result action:
-        - expand data to data actions
-        - set unique action names
-        - detect input slots
-        - (determine types of the input slots)
-        :param result: the result action
-        :param slots: List of the input slots of the workflow.
+        - set unique action call names
+        - set back references to action calls connected to outputs: action.output_actions
+        - make topology sort of action calls
+        - update list of action calls
+        :param result_instance: the result action
         :return: True in the case of sucessfull update, False - detected cycle
         """
         actions = {}
         topology_sort = []
         instance_names = {}
         # clear output_actions
-        for action in self._actions.values():
+        for action in self._action_calls.values():
             action.output_actions = []
 
-        def construct_postvisit(action):
+        def construct_postvisit(action_call):
             # get instance name proposal
-            if action.name is None:
-                name_base = action.action_name
+            if action_call.name is None:
+                name_base = action_call.action_name
                 instance_names.setdefault(name_base, 1)
             else:
-                name_base = action.name
+                name_base = action_call.name
 
             # set unique instance name
             if name_base in instance_names:
-                action.name = "{}_{}".format(name_base, instance_names[name_base])
+                action_call.name = "{}_{}".format(name_base, instance_names[name_base])
                 instance_names[name_base] += 1
             else:
-                action.name = name_base
+                action_call.name = name_base
                 instance_names[name_base] = 0
 
             # handle slots
             #if isinstance(action, Slot):
             #    assert action is self._slots[action.rank]
-            actions[action.name] = action
-            topology_sort.append(action.name)
+            actions[action_call.name] = action_call
+            topology_sort.append(action_call.name)
 
         # def edge_visit(previous, action, i_arg):
         #     return previous.output_actions.append((action, i_arg))
 
-        is_dfs = dfs.DFS(neighbours=lambda action: (arg.value for arg in action.arguments),
-                         postvisit=construct_postvisit).run([self._result])
+        is_dfs = dfs.DFS(neighbours=lambda action_call: (arg.value for arg in action_call.arguments),
+                         postvisit=construct_postvisit).run([result_instance])
         if not is_dfs:
             return False
 
-        self._actions = actions
-        self._topology_sort = topology_sort
+        self._action_calls = actions
+        self._sorted_calls = topology_sort
         # set backlinks
-        for action in self._actions.values():
+        for action in self._action_calls.values():
             for i_arg, arg in enumerate(action.arguments):
                 if arg.value is not None:
                     arg.value.output_actions.append((action, i_arg))
@@ -185,9 +187,9 @@ class _Workflow(base._ActionBase):
 
     def dependencies(self):
         """
-        :return: List of used actions (including workflows) and converters.
+        :return: List of used actions (including workflows and converters).
         """
-        return [v.action_name() for v in self._actions.values()]
+        return [v.action_name() for v in self._action_calls.values()]
 
     @attr.s(auto_attribs=True)
     class InstanceRepr:
@@ -221,8 +223,8 @@ class _Workflow(base._ActionBase):
         # Make dict: full_instance_name -> (format, [arg full names])
         inst_order = []
         inst_exprs = {}
-        for iname in self._topology_sort:
-            action_instance = self._actions[iname]
+        for iname in self._sorted_calls:
+            action_instance = self._action_calls[iname]
             full_name = action_instance.get_code_instance_name()
             subst_prob = action_instance.substitution_probability()
             code = action_instance.code(representer, make_rel_name)
@@ -279,10 +281,10 @@ class _Workflow(base._ActionBase):
                     line = "{}{} = {}".format(indent, full_inst, inst_repr.code.final_string())
                     body.append(line)
 
-        assert len(self._result.arguments) > 0
+        assert len(self._result_call.arguments) > 0
 
 
-        result_action = self._result.arguments[0].value
+        result_action = self._result_call.arguments[0].value
         body.append("    return {}".format(result_action.name))
         return "\n".join(body)
 
@@ -302,7 +304,7 @@ class _Workflow(base._ActionBase):
         self.update_parameters()
 
 
-    def insert_slot(self, i_slot:int, slot: SlotInstance) -> None:
+    def insert_slot(self, i_slot:int, slot: SlotCall) -> None:
         """
         Insert a new slot on i_th position shifting the slot on i-th position and remaining to the right.
         Change of the name
@@ -322,7 +324,7 @@ class _Workflow(base._ActionBase):
         self.update_parameters()
 
 
-    def set_action_input(self, action: ActionInstance, i_arg:int, input_action: ActionInstance) -> bool:
+    def set_action_input(self, action: ActionCall, i_arg:int, input_action: ActionCall) -> bool:
         """
         Set argument 'i_arg' of the 'action' to the 'input_action'.
 
@@ -338,7 +340,7 @@ class _Workflow(base._ActionBase):
         else:
             orig_input = None
         action.set_single_input(i_arg, input_action)
-        is_dfs = self.update()
+        is_dfs = self.update(self._result_call)
         if not is_dfs:
             action.set_single_input(i_arg, orig_input)
             return False
@@ -394,9 +396,9 @@ class _Workflow(base._ActionBase):
         # TODO: fix connection of slots to inputs
         for slot, input in zip(self._slots, inputs):
             childs[slot.name] = input
-        for action_instance_name in self._topology_sort:
+        for action_instance_name in self._sorted_calls:
             if action_instance_name not in childs:
-                action_instance = self._actions[action_instance_name]
+                action_instance = self._action_calls[action_instance_name]
                 arg_tasks = [childs[arg.value.name] for arg in action_instance.arguments]
                 childs[action_instance.name] = task_creator(action_instance.name, action_instance.action, arg_tasks)
         return childs
