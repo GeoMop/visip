@@ -6,8 +6,8 @@ import frontend.test_files.home as home
 def test_list(self, a, b):
     self.c = [a]
     self.e = [self.c, [a, b]]
-    List_3 = [self.e[1][0], 10, [1, 3, 3, 4, 'str']]
-    return List_3
+    list_3 = [self.e[1][0], 10, [1, 3, 3, 3, 'str']]
+    return list_3
 
 
 @wf.workflow
@@ -24,5 +24,5 @@ def test_analysis(self):
     self.point = test_list(a=home.Point(x=20, y=30), b=home.Point(x=40, y=50))
     self.list = test_list(a=1, b=2)
     self.extract = self.list[1]
-    List_1 = [self.tuple, self.point, self.extract]
-    return List_1
+    list_0 = [self.tuple, self.point, self.extract]
+    return list_0
