@@ -10,6 +10,6 @@ from  .converter import *
 from ..code import wrap
 from .constructor import Value
 
-dict = wrap.public_action(constructor.dict())
-list_constr = wrap.public_action(constructor.list_constr())
-tuple_constr = wrap.public_action(constructor.tuple_constr())
+dict = wrap.public_action(constructor.dict_constr())
+list = wrap.public_action(constructor.list_constr())
+tuple = wrap.public_action(constructor.tuple_constr())

@@ -5,12 +5,20 @@ from visip.action.converter import GetAttribute, GetItem #,GetKey
 from typing import List
 
 
-# TODO: do not form instances, just list of types.
+# TODO:
+# distinguish:
+# - wrapped actions, i.e. names used in workflow definitions
+# - action instances, single instance for every base action class (used in following list and then in the frontend)
+# - action classes (internal use only)
+# Make unique naming scheme to clearly distinguish these objects.
+# Consider what should be in the visip namespace in particular which actions.
+#
+# Can we treat all actions in visip module directly instead of using following special list?
 base_system_actions = [Slot(),
-                       Value(None),
-                       list_constr(),
-                       tuple_constr(),
-                       dict(),
+                       Value(None),   # can be deleted
+                       list.action,
+                       tuple.action,
+                       dict.action,
                        GetAttribute(None),
                        GetItem(), #GetKey()
                        ]
