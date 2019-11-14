@@ -271,9 +271,9 @@ class Evaluation:
         bind_name = 'all_bind_' + action.name
         workflow = _Workflow(bind_name)
 
-        bind_action = instance.ActionInstance.create(action)
+        bind_action = instance.ActionCall.create(action)
         for i, input in enumerate(inputs):
-            value_instance = instance.ActionInstance.create(Value(input))
+            value_instance = instance.ActionCall.create(Value(input))
             workflow.set_action_input(bind_action, i, value_instance)
             assert bind_action.arguments[i].status >= instance.ActionInputStatus.seems_ok
         workflow.set_action_input(workflow.result, 0, bind_action)

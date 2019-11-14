@@ -26,7 +26,7 @@ class ToolBox(QToolBox):
                 inst = SlotInstance("Slot")
                 ToolboxView(GInputAction(TreeItem(["Input", 0, 0, 50, 50]), inst), self.system_actions_layout)
             else:
-                inst = instance.ActionInstance.create(action)
+                inst = instance.ActionCall.create(action)
                 ToolboxView(GAction(TreeItem([action.name, 0, 0, 50, 50]),
                                     inst), self.system_actions_layout)
 
@@ -54,7 +54,7 @@ class ToolBox(QToolBox):
             for item in module.definitions:
                 if not item.is_analysis and item.name != curr_workspace.scene.workflow.name:
                     ToolboxView(GAction(TreeItem([item.name, 0, 0, 50, 50]),
-                                        instance.ActionInstance.create(item)), module_category)
+                                        instance.ActionCall.create(item)), module_category)
                     self.action_database[module.name][item.name] = item
 
             self.import_modules[module.name] = module_category

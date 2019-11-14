@@ -58,7 +58,7 @@ class _ListBase(_ActionBase):
                                        default=self.parameters.no_default))
 
 
-class list_constr(_ListBase):
+class A_list(_ListBase):
     def __init__(self):
         super().__init__(action_name='list')
 
@@ -69,7 +69,7 @@ class list_constr(_ListBase):
         return list(inputs)
 
 
-class tuple_constr(_ListBase):
+class A_tuple(_ListBase):
     """
     This action is necessary only for better typechecking, using fixed number of items
     of given type.
@@ -84,7 +84,7 @@ class tuple_constr(_ListBase):
         return tuple(inputs)
 
 
-class dict_constr(_ActionBase):
+class A_dict(_ActionBase):
     def __init__(self):
         super().__init__(action_name='dict')
         self.parameters = Parameters()
@@ -97,13 +97,10 @@ class dict_constr(_ActionBase):
 
         return _ActionBase.format(self, representer, action_name, arg_names)
 
-
-
     def evaluate(self, inputs):
         return { key: val for key, val in inputs}
-
-        item_pairs = ( (key, val) for key, val in inputs)
-        return dict(item_pairs)
+        #item_pairs = ( (key, val) for key, val in inputs)
+        #return dict(item_pairs)
 
 """
 TODO: 
@@ -150,21 +147,12 @@ class ClassActionBase(_ActionBase):
         """
         return cls(cls.dataclass_from_params(name, params, module))
 
-
-
-    @staticmethod
-    def construct_from_class(data_class):
-
-        return
-
-
     @property
     def constructor(self):
         return self._data_class
 
     def _evaluate(self, *args) -> dtype.DataClassBase:
-        return self._data_class(*args)
-
+        return self.constructor(*args)
 
     def code_of_definition(self, representer, make_rel_name):
         """
