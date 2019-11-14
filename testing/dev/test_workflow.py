@@ -7,14 +7,14 @@ def test_workflow_modification():
 
     ## Slot modifications
     # insert_slot
-    w.insert_slot(0, wf.SlotCall("a_slot"))
-    w.insert_slot(1, wf.SlotCall("b_slot"))
+    w.insert_slot(0, wf._SlotCall("a_slot"))
+    w.insert_slot(1, wf._SlotCall("b_slot"))
     assert w.parameters.size() == 2
     assert w.parameters.get_index(0).name == 'a_slot'
     assert w.parameters.get_index(1).name == 'b_slot'
 
     # move_slot
-    w.insert_slot(2, wf.SlotCall("c_slot"))
+    w.insert_slot(2, wf._SlotCall("c_slot"))
     # A B C
     w.move_slot(1, 2)
     # A C B

@@ -17,7 +17,7 @@ Implementation of the Workflow composed action.
 class _Slot(base._ActionBase):
     pass
 
-class SlotCall(ActionCall):
+class _SlotCall(ActionCall):
     def __init__(self, slot_name):
         """
         Auxiliary action to connect to a named input slot of the workflow.
@@ -304,7 +304,7 @@ class _Workflow(base._ActionBase):
         self.update_parameters()
 
 
-    def insert_slot(self, i_slot:int, slot: SlotCall) -> None:
+    def insert_slot(self, i_slot:int, slot: _SlotCall) -> None:
         """
         Insert a new slot on i_th position shifting the slot on i-th position and remaining to the right.
         Change of the name
