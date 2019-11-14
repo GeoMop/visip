@@ -26,19 +26,12 @@ class EvalWindow(QMainWindow):
         self.data_editor_dock.setWidget(self.data_editor)
 
         self.navigation_dock = QDockWidget("Navigation Stack", self)
-        self.navigation_dock.setMinimumWidth(150)
-
-
 
         self.navigation_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.navigation_dock)
         self.last_tab_widget = None
 
         self.resize(1000, 700)
-        self.navigation_dock.show()
-        self.show()
-        self.navigation_dock.hide()
-        self.hide()
 
     def add_eval(self, gui_eval):
         self.show()

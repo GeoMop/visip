@@ -75,18 +75,26 @@ class TabWidget(QTabWidget):
     def current_changed(self, index):
         if index != -1 and isinstance(self.widget(index), Tab):
             curr_module_view = self.module_views[self.tabText(index)]
-            self.main_widget.toolbox_dock.setDisabled(False)
-            self.main_widget.module_dock.setDisabled(False)
-            curr_module_view.show()
+            self.disable_everything(False)
             self.main_widget.module_dock.setWidget(curr_module_view)
+            self.main_widget.toolbox_dock.setWidget(self.main_widget.toolbox)
 
             self.main_widget.toolbox.on_module_change(curr_module_view.module,
                                                       curr_module_view._current_workspace)
             self.main_widget.toolbox.setCurrentIndex(self.currentWidget().last_category)
             return
 
-        self.main_widget.toolbox_dock.setDisabled(True)
-        self.main_widget.module_dock.setDisabled(True)
+        self.disable_everything(True)
+        self.main_widget.module_dock.setWidget(None)
+        self.main_widget.toolbox_dock.setWidget(None)
+
+    def disable_everything(self, boolean):
+        self.main_widget.toolbox_dock.setDisabled(boolean)
+        self.main_widget.module_dock.setDisabled(boolean)
+        self.main_widget.edit_menu.setDisabled(boolean)
+        self.main_widget.eval_menu.setDisabled(boolean)
+        self.main_widget.property_editor.setDisabled(boolean)
+
 
     def current_module_view(self):
         return self.module_views[self.tabText(self.currentIndex())]
