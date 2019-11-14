@@ -30,6 +30,7 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.in_ports = []
         self.out_ports = []
         self.eval_gui = eval_gui
+        self._hide_name = False
 
         self.appending_ports = appending_ports
 
@@ -66,7 +67,7 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
 
         self.progress = 0
 
-        #self._status = ActionStatus.IDLE
+
 
     def has_const_params(self):
         if len(self.w_data_item.parameters.parameters) > 0:
@@ -82,6 +83,18 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
 
     def __repr__(self):
         return self.name + "\t" + str(self.level)
+
+    def hide_name(self, boolean):
+        self._hide_name = boolean
+        if boolean:
+            self._name.setParentItem(None)
+            self._name.hide()
+        else:
+            self._name.setParentItem(self)
+            self._name.show()
+        self._height = self.height - self.inner_area().height()
+        self.position_ports()
+        self.update_gfx()
 
     @property
     def status(self):
@@ -280,7 +293,8 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.prepareGeometryChange()
         p = QtGui.QPainterPath()
         p.addRoundedRect(QtCore.QRectF(0, 0, self.width, self.height), 6, 6)
-        p.addRoundedRect(self.inner_area(), 4, 4)
+        if not self._hide_name:
+            p.addRoundedRect(self.inner_area(), 4, 4)
         self.setPath(p)
         self.update()
         self.background.update_gfx()

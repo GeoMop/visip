@@ -14,10 +14,12 @@ from .g_port import GPort, GOutputPort
 
 class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
     """Representation of connection between two ports."""
-    color = {ActionInputStatus.ok: Qt.darkGreen,
-             ActionInputStatus.seems_ok: Qt.darkYellow,
-             ActionInputStatus.error_type: Qt.darkRed,
-             ActionInputStatus.error_value: Qt.darkRed}
+    color = {ActionInputStatus.ok: Qt.green,
+             ActionInputStatus.seems_ok: Qt.yellow,
+             ActionInputStatus.error_type: Qt.red,
+             ActionInputStatus.error_value: Qt.red}
+
+    LINE_THICKNESS = 3
 
     def __init__(self, port1, port2=None, state=None, parent=None):
         """Initializes connection.
@@ -32,8 +34,8 @@ class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.port2 = port2 if self.connection_set else GPort(-1, self.port1.get_connection_point())  # usually InputPort
         # drawing options
         color = self.color.get(state, Qt.black)
-        self.full_pen = QtGui.QPen(color, 2)
-        self.dash_pen = QtGui.QPen(color, 2, QtCore.Qt.DashLine)
+        self.full_pen = QtGui.QPen(color, self.LINE_THICKNESS)
+        self.dash_pen = QtGui.QPen(color, self.LINE_THICKNESS, QtCore.Qt.DashLine)
         self.setPen(self.full_pen)
         self.setZValue(10.0)
         self.setFlag(self.ItemIsSelectable)
@@ -100,7 +102,7 @@ class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
         direction = (p1 - p2)
         direction = direction/direction.manhattanLength()
         direction.setY(-direction.y())
-        margin = 1.5 * QtCore.QPointF(direction.y(),direction.x())
+        margin = self.LINE_THICKNESS * QtCore.QPointF(direction.y(),direction.x())
 
         self._shape = QtGui.QPainterPath()
         self._shape.moveTo(p1 - margin)

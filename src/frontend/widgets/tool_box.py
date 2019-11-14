@@ -34,11 +34,14 @@ class ToolBox(QToolBox):
         for action in visip.base_system_actions:
             if isinstance(action, Slot):
                 inst = SlotInstance("Slot")
-                ToolboxView(GInputAction(TreeItem(["Input", 0, 0, 50, 50]), inst), self.system_actions_layout)
+                g_action = GInputAction(TreeItem(["Input", 0, 0, 50, 50]), inst)
+                g_action.hide_name(True)
+                ToolboxView(g_action, self.system_actions_layout)
             elif not isinstance(action, Dummy):
                 inst = instance.ActionInstance.create(action)
-                ToolboxView(GAction(TreeItem([action.name, 0, 0, 50, 50]),
-                                    inst), self.system_actions_layout)
+                g_action = GAction(TreeItem([action.name, 0, 0, 50, 50]), inst)
+                g_action.hide_name(True)
+                ToolboxView(g_action, self.system_actions_layout)
 
             self.action_database[action.module][action.name] = action
 
@@ -63,8 +66,10 @@ class ToolBox(QToolBox):
             self.action_database[module.name] = {}
             for item in module.definitions:
                 if not item.is_analysis and item.name != curr_workspace.scene.workflow.name:
-                    ToolboxView(GAction(TreeItem([item.name, 0, 0, 50, 50]),
-                                        instance.ActionInstance.create(item)), module_category)
+                    g_action = GAction(TreeItem([item.name, 0, 0, 50, 50]),
+                                        instance.ActionInstance.create(item))
+                    g_action.hide_name(True)
+                    ToolboxView(g_action, module_category)
                     self.action_database[item.module][item.name] = item
 
             self.import_modules[module.name] = module_category
@@ -91,8 +96,10 @@ class ToolBox(QToolBox):
                     for name, obj in m.__dict__.items():
                         if issubclass(type(obj), ActionWrapper):
                             item = obj.action
-                            ToolboxView(GAction(TreeItem([item.name, 0, 0, 50, 50]),
-                                                instance.ActionInstance.create(item)), module_category)
+                            g_action = GAction(TreeItem([item.name, 0, 0, 50, 50]),
+                                                instance.ActionInstance.create(item))
+                            g_action.hide_name(True)
+                            ToolboxView(g_action, module_category)
                             self.action_database[item.module][item.name] = item
 
                     self.import_modules[item.module] = module_category
