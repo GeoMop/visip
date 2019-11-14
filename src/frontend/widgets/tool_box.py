@@ -49,6 +49,8 @@ class ToolBox(QToolBox):
 
         self.import_modules = {}
 
+    def update_category(self):
+        self.on_workspace_change(self.module, self.workspace)
 
     def on_workspace_change(self, module, curr_workspace):
         last_index = self.currentIndex()

@@ -154,6 +154,7 @@ class Scene(GBaseModelScene):
             name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.name)
             action.name = name
             self.workflow.insert_slot(len(self.workflow.slots), action)
+            self.main_widget.tab_widget.current_module_view().workspace_changed()
 
         elif action_name in self.available_actions[module]:
             action = ActionInstance.create(self.available_actions[module][action_name])

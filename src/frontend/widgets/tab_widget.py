@@ -95,7 +95,6 @@ class TabWidget(QTabWidget):
         self.main_widget.eval_menu.setDisabled(boolean)
         self.main_widget.property_editor.setDisabled(boolean)
 
-
     def current_module_view(self):
         return self.module_views[self.tabText(self.currentIndex())]
 

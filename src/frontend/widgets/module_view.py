@@ -9,7 +9,6 @@ from frontend.menu.module_view_menu import ModuleViewMenu
 from .workspace import Workspace
 
 class ModuleView(QTreeWidget):
-    workspace_changed = pyqtSignal(int)
     def __init__(self, tab_widget, module, edit_menu, parent=None):
         super(ModuleView, self).__init__(parent)
         self.edit_menu = edit_menu
@@ -28,14 +27,21 @@ class ModuleView(QTreeWidget):
 
         self.workspaces = {}
 
+        self.curr_wf_item = None
+        self.workspace_changed()
 
-        for wf in module.definitions:
+    def workspace_changed(self):
+        if self.curr_wf_item is not None:
+            name = self.curr_wf_item.data(0, 0)
+        else:
+            name = None
+        self.clear()
+        for wf in self._module.definitions:
             if issubclass(type(wf), _Workflow):
                 self.workspaces[wf.name] = (Workspace(wf, self.tab_widget.main_widget, self.tab_widget.main_widget.toolbox.action_database))
                 item = QTreeWidgetItem(self, [wf.name])
                 item.setExpanded(True)
                 self.addTopLevelItem(item)
-                self.curr_wf_item = item
 
                 if wf.slots:
                     for slot in wf.slots:
@@ -47,7 +53,12 @@ class ModuleView(QTreeWidget):
                     output_item.setIcon(0, QIcon(os.path.join(os.getcwd(), "frontend\\icons\\arrow_left.png")))
 
         if self.topLevelItemCount() > 0:
-            self.mark_active_wf_item(self.topLevelItem(0))
+            if self.curr_wf_item is None:
+                self.mark_active_wf_item(self.topLevelItem(0))
+            else:
+                for i in range(self.topLevelItemCount()):
+                    if self.topLevelItem(i).data(0, 0) == name:
+                        self.mark_active_wf_item(self.topLevelItem(i))
             self._current_workspace = self.workspaces[self.topLevelItem(0).data(0, 0)]
 
     def remove_workflow(self):
@@ -76,6 +87,7 @@ class ModuleView(QTreeWidget):
                 break
 
         self.takeTopLevelItem(self.indexOfTopLevelItem(curr_item))
+        self.tab_widget.main_widget.toolbox.update_category()
 
     def create_new_workflow(self):
         wf_name = "new_workflow"
@@ -97,7 +109,7 @@ class ModuleView(QTreeWidget):
 
         self.mark_active_wf_item(item)
         self.set_current_workspace(wf_name)
-
+        self.tab_widget.main_widget.toolbox.update_category()
 
     def _change_workflow(self):
         curr_item = self.currentItem()
@@ -106,7 +118,6 @@ class ModuleView(QTreeWidget):
 
         self.mark_active_wf_item(curr_item)
         self.set_current_workspace(curr_item.data(0, 0))
-
 
     @property
     def module(self):
