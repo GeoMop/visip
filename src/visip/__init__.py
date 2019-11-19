@@ -13,7 +13,7 @@ All underscored names are private
 from .action.wrapped import *
 from .dev.action_workflow import _Slot as _Slot, _ResultCall as _Result
 from .action.constructor import Value as _Value
-from .code.decorators import workflow, analysis, action, Class
+from .code.decorators import workflow, analysis, action_def, Class
 from visip.action import converter as _converter
 from typing import List
 
@@ -39,7 +39,7 @@ base_system_actions = [_Slot(),
                        list.action,
                        tuple.action,
                        dict.action,
-                       _converter.GetAttribute(None),
+                       _converter.GetAttribute(),
                        _converter.GetItem(), #GetKey()
                        ]
 

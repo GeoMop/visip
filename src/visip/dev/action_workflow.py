@@ -46,14 +46,17 @@ class _Result(_ListBase):
      Takes arbitrary number of inputs, at least one input must be provided.
      Returns the first input, other inputs are used just for their side effects (using the Save action).
 
+     TODO: Decide if we really want side effect values.
      Workflow decorator automatically connects all Save actions to the ignored result inputs.
+
     """
     def __init__(self):
         super().__init__(action_name='result')
         self.parameters = Parameters()
-        # todo: check if first parameter is supposed to have default value none or no_default
-        self.parameters.append(ActionParameter(name="result", type=Any, default=self.parameters.no_default))
-        self.parameters.append(ActionParameter(name=None, type=Any, default=self.parameters.no_default))
+        self.parameters.append(ActionParameter(name="result", type=Any, default=ActionParameter.no_default))
+        # The return value, there should be always some return value, as we want to use "functional style".
+        self.parameters.append(ActionParameter(name=None, type=Any, default=ActionParameter.no_default))
+        # The "side effects" of the workflow.
 
 
     def evaluate(self, inputs):

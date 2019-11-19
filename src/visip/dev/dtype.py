@@ -14,29 +14,71 @@ import pytypes
 import itertools
 import inspect
 from . import tools
-from typing import Union, List
+from typing import Any, Union, List, Dict, Tuple, Generic, TypeVar, GenericMeta
+
+############################# typing - undocumented interface ##################################
+
+def get_generic_args(generic_type):
+    """
+    Returns a tuple of type arguments of the input generic type.
+    Returns None for a non-generic type.
+    :param xtype: A type hint.
+    :return: Tuple of types that are parameters of the input generic type.
+    """
+    # TODO: better check for generic types.
+    if hasattr(generic_type, '__args__'):
+        return generic_type.__args__
+    else:
+        return None
+
+################################################################################################
 
 
-
-# valid_base_types = (bool, int, float, complex, str)
 BasicType = Union[bool, int, float, complex, str]
-DataType = Union[BasicType, List['DataType'], 'DataClassBase']
+# valid_base_types = (bool, int, float, complex, str)
+
+DataType = Union[BasicType, List['DataType'], Dict['DataType', 'DataType'], Tuple['DataType', ...], 'DataClassBase']
+# All valid data types that can be passed between VISIP actions.
+# TODO: check that all type check methods work with this definition.
 
 
-# class DataBase:
-#     def hash(self):
-#         pass
-#
-#     def
-#
-# class List(list, DataBase):
-#     ..
+ConstantValueType = TypeVar('ConstantValueType')
+
+class Constant(Generic[ConstantValueType]):
+    """
+    Wrapper for constant values. I.e. values that are not results of other actions.
+    """
+    def __init__(self, val: ConstantValueType):
+        self._value: ConstantValueType = val
+
+
+    @property
+    def value(self):
+        return self._value
+
+
+    @classmethod
+    def inner_type(cls):
+        return get_generic_args(cls)[0]
+
+
+def is_constant(xtype):
+    """
+    Indicate that type is a generic Constant[...].
+    TODO: Try to define it in better way.
+    :param xtype:
+    :return:
+    """
+    # is_subtype(xtype, Constant)
+    return issubclass(xtype, Constant)
 
 
 
-
-# Just an empty data class to check the types.
 class DataClassBase:
+    """
+    Base class to the dataclasses used in VISIP.
+    Implement some common methods for hashing, and serialization.
+    """
 
     @tools.classproperty
     def yaml_tag(cls):
@@ -55,13 +97,13 @@ class DataClassBase:
 
 
 
+def is_base_type(xtype):
+    """ True for basic, i.e. scalar types."""
+    return is_subtype(xtype, BasicType)
 
-def is_base_type(dtype):
-    return is_subtype(dtype, BasicType)
 
-
-def is_subtype(dtype, type_spec):
-    return pytypes.is_subtype(dtype, type_spec)
+def is_subtype(xtype, type_spec):
+    return pytypes.is_subtype(xtype, type_spec)
 
 
 def closest_common_ancestor(*cls_list):

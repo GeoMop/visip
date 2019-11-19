@@ -1,5 +1,6 @@
 from typing import *
 from visip.dev import base
+from ..dev import dtype
 
 
 class GetAttribute(base._ActionBase):
@@ -7,16 +8,15 @@ class GetAttribute(base._ActionBase):
     Return a class attribute for given fixed key.
     TODO: Do we really need the "configuration" data?
     """
-    def __init__(self, key):
+    def __init__(self):
         super().__init__()
-        self.key = key
 
     def format(self, representer, action_name, arg_names):
-        assert len(arg_names) == 1
-        return representer.format([representer.token(arg_names[0]), ".{}".format(self.key)])
+        assert len(arg_names) == 2
+        return representer.format([representer.token(arg_names[1]), ".{}".format(arg_names[0])])
 
-    def _evaluate(self, data_class: Any) -> Any:
-        return data_class.__getattribute__(self.key)
+    def _evaluate(self, key: dtype.Constant[str], data_class: Any) -> Any:
+        return data_class.__getattribute__(key)
 
 
 class GetItem(base._ActionBase):

@@ -92,6 +92,14 @@ class ActionCall:
         return self.action.name
 
     def make_argument(self, param, value):
+        """
+        Make ActionArgument from the ActionParameter and a value or ActionCall.
+        - possibly get default value
+        - check result type of ActionCall
+        :param param:
+        :param value:
+        :return:
+        """
 
         is_default = False
         if value is None:
@@ -104,6 +112,7 @@ class ActionCall:
 
         # if not isinstance(value, ActionInstance):
         #     x = 1
+
         assert isinstance(value, ActionCall), type(value)
         if not dtype.is_subtype(value.output_type, param.type):
             return  ActionArgument(param, value, is_default, ActionInputStatus.error_type)

@@ -55,7 +55,7 @@ class _ListBase(_ActionBase):
         self.parameters = Parameters()
         self.parameters.append(
             ActionParameter(name=None, type=typing.Any,
-                                       default=self.parameters.no_default))
+                                       default=ActionParameter.no_default))
 
 
 class A_list(_ListBase):
@@ -88,7 +88,9 @@ class A_dict(_ActionBase):
     def __init__(self):
         super().__init__(action_name='dict')
         self.parameters = Parameters()
-        self.parameters.append(ActionParameter(name=None, type=typing.Tuple[typing.Any, typing.Any], default=self.parameters.no_default))
+        self.parameters.append(
+            ActionParameter(name=None, type=typing.Tuple[typing.Any, typing.Any],
+                            default=ActionParameter.no_default))
 
     def format(self, representer, action_name, arg_names):
         # TODO: dict as action_name with prefix
