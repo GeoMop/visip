@@ -103,7 +103,7 @@ class _ActionBase:
         assert False, "Implementation has to be provided."
 
 
-    def format(self, representer, full_action_name, arg_names):
+    def format(self, representer, full_action_name, arg_names, arg_values):
         """
         Return a format string for the expression that constructs the action.
         :param n_args: Number of arguments, number of placeholders. Can be None if the action is not variadic.
@@ -118,7 +118,7 @@ class _ActionBase:
             param = self.parameters.get_index(i)
             assert param is not None
             args.append( (param.name, arg) )
-        return representer.action_call(full_action_name, args)
+        return representer.action_call(full_action_name, *args)
 
 
 

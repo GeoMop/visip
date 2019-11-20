@@ -62,13 +62,14 @@ class _Result(_ListBase):
     def evaluate(self, inputs):
         return inputs[0]
 
+    def format(self, representer, action_name, arg_names, arg_values):
+        return representer.format("return", representer.token(arg_names[0]))
+
 class _ResultCall(ActionCall):
     """ Auxiliary result action instance, used to treat the result connecting in the consistnet way."""
     def __init__(self):
         super().__init__(_Result(), "__result__")
 
-    def code(self, representer, module_dict):
-        return None
 
 
 
@@ -227,10 +228,10 @@ class _Workflow(base._ActionBase):
         inst_order = []
         inst_exprs = {}
         for iname in self._sorted_calls:
-            action_instance = self._action_calls[iname]
-            full_name = action_instance.get_code_instance_name()
-            subst_prob = action_instance.substitution_probability()
-            code = action_instance.code(representer, make_rel_name)
+            action_call = self._action_calls[iname]
+            full_name = action_call.get_code_instance_name()
+            subst_prob = action_call.substitution_probability()
+            code = action_call.code(representer, make_rel_name)
             if code:
                 inst_repr = self.InstanceRepr(code, subst_prob)
                 for name in code.placeholders:
@@ -239,6 +240,11 @@ class _Workflow(base._ActionBase):
             else:
                 inst_repr = self.InstanceRepr(None, 0.0)
             inst_exprs[full_name] = inst_repr
+
+        # Delete unused calls without proper name.
+        for inst_name, inst_repr in list(inst_exprs.items()):
+            if inst_repr.n_uses == 0 and inst_repr.subst_prob > 0.0:
+                del inst_exprs[inst_name]
 
         # Substitute single used, single param instances
         for full_inst in reversed(inst_order):
