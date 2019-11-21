@@ -36,7 +36,8 @@ class Dummy:
         # TODO: update the type to know that it is a dataclass containing 'key'
         # TODO: check that type is dataclass
         assert not is_underscored(key)
-        action = ActionCall.create(GetAttribute(key), self._action)
+        key_wrap = ActionCall.create(Value(key))
+        action = ActionCall.create(GetAttribute(), key_wrap, self._action)
         return Dummy.wrap(action)
 
     def __getitem__(self, idx: int):

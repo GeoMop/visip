@@ -13,7 +13,7 @@ def test_evaluation(src_file):
 
     mod = module.Module(source_in_path)
     wf_test_class = mod.get_action(name='test_class')
-    assert sorted(list(wf_test_class._action_calls.keys())) == ['Point_1', '__result__', 'a', 'a_x', 'b', 'b_y']
+    assert sorted(list(wf_test_class._action_calls.keys())) == ['Point_1', 'Value_1', 'Value_2', '__result__', 'a', 'a_x', 'b', 'b_y']
     Point = mod.get_action(name='Point')
     pa = Point.constructor(x=0, y=1)
     pb = Point.constructor(x=2, y=3)

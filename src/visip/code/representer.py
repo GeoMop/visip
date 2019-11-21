@@ -40,20 +40,20 @@ class Representer:
 
     #TODO: Move Format into this file. Replace Format static methods by these two directly.
     @staticmethod
-    def action_call(name, arguments):
+    def action_call(name, *arguments):
         return format.Format.action_call(name, arguments)
 
     @staticmethod
-    def list(prefix, postfix, arguments):
-        return format.Format.list(prefix, postfix, arguments)
+    def list(prefix, postfix, argument_list):
+        return format.Format.list(prefix, postfix, argument_list)
 
     @staticmethod
-    def format(token_list):
+    def format(*token_list):
         return format.Format(token_list)
 
     @staticmethod
     def token(name):
-        return format.Token(name)
+        return format.Placeholder(name)
 
 """
 TODO:

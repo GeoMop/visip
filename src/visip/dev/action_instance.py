@@ -7,8 +7,11 @@ from ..action.constructor import Value
 from . import dtype as dtype
 
 class ActionInputStatus(enum.IntEnum):
+    error_impl  = -4     # Missing type hint or other error in the action implementation.
     missing     = -3     # missing value
     error_value = -2     # error input passed, can not be wrapped into an action
+                         # actually not used during wrapping in 'wrap.into_action'
+                         # TODO: unify error reporting.
     error_type  = -1     # type error
     none        = 0      # not checked yet
     seems_ok    = 1      # correct input, type not fully specified
@@ -92,6 +95,14 @@ class ActionCall:
         return self.action.name
 
     def make_argument(self, param, value):
+        """
+        Make ActionArgument from the ActionParameter and a value or ActionCall.
+        - possibly get default value
+        - check result type of ActionCall
+        :param param:
+        :param value:
+        :return:
+        """
 
         is_default = False
         if value is None:
@@ -104,8 +115,18 @@ class ActionCall:
 
         # if not isinstance(value, ActionInstance):
         #     x = 1
+
         assert isinstance(value, ActionCall), type(value)
-        if not dtype.is_subtype(value.output_type, param.type):
+        check_type = param.type
+        if param.type is None:
+            return ActionArgument(param, value, is_default, ActionInputStatus.error_impl)
+        if dtype.is_constant(param.type):
+            if isinstance(value, Value):
+                check_type = param.type.inner_type()
+            else:
+                return ActionArgument(param, value, is_default, ActionInputStatus.error_value)
+
+        if not dtype.is_subtype(value.output_type, check_type):
             return  ActionArgument(param, value, is_default, ActionInputStatus.error_type)
 
         return ActionArgument(param, value, is_default, ActionInputStatus.seems_ok)
@@ -212,7 +233,8 @@ class ActionCall:
         ( format, [instance names used in format])
         """
         arg_names = [arg.value.get_code_instance_name() for arg in self.arguments]
+        arg_values = [arg.value for arg in self.arguments]
         full_action_name = make_rel_name(self.action.module, self.action_name)
         #print(self.action)
-        expr_format = self.action.format(representer, full_action_name, arg_names)
+        expr_format = self.action.format(representer, full_action_name, arg_names, arg_values)
         return expr_format

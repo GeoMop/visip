@@ -83,7 +83,7 @@ def Class(data_class):
 
 
 
-def action(func):
+def action_def(func):
     """
     Decorator to make an action class from the evaluate function.
     Action name is given by the nama of the function.

@@ -18,14 +18,14 @@ class Value(_ActionBase):
     def _evaluate(self):
         return self.value
 
-    def format(self, representer, action_name, arg_names):
+    def format(self, representer, action_name, arg_names, arg_values):
         value = self.value
         if type(value) is str:
             expr = "'{}'".format(value)
         else:
             expr = str(value)
 
-        return representer.format([expr])
+        return representer.format(expr)
 
 
 class Pass(_ActionBase):
@@ -55,14 +55,14 @@ class _ListBase(_ActionBase):
         self.parameters = Parameters()
         self.parameters.append(
             ActionParameter(name=None, type=typing.Any,
-                                       default=self.parameters.no_default))
+                                       default=ActionParameter.no_default))
 
 
 class A_list(_ListBase):
     def __init__(self):
         super().__init__(action_name='list')
 
-    def format(self, representer, action_name, arg_names):
+    def format(self, representer, action_name, arg_names, arg_values):
         return representer.list("[", "]", [(None, arg) for arg in arg_names])
 
     def evaluate(self, inputs):
@@ -77,7 +77,7 @@ class A_tuple(_ListBase):
     def __init__(self):
         super().__init__(action_name='tuple')
 
-    def format(self, representer, action_name, arg_names):
+    def format(self, representer, action_name, arg_names, arg_values):
         return representer.list("(", ")", [(None, arg) for arg in arg_names])
 
     def evaluate(self, inputs):
@@ -88,14 +88,16 @@ class A_dict(_ActionBase):
     def __init__(self):
         super().__init__(action_name='dict')
         self.parameters = Parameters()
-        self.parameters.append(ActionParameter(name=None, type=typing.Tuple[typing.Any, typing.Any], default=self.parameters.no_default))
+        self.parameters.append(
+            ActionParameter(name=None, type=typing.Tuple[typing.Any, typing.Any],
+                            default=ActionParameter.no_default))
 
-    def format(self, representer, action_name, arg_names):
+    def format(self, representer, action_name, arg_names, arg_values):
         # TODO: dict as action_name with prefix
         # Todo: check that inputs are pairs, extract key/value
         #return format.Format.list("{", "}", [(None, arg) for arg in arg_names])
 
-        return _ActionBase.format(self, representer, action_name, arg_names)
+        return _ActionBase.format(self, representer, action_name, arg_names, arg_values)
 
     def evaluate(self, inputs):
         return { key: val for key, val in inputs}
