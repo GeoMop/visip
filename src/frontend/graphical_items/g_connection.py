@@ -6,6 +6,8 @@ Representation of connection between two ports.
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor
+
 from visip.dev.action_instance import ActionInputStatus
 from frontend.graphical_items.g_tooltip_base import GTooltipBase
 
@@ -14,10 +16,10 @@ from .g_port import GPort, GOutputPort
 
 class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
     """Representation of connection between two ports."""
-    color = {ActionInputStatus.ok: Qt.green,
-             ActionInputStatus.seems_ok: Qt.yellow,
-             ActionInputStatus.error_type: Qt.red,
-             ActionInputStatus.error_value: Qt.red}
+    color = {ActionInputStatus.ok: QColor(0,200,0),
+             ActionInputStatus.seems_ok: QColor(200,200,0),
+             ActionInputStatus.error_type: QColor(200,0,0),
+             ActionInputStatus.error_value: QColor(200,0,0)}
 
     LINE_THICKNESS = 3
 
