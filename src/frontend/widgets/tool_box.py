@@ -93,6 +93,7 @@ class ToolBox(QToolBox):
                 if m.__name__ != "common":
                     module_category = ActionCategory()
                     self.action_database[m.__name__] = {}
+                    #todo: load each module from file and get actions from module.definitions
                     for name, obj in m.__dict__.items():
                         if issubclass(type(obj), ActionWrapper):
                             item = obj.action

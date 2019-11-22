@@ -250,10 +250,10 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         '''
         return super(GAction, self).itemChange(change_type, value)
 
-    def paint(self, paint, item, widget=None):
+    def paint(self, painter, item, widget=None):
         """Update model of this GAction if necessary."""
         #self.setBrush(self.background.COLOR_PALETTE[self.status])
-        super(GAction, self).paint(paint, item, widget)
+        super(GAction, self).paint(painter, item, widget)
 
     def paint_pixmap(self):
         progress = self.progress
@@ -334,4 +334,6 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
             return self.in_ports[index].connections[0].port1.parentItem()
         else:
             return None
+
+
 
