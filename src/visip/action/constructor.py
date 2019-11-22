@@ -18,14 +18,14 @@ class Value(_ActionBase):
     def _evaluate(self):
         return self.value
 
-    def format(self, representer, action_name, arg_names):
+    def format(self, representer, action_name, arg_names, arg_values):
         value = self.value
         if type(value) is str:
             expr = "'{}'".format(value)
         else:
             expr = str(value)
 
-        return representer.format([expr])
+        return representer.format(expr)
 
 
 class Pass(_ActionBase):
@@ -55,21 +55,21 @@ class _ListBase(_ActionBase):
         self.parameters = Parameters()
         self.parameters.append(
             ActionParameter(name=None, type=typing.Any,
-                                       default=self.parameters.no_default))
+                                       default=ActionParameter.no_default))
 
 
-class list_constr(_ListBase):
+class A_list(_ListBase):
     def __init__(self):
         super().__init__(action_name='list')
 
-    def format(self, representer, action_name, arg_names):
+    def format(self, representer, action_name, arg_names, arg_values):
         return representer.list("[", "]", [(None, arg) for arg in arg_names])
 
     def evaluate(self, inputs):
         return list(inputs)
 
 
-class tuple_constr(_ListBase):
+class A_tuple(_ListBase):
     """
     This action is necessary only for better typechecking, using fixed number of items
     of given type.
@@ -77,30 +77,32 @@ class tuple_constr(_ListBase):
     def __init__(self):
         super().__init__(action_name='tuple')
 
-    def format(self, representer, action_name, arg_names):
+    def format(self, representer, action_name, arg_names, arg_values):
         return representer.list("(", ")", [(None, arg) for arg in arg_names])
 
     def evaluate(self, inputs):
         return tuple(inputs)
 
 
-class dict(_ActionBase):
+class A_dict(_ActionBase):
     def __init__(self):
-        super().__init__()
+        super().__init__(action_name='dict')
         self.parameters = Parameters()
-        self.parameters.append(ActionParameter(name=None, type=typing.Tuple[typing.Any, typing.Any], default=self.parameters.no_default))
+        self.parameters.append(
+            ActionParameter(name=None, type=typing.Tuple[typing.Any, typing.Any],
+                            default=ActionParameter.no_default))
 
-    def format(self, representer, action_name, arg_names):
+    def format(self, representer, action_name, arg_names, arg_values):
         # TODO: dict as action_name with prefix
         # Todo: check that inputs are pairs, extract key/value
         #return format.Format.list("{", "}", [(None, arg) for arg in arg_names])
 
-        return _ActionBase.format(self, representer, action_name, arg_names)
-
-
+        return _ActionBase.format(self, representer, action_name, arg_names, arg_values)
 
     def evaluate(self, inputs):
         return { key: val for key, val in inputs}
+        #item_pairs = ( (key, val) for key, val in inputs)
+        #return dict(item_pairs)
 
 """
 TODO: 
@@ -123,38 +125,36 @@ class ClassActionBase(_ActionBase):
         self._module = self._data_class.__module__
         self._extract_input_type(func=data_class.__init__, skip_self=True)
 
-
     @staticmethod
-    def construct_from_params(name: str, params: Parameters, module=None):
+    def dataclass_from_params(name: str, params: Parameters, module=None):
+        attributes = {}
+        for param in params:
+            attributes[param.name] = attr.ib(default=param.default, type=param.type)
+        # 'yaml_tag' is not processed by attr.s and thus ignored by visip code representer.
+        # however it allows correct serialization to yaml
+        # Note: replaced by the DataClassBase classproperty 'yaml_tag'.
+        #attributes['yaml_tag'] = u'!{}'.format(name)
+        data_class = type(name, (dtype.DataClassBase,), attributes)
+        if module:
+            data_class.__module__ = module
+        return attr.s(data_class)
+
+    @classmethod
+    def construct_from_params(cls, name: str, params: Parameters, module=None):
         """
         Use Params to consturct the data_class and then instance of ClassActionBase.
         :param name: name of the class
         :param params: instance of Parameters
         :return:
         """
-        attributes = {}
-        for param in params:
-            attributes[param.name] = attr.ib(default=param.default, type=param.type)
-        data_class = type(name, (dtype.DataClassBase,), attributes)
-        if module:
-            data_class.__module__ = module
-        return ClassActionBase(attr.s(data_class))
-
-
-
-    @staticmethod
-    def construct_from_class(data_class):
-
-        return
-
+        return cls(cls.dataclass_from_params(name, params, module))
 
     @property
     def constructor(self):
         return self._data_class
 
     def _evaluate(self, *args) -> dtype.DataClassBase:
-        return self._data_class(*args)
-
+        return self.constructor(*args)
 
     def code_of_definition(self, representer, make_rel_name):
         """

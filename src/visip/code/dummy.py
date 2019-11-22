@@ -2,7 +2,7 @@ from typing import *
 from ..dev import base as base, action_instance as instance
 from ..action.converter import GetAttribute, GetItem
 from ..action.constructor import Value
-from ..dev.action_instance import ActionInstance
+from ..dev.action_instance import ActionCall
 
 
 def is_underscored(s:Any) -> bool:
@@ -24,8 +24,8 @@ class Dummy:
             return Dummy(action)
 
 
-    def __init__(self, action: instance.ActionInstance) -> None:
-        assert isinstance(action, instance.ActionInstance)
+    def __init__(self, action: instance.ActionCall) -> None:
+        assert isinstance(action, instance.ActionCall)
         self._action = action
         """Dummy pretend the data object of the action.output_type."""
 
@@ -36,12 +36,13 @@ class Dummy:
         # TODO: update the type to know that it is a dataclass containing 'key'
         # TODO: check that type is dataclass
         assert not is_underscored(key)
-        action = ActionInstance.create(GetAttribute(key), self._action)
+        key_wrap = ActionCall.create(Value(key))
+        action = ActionCall.create(GetAttribute(), key_wrap, self._action)
         return Dummy.wrap(action)
 
     def __getitem__(self, idx: int):
-        idx_wrap = ActionInstance.create(Value(idx))
-        action = ActionInstance.create(GetItem(), self._action, idx_wrap)
+        idx_wrap = ActionCall.create(Value(idx))
+        action = ActionCall.create(GetItem(), self._action, idx_wrap)
         return Dummy.wrap(action)
 
     # Binary

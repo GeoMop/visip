@@ -266,16 +266,15 @@ class Evaluation:
         :param inputs:
         :return: a bind workflow instance
         """
-        assert not action.parameters.is_variadic()
-        assert len(inputs) == action.parameters.size()
+        assert action.parameters.is_variadic() or len(inputs) == action.parameters.size()
         bind_name = 'all_bind_' + action.name
         workflow = _Workflow(bind_name)
 
-        bind_action = instance.ActionInstance.create(action)
+        bind_action = instance.ActionCall.create(action)
         for i, input in enumerate(inputs):
-            value_instance = instance.ActionInstance.create(Value(input))
+            value_instance = instance.ActionCall.create(Value(input))
             workflow.set_action_input(bind_action, i, value_instance)
-            assert bind_action.arguments[i].status >= instance.ActionInputStatus.seems_ok
+            #assert bind_action.arguments[i].status >= instance.ActionInputStatus.seems_ok
         workflow.set_action_input(workflow.result, 0, bind_action)
         return workflow
 
@@ -332,11 +331,26 @@ class Evaluation:
         else:
             task.time_estimate = 1
 
+    def validate_connections(self, action):
+        """
+        Validation of connections in workflows and other composed actions.
+        TODO:
+        - make a base class for composed actions, implementing 'validate_connections', 'expand' etc.
+        - implement this check
+        - accept the error limit
+        :param action:
+        :return: List of invalid or possibly invalid connections.
+        """
+        return []
+
     def execute(self, assigned_tasks_limit = np.inf, process_tasks = np.inf):
         """
         Execute the workflow.
         :return:
         """
+        invalid_connections = self.validate_connections(self.final_task.action)
+        if invalid_connections:
+            raise Exception(invalid_connections)
         while not self.force_finish:
             schedule = self.expand_tasks(assigned_tasks_limit)
             self.tasks_update(schedule)
@@ -344,8 +358,10 @@ class Evaluation:
             self.scheduler.optimize()
             if self.scheduler.n_assigned_tasks == 0:
                 self.force_finish = True
-
         return self.final_task
+
+
+
 
     def enqueue(self, task: task_mod.Composed):
         heapq.heappush(self.queue, (self.composed_id, task.time_estimate, task))

@@ -2,12 +2,24 @@ import attr
 from typing import *
 import inspect
 
+from . import dtype
+
 class NoDefault:
     """
     Mark no default value of the parameter.
     Can not use None, as it is valid default value.
+    In order to make various comparisons consistent we need a single instance of this class.
     """
     pass
+
+
+# @attr.s(auto_attribs=True)
+# class ConfigDefault:
+#     """
+#     Mark a configuration parameter, that must be provided as a constant.
+#     """
+#     value: Any
+#     # Optional default value of the configuration parameter.
 
 
 @attr.s(auto_attribs=True)
@@ -15,14 +27,28 @@ class ActionParameter:
     """
     Description of a single parameter of a function (action).
     """
+    no_default = NoDefault()
+    # Class attribute. Single instance object representing no default value.
+
     name: str
     # Name of the parameter, None for positional only.
     type: Any = None
     # Type annotation of the parameter (optional).
-    default: Any = NoDefault()
-    # Default value of the parameter optional
-    idx: int = attr.ib(init=False, default=None)
+    default: Any = no_default
+    # Default value of the parameter.
+    # NoDefault
+    # Indicates that the parameter must be constant wrapped into Value action.
+    # Convention: Config parameters should be placed before other parameters since
+    # they are part of the action specification.
+
+    _idx: int = attr.ib(init=False, default=None)
     # Index of the parameter within Parameters.
+    config_param: bool = False
+
+    @property
+    def idx(self):
+        # Enforce the parameter index to be read-only.
+        return self._idx
 
     def get_default(self) -> Tuple[bool, Any]:
         if not isinstance(self.default, NoDefault):
@@ -30,9 +56,12 @@ class ActionParameter:
         else:
             return False, None
 
+    def is_constant(self):
+        return dtype.is_constant(self.type)
+
 class Parameters:
-    no_default = NoDefault()
-    # Single instance object representing no default value.
+    no_default = ActionParameter.no_default
+    # For convenience when operating on the Parameters instance.
 
     def __init__(self):
         self.parameters = []
@@ -57,7 +86,7 @@ class Parameters:
         else:
             assert param.name not in self._name_dict
             self._name_dict[param.name] = param
-        param.idx = len(self.parameters)
+        param._idx = len(self.parameters)
         self.parameters.append(param)
 
 

@@ -38,7 +38,7 @@ class ToolBox(QToolBox):
                 g_action.hide_name(True)
                 ToolboxView(g_action, self.system_actions_layout)
             elif not isinstance(action, Dummy):
-                inst = instance.ActionInstance.create(action)
+                inst = instance.ActionCall.create(action)
                 g_action = GAction(TreeItem([action.name, 0, 0, 50, 50]), inst)
                 g_action.hide_name(True)
                 ToolboxView(g_action, self.system_actions_layout)
@@ -69,7 +69,7 @@ class ToolBox(QToolBox):
             for item in module.definitions:
                 if not item.is_analysis and item.name != curr_workspace.scene.workflow.name:
                     g_action = GAction(TreeItem([item.name, 0, 0, 50, 50]),
-                                        instance.ActionInstance.create(item))
+                                        instance.ActionCall.create(item))
                     g_action.hide_name(True)
                     ToolboxView(g_action, module_category)
                     self.action_database[item.module][item.name] = item

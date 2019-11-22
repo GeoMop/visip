@@ -36,7 +36,7 @@ def workflow(func):
         func_args.append(variables)
         param_names = param_names[1:]
 
-    slots = [wf.SlotInstance(name) for i, name in enumerate(param_names)]
+    slots = [wf._SlotCall(name) for i, name in enumerate(param_names)]
     dummies = [dummy.Dummy(slot) for slot in slots]
     func_args.extend(dummies)
     #print(func)
@@ -83,7 +83,7 @@ def Class(data_class):
 
 
 
-def action(func):
+def action_def(func):
     """
     Decorator to make an action class from the evaluate function.
     Action name is given by the nama of the function.
