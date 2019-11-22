@@ -9,13 +9,11 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtWidgets import QGraphicsScene
 
-from visip import Value
-from visip.dev.action_instance import ActionInputStatus, ActionInstance
-from visip.dev.action_workflow import SlotInstance
-from frontend.data.g_action_data_model import GActionData, GActionDataModel
+from visip import _Value
+from visip.dev.action_instance import ActionInputStatus
+from frontend.data.g_action_data_model import GActionDataModel
 from frontend.graphical_items.g_action import GAction
 from frontend.graphical_items.g_connection import GConnection
-from frontend.graphical_items.g_input_action import GInputAction
 from frontend.graphical_items.root_action import RootAction
 
 
@@ -61,13 +59,13 @@ class GBaseModelScene(QGraphicsScene):
             if self.new_connection is not None:
                 self.addItem(self.new_connection)
 
-            all_actions = {**self.workflow._actions, **self.unconnected_actions, "__result__": self.workflow._result}
+            all_actions = {**self.workflow._action_calls, **self.unconnected_actions, "__result__": self.workflow._result_call}
             for action_name, action in all_actions.items():
                 i = 0
                 for action_argument in action.arguments:
                     status = action_argument.status
                     if status != ActionInputStatus.missing:
-                        if not isinstance(action_argument.value.action, Value):
+                        if not isinstance(action_argument.value.action, _Value):
                             action_argument = action_argument.value
                             g_action = self.get_action(action_argument.name)
                             port1 = g_action.out_ports[0]

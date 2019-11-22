@@ -2,9 +2,10 @@ import importlib.util
 
 from PyQt5.QtWidgets import QToolBox
 
-from visip import Slot
+from visip import _Slot
 from visip.code.dummy import Dummy
-from visip.dev.action_workflow import SlotInstance
+from visip.dev.action_instance import ActionCall
+from visip.dev.action_workflow import _SlotCall
 from visip.code.wrap import ActionWrapper
 from frontend.config.config_data import ConfigData
 from frontend.data.tree_item import TreeItem
@@ -14,7 +15,6 @@ from frontend.graphical_items.g_input_action import GInputAction
 from frontend.widgets.action_category import ActionCategory
 
 import visip
-import visip.dev.action_instance as instance
 
 from frontend.widgets.toolbox_view import ToolboxView
 
@@ -32,13 +32,13 @@ class ToolBox(QToolBox):
         self.workspace = None
         temp = visip.base_system_actions
         for action in visip.base_system_actions:
-            if isinstance(action, Slot):
-                inst = SlotInstance("Slot")
+            if isinstance(action, _Slot):
+                inst = _SlotCall("Slot")
                 g_action = GInputAction(TreeItem(["Input", 0, 0, 50, 50]), inst)
                 g_action.hide_name(True)
                 ToolboxView(g_action, self.system_actions_layout)
             elif not isinstance(action, Dummy):
-                inst = instance.ActionCall.create(action)
+                inst = ActionCall.create(action)
                 g_action = GAction(TreeItem([action.name, 0, 0, 50, 50]), inst)
                 g_action.hide_name(True)
                 ToolboxView(g_action, self.system_actions_layout)
@@ -68,8 +68,7 @@ class ToolBox(QToolBox):
             self.action_database[module.name] = {}
             for item in module.definitions:
                 if not item.is_analysis and item.name != curr_workspace.scene.workflow.name:
-                    g_action = GAction(TreeItem([item.name, 0, 0, 50, 50]),
-                                        instance.ActionCall.create(item))
+                    g_action = GAction(TreeItem([item.name, 0, 0, 50, 50]), ActionCall.create(item))
                     g_action.hide_name(True)
                     ToolboxView(g_action, module_category)
                     self.action_database[item.module][item.name] = item
@@ -100,7 +99,7 @@ class ToolBox(QToolBox):
                         if issubclass(type(obj), ActionWrapper):
                             item = obj.action
                             g_action = GAction(TreeItem([item.name, 0, 0, 50, 50]),
-                                                instance.ActionInstance.create(item))
+                                                ActionCall.create(item))
                             g_action.hide_name(True)
                             ToolboxView(g_action, module_category)
                             self.action_database[item.module][item.name] = item

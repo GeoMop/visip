@@ -11,7 +11,7 @@ All underscored names are private
 """
 
 from .action.wrapped import *
-from .dev.action_workflow import _Slot as _Slot, _ResultCall as _Result
+from .dev.action_workflow import _Slot as _Slot, _Result as _Result
 from .action.constructor import Value as _Value
 from .code.decorators import workflow, analysis, action_def, Class
 from visip.action import converter as _converter
@@ -35,7 +35,6 @@ from typing import List
 # Can we treat all actions in visip module directly instead of using following special list?
 base_system_actions = [_Slot(),
                        _Result(),
-                       _Value(None),   # can be deleted
                        list.action,
                        tuple.action,
                        dict.action,

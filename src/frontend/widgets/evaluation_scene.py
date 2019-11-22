@@ -5,9 +5,9 @@ Scene of currently running evaluation.
 """
 from PyQt5.QtCore import QPoint
 
-from visip import Value
-from visip.dev.action_instance import ActionInstance
-from visip.dev.action_workflow import SlotInstance
+from visip import _Value
+from visip.dev.action_instance import ActionCall
+from visip.dev.action_workflow import _SlotCall
 from visip.dev.task import Status
 from frontend.data.g_action_data_model import GActionData
 from frontend.graphical_items.g_action import GAction
@@ -41,7 +41,7 @@ class EvaluationScene(GBaseModelScene):
     def initialize_scene_from_workflow(self, workflow):
         self._clear_actions()
         self.workflow = workflow
-        for action_name in {**self.workflow._actions, "__result__": self.workflow._result}:
+        for action_name in {**self.workflow._action_calls, "__result__": self.workflow._result_call}:
             self._add_action(QPoint(0.0, 0.0), action_name)
 
         self.update_scene()
@@ -50,15 +50,15 @@ class EvaluationScene(GBaseModelScene):
         #self.parent().center_on_content = True
 
     def draw_action(self, item):
-        action = {**self.workflow._actions, "__result__":self.workflow._result}.get(item.data(GActionData.NAME))
+        action = {**self.workflow._action_calls, "__result__":self.workflow._result_call}.get(item.data(GActionData.NAME))
 
         if action is None:
             action = self.unconnected_actions.get(item.data(GActionData.NAME))
 
-        if not isinstance(action.action, Value):
-            if isinstance(action, SlotInstance):
+        if not isinstance(action.action, _Value):
+            if isinstance(action, _SlotCall):
                 self.actions.append(GInputAction(item, action, self.root_item, self.eval_gui, False))
-            elif isinstance(action, ActionInstance):
+            elif isinstance(action, ActionCall):
                 self.actions.append(GAction(item, action, self.root_item, self.eval_gui, False))
 
             self.actions[-1].widget = CompositeTypeView()
@@ -69,7 +69,7 @@ class EvaluationScene(GBaseModelScene):
 
     def update_states(self):
         for instance_name, instance in self.task.childs.items():
-            if not isinstance(instance.action, Value):
+            if not isinstance(instance.action, _Value):
                 action = self.get_action(instance_name)
                 action.status = StatusMaping[instance.status]
                 action.widget.set_data(instance._result)

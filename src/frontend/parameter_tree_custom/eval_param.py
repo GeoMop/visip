@@ -1,4 +1,4 @@
-from visip import Value
+from visip import _Value
 from frontend.parameter_tree_custom.slot_param import SlotParam
 
 
@@ -15,7 +15,7 @@ class EvalParam(SlotParam):
 
     def get_data(self):
         if self.arg is not None and self.arg.value is not None:
-            if isinstance(self.arg.value.action, Value):
+            if isinstance(self.arg.value.action, _Value):
                 return self.arg.value.action.value.__repr__()
             else:
                 return self.arg_g_action.widget.data.__repr__()

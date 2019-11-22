@@ -14,7 +14,8 @@ import pytypes
 import itertools
 import inspect
 from . import tools
-from typing import Any, Union, List, Dict, Tuple, Generic, TypeVar, GenericMeta
+from typing import Any, Union, List, Dict, Tuple, Generic, TypeVar, _GenericAlias
+
 
 ############################# typing - undocumented interface ##################################
 
@@ -70,7 +71,12 @@ def is_constant(xtype):
     :return:
     """
     # is_subtype(xtype, Constant)
-    return issubclass(xtype, Constant)
+    # TODO: xtype doesn't contain class. This is hacky fix.
+    temp = xtype.__dict__.get('__origin__', None)
+    if temp is None:
+        return False
+    # TODO: xtype doesn't contain class. This is hacky fix.
+    return issubclass(temp, Constant)
 
 
 

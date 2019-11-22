@@ -3,16 +3,16 @@ from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QStaticText
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsItem
 
-from visip import Value
-from visip.dev.action_instance import ActionInstance, ActionInputStatus
-from visip.dev.action_workflow import SlotInstance
+from visip import _Value
+from visip.action import Value
+from visip.dev.action_instance import ActionCall
+from visip.dev.action_workflow import _SlotCall, _ResultCall
 from frontend.graphical_items.g_input_action import GInputAction
-from frontend.graphical_items.root_action import RootAction
 from frontend.graphical_items.g_action import GAction
 from frontend.graphical_items.g_connection import GConnection
 from frontend.graphical_items.g_port import GOutputPort
 from frontend.graphical_items.action_for_subactions import GActionForSubactions
-from frontend.data.g_action_data_model import GActionDataModel, GActionData
+from frontend.data.g_action_data_model import GActionData
 import random
 import math
 
@@ -47,8 +47,8 @@ class Scene(GBaseModelScene):
             self.main_widget.property_editor.clear()
 
     def initialize_workspace_from_workflow(self):
-        for action_name, action in {**self.workflow._actions, "__result__": self.workflow._result}.items():
-            if not isinstance(action.action, Value):
+        for action_name, action in {**self.workflow._action_calls, "__result__": self.workflow._result_call}.items():
+            if not isinstance(action.action, _Value):
                 self._add_action(QPoint(0.0, 0.0), action_name)
 
         self.update_scene()
@@ -57,15 +57,15 @@ class Scene(GBaseModelScene):
         self.parent().center_on_content = True
 
     def draw_action(self, item):
-        action = {**self.workflow._actions, "__result__":self.workflow._result}.get(item.data(GActionData.NAME))
+        action = {**self.workflow._action_calls, "__result__":self.workflow._result_call}.get(item.data(GActionData.NAME))
 
         if action is None:
             action = self.unconnected_actions.get(item.data(GActionData.NAME))
 
-        if not isinstance(action.action, Value):
-            if isinstance(action, SlotInstance):
+        if not isinstance(action.action, _Value):
+            if isinstance(action, _SlotCall):
                 self.actions.append(GInputAction(item, action, self.root_item))
-            elif isinstance(action, ActionInstance):
+            elif isinstance(action, ActionCall):
                 self.actions.append(GAction(item, action, self.root_item))
 
             for child in item.children():
@@ -150,14 +150,14 @@ class Scene(GBaseModelScene):
         action_name = action_type[index + 1:]
 
         if action_type == "wf.Slot":
-            action = SlotInstance("slot")
+            action = _SlotCall("slot")
             name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.name)
             action.name = name
             self.workflow.insert_slot(len(self.workflow.slots), action)
             self.main_widget.tab_widget.current_module_view().workspace_changed()
 
         elif action_name in self.available_actions[module]:
-            action = ActionInstance.create(self.available_actions[module][action_name])
+            action = ActionCall.create(self.available_actions[module][action_name])
             name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.name)
             action.name = name
 
@@ -234,10 +234,10 @@ class Scene(GBaseModelScene):
                     for argument in action.arguments:
                         update_unconected(argument.value)
 
-                if action1 in self.workflow._actions.values():
+                if action1 in self.workflow._action_calls.values():
                     update_unconected(action1)
 
-                if action2 in self.workflow._actions.values():
+                if action2 in self.workflow._action_calls.values():
                     update_unconected(action2)
 
                 if port2.appending_port:
@@ -287,52 +287,47 @@ class Scene(GBaseModelScene):
                     self._delete_action(item)
                 else:
                     self._delete_connection(item)
-                    """
-                item = self.selectedItems()[0]
-                if self.is_action(item):
-                    conn_to_delete = []
-                    for conn in self.connections:
-                        for port in item.ports():
-                            if conn.is_connected(port) and conn not in conn_to_delete:
-                                conn_to_delete.append(conn)
-    
-                    for conn in conn_to_delete:
-                        try:
-                            self.delete_connection(conn)
-                        except:
-                            print("Tried to delete connection again... probably...")
-                    
-                    self.delete_action(item)
-                else:
-                    self.delete_connection(item)
-                    """
 
             self.update_model = True
             self.update()
 
     def _delete_action(self, action):
         """Delete specified action from workspace."""
-        self.action_model.removeRow(action.g_data_item.child_number())
-        self.actions.remove(action)
-        self.removeItem(action)
-        #for action in action.
+        if not isinstance(action.w_data_item, _ResultCall):
+            self.action_model.removeRow(action.g_data_item.child_number())
+            self.actions.remove(action)
+            self.removeItem(action)
+            self.unconnected_actions.pop(action.name)
 
-        if isinstance(action, GInputAction):
-            self.workflow.remove_slot(self.workflow.slots.index(action.w_data_item))
+            if isinstance(action, GInputAction):
+                self.workflow.remove_slot(self.workflow.slots.index(action.w_data_item))
+            action = action.w_data_item
+            for i in range(len(action.arguments)):
+                if action.arguments[i].value is not None:
+                    if isinstance(action.arguments[i].value.action, Value):
+                        self.unconnected_actions.pop(action.arguments[i].value.name, None)
+        else:
+            action.setSelected(False)
 
     def _delete_connection(self, conn):
         action1 = conn.port1.parentItem().w_data_item
         action2 = conn.port2.parentItem().w_data_item
         for i in range(len(action2.arguments)):
+
             if action1 == action2.arguments[i].value:
                 self.workflow.set_action_input(action2, i, None)
+        if isinstance(action1, Value):
+            self._delete_action(conn.port1.parentItem())
 
         def put_all_actions_to_unconnected(action):
+            if action is None:
+                print('Processing None')
+                return
             self.unconnected_actions[action.name] = action
             for argument in action.arguments:
                 put_all_actions_to_unconnected(argument.value)
 
-        if action1 not in self.workflow._actions:
+        if action1 not in self.workflow._action_calls:
             put_all_actions_to_unconnected(action1)
         conn.port1.connections.remove(conn)
         conn.port2.connections.remove(conn)

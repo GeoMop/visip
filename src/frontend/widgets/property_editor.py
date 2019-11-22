@@ -3,8 +3,8 @@ from PyQt5.QtWidgets import QTreeWidget
 from pyqtgraph import parametertree, TreeWidget
 from pyqtgraph.parametertree import ParameterItem
 
-from visip import Value
-from visip.dev.action_instance import ActionInstance
+from visip import _Value
+from visip.dev.action_instance import ActionCall
 from frontend.graphical_items.g_action import GAction
 from frontend.menu.param_menu import ParamMenu
 from frontend.parameter_tree_custom.root_param import RootParam
@@ -62,17 +62,17 @@ class PropertyEditor(parametertree.ParameterTree):
 
     def on_const_val_triggered(self):
         item = self.selectedItems()[0]
-        action = ActionInstance.create(Value(0))
+        action = ActionCall.create(_Value(0))
         action.name = 'Value_1'
         i = 2
-        while action.name in self.workflow._actions:
+        while action.name in self.workflow._action_calls:
             action.name = 'Value_' + str(i)
             i += 1
         if item.param.arg is None:
             i = len(self.g_action.w_data_item.arguments)
             self.workflow.set_action_input(self.g_action.w_data_item, i, action)
         else:
-            if not isinstance(item.param.arg.value.action, Value):
+            if not isinstance(item.param.arg.value.action, _Value):
                 i = self.g_action.w_data_item.arguments.index(item.param.arg)
                 conn = self.g_action.in_ports[i].connections[0]
                 self.g_action.scene()._delete_connection(conn)
@@ -85,7 +85,7 @@ class PropertyEditor(parametertree.ParameterTree):
         self.update_editor()
 
     def on_constant_changed(self, param, val: bool):
-        action = ActionInstance.create(Value(None)) if not val else None
+        action = ActionCall.create(_Value(None)) if not val else None
         i = self.g_action.w_data_item.arguments.index(param.arg)
         self.workflow.set_action_input(self.g_action.w_data_item, i, action)
         temp = self.g_action.childItems()
@@ -94,13 +94,13 @@ class PropertyEditor(parametertree.ParameterTree):
 
     def on_value_changed(self, param, val):
         i = self.g_action.w_data_item.arguments.index(param.arg)
-        action = ActionInstance.create(Value(val))
+        action = ActionCall.create(_Value(val))
         self.workflow.set_action_input(self.g_action.w_data_item, i, action)
         param.arg = self.g_action.w_data_item.arguments[i]
 
 
     def add_argument(self):
-        action = ActionInstance.create(Value(None))
+        action = ActionCall.create(_Value(None))
         i = len(self.g_action.w_data_item.arguments)
         self.workflow.set_action_input(self.g_action.w_data_item, i, action)
         self.g_action.scene().data_changed()

@@ -48,7 +48,7 @@ class ModuleView(QTreeWidget):
                         input_item = QTreeWidgetItem(item, [slot.name])
                         input_item.setIcon(0, QIcon(os.path.join(os.getcwd(), "frontend\\icons\\arrow_right.png")))
 
-                if wf._result:
+                if wf._result_call:
                     output_item = QTreeWidgetItem(item, [wf.result.name])
                     output_item.setIcon(0, QIcon(os.path.join(os.getcwd(), "frontend\\icons\\arrow_left.png")))
 

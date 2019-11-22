@@ -6,7 +6,7 @@ import frontend.test_files.home as home
 def test_list(self, a, b):
     self.c = [a]
     self.e = [self.c, [a, b]]
-    list_3 = [self.e[1][0], 10, [1, 3, 3, 3, 'str']]
+    list_3 = [[2, 3, 3, 3, 'str'], self.e[1][0]]
     return list_3
 
 

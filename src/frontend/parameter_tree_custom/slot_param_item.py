@@ -2,7 +2,7 @@ from PyQt5 import QtGui, QtCore
 from PyQt5.QtWidgets import QSizePolicy
 from pyqtgraph import parametertree
 
-from visip import Value
+from visip import _Value
 
 
 class SlotParamItem(parametertree.parameterTypes.WidgetParameterItem):
@@ -47,7 +47,7 @@ class SlotParamItem(parametertree.parameterTypes.WidgetParameterItem):
         if val != '' and\
                 self.param.arg is not None and\
                 self.param.arg.value is not None and\
-                isinstance(self.param.arg.value.action, Value):
+                isinstance(self.param.arg.value.action, _Value):
 
             try:
                 self.param.arg.value.action.value = int(val)

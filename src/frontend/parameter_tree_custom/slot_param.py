@@ -3,7 +3,7 @@ from PyQt5.QtCore import pyqtSignal
 from pyqtgraph import parametertree
 from pyqtgraph.parametertree.Parameter import PARAM_TYPES
 
-from visip import Value
+from visip import _Value
 from frontend.parameter_tree_custom.slot_param_item import SlotParamItem
 
 
@@ -23,7 +23,7 @@ class SlotParam(parametertree.parameterTypes.GroupParameter):
         self.arg = arg
         opts['type'] = 'str'
         if arg is not None and arg.value is not None:
-            if not isinstance(arg.value.action, Value):
+            if not isinstance(arg.value.action, _Value):
                 opts['name'] = self.get_label()
                 opts['readonly'] = True
         else:
@@ -34,7 +34,7 @@ class SlotParam(parametertree.parameterTypes.GroupParameter):
         super(SlotParam, self).__init__(**opts)
 
         if arg is not None and arg.value is not None:
-            if isinstance(arg.value.action, Value):
+            if isinstance(arg.value.action, _Value):
                 self.fill_data_info(self.arg.value.action.value.__repr__)
 
 
@@ -49,7 +49,7 @@ class SlotParam(parametertree.parameterTypes.GroupParameter):
 
     def get_data(self):
         if self.arg is not None and self.arg.value is not None:
-            if isinstance(self.arg.value.action, Value):
+            if isinstance(self.arg.value.action, _Value):
                 return self.arg.value.action.value.__repr__()
             else:
                 return "Connected to: " + self.arg.value.name
