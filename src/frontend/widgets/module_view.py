@@ -2,7 +2,7 @@ import os
 
 from PyQt5.QtCore import pyqtSignal, QVariant
 from PyQt5.QtGui import QFont, QIcon
-from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
+from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem, QMessageBox
 
 from visip.dev.action_workflow import _Workflow
 from frontend.menu.module_view_menu import ModuleViewMenu
@@ -39,7 +39,7 @@ class ModuleView(QTreeWidget):
         for wf in self._module.definitions:
             if issubclass(type(wf), _Workflow):
                 self.workspaces[wf.name] = (Workspace(wf, self.tab_widget.main_widget, self.tab_widget.main_widget.toolbox.action_database))
-                item = QTreeWidgetItem(self, [wf.name])
+                item = QTreeWidgetItem(self, [wf.name + (" (analysis)" if wf.is_analysis else "")])
                 item.setExpanded(True)
                 self.addTopLevelItem(item)
 
@@ -168,7 +168,15 @@ class ModuleView(QTreeWidget):
         curr_item = self.currentItem()
         while curr_item.parent() is not None:
             curr_item = curr_item.parent()
-        self.workspaces[curr_item.data(0, 0)].workflow.is_analysis = True
+        if self.workspaces[curr_item.data(0, 0)].workflow.slots == 0:
+            self.workspaces[curr_item.data(0, 0)].workflow.is_analysis = True
+        else:
+            self.workspaces[curr_item.data(0, 0)].workflow.is_analysis = False
+            msg = QMessageBox(self.tab_widget.main_widget)
+            msg.setWindowTitle("Invalid Action")
+            msg.setText("This worflow cannot be analysis!\n" +
+                        "Cause: Workflow contains slots.")
+            msg.exec()
 
 
 

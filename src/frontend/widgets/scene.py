@@ -1,7 +1,7 @@
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QStaticText
-from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsItem
+from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsItem, QMessageBox
 
 from visip import _Value
 from visip.action import Value
@@ -65,6 +65,7 @@ class Scene(GBaseModelScene):
         if not isinstance(action.action, _Value):
             if isinstance(action, _SlotCall):
                 self.actions.append(GInputAction(item, action, self.root_item))
+                self.workflow.is_analysis = False
             elif isinstance(action, ActionCall):
                 self.actions.append(GAction(item, action, self.root_item))
 
@@ -149,7 +150,7 @@ class Scene(GBaseModelScene):
         module = action_type[:index]
         action_name = action_type[index + 1:]
 
-        if action_type == "wf.Slot":
+        if action_type == "wf._Slot":
             action = _SlotCall("slot")
             name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.name)
             action.name = name
