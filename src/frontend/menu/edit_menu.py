@@ -11,8 +11,6 @@ class EditMenu(QtWidgets.QMenu):
     def __init__(self, parent=None):
         super(EditMenu, self).__init__(parent)
         self.setTitle("Edit")
-        self.new_action = QtWidgets.QAction("New action")
-        self.addAction(self.new_action)
 
         self.delete = QtWidgets.QAction("Delete")
         self.delete.setShortcut(QtGui.QKeySequence.Delete)

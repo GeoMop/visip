@@ -18,7 +18,6 @@ class TabWidget(QTabWidget):
         self.setTabShape(1)
         self.tabCloseRequested.connect(self.on_close_tab)
         self.edit_menu = edit_menu
-        self.edit_menu.new_action.triggered.connect(self.add_action)
         self.edit_menu.delete.triggered.connect(self.delete_items)
         #self.edit_menu.add_random.triggered.connect(self.add_random_items)
         self.edit_menu.order_diagram.triggered.connect(self.order_diagram)
