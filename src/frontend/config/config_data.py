@@ -1,6 +1,6 @@
 import json
 import os
-
+from pathlib import Path
 
 class ConfigData(object):
 
@@ -21,7 +21,7 @@ class ConfigData(object):
         return cls.__instance
 
     def __init(self):
-        self.cwd = os.getcwd()
+        self.cwd = str(Path.home())
         self._last_opened_directory = self.cwd
         self._module_root_directory = self.cwd
         if not os.path.exists(self.__config_dir__):
