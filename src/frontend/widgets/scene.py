@@ -3,6 +3,7 @@ from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QStaticText
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsItem, QMessageBox
 
+from frontend.graphical_items.g_output_action import GOutputAction
 from visip import _Value
 from visip.action import Value
 from visip.dev.action_instance import ActionCall
@@ -66,6 +67,8 @@ class Scene(GBaseModelScene):
             if isinstance(action, _SlotCall):
                 self.actions.append(GInputAction(item, action, self.root_item))
                 self.workflow.is_analysis = False
+            elif isinstance(action, _ResultCall):
+                self.actions.append(GOutputAction(item, action, self.root_item))
             elif isinstance(action, ActionCall):
                 self.actions.append(GAction(item, action, self.root_item))
 

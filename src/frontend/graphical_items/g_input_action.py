@@ -2,7 +2,7 @@ from PyQt5.QtCore import QPoint
 from PyQt5.QtGui import QPainterPath
 
 from .g_action_background import ActionStatus
-from .g_workflow_input_port import GWorkflowInputPort
+from .g_workflow_sr_port import GWorkflowSRPort
 from .g_action import GAction
 
 
@@ -12,5 +12,5 @@ class GInputAction(GAction):
 
     def _add_ports(self, n_ports):
         self.add_g_port(False, "Output Port")
-        self.in_ports.append(GWorkflowInputPort(parent=self))
+        self.in_ports.append(GWorkflowSRPort(parent=self))
 

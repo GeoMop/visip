@@ -306,6 +306,7 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         if is_input:
             self.in_ports.append(GInputPort(len(self.in_ports), QtCore.QPoint(0, 0), name, self))
         else:
+            self.out_ports.clear()
             self.out_ports.append(GOutputPort(len(self.out_ports), QtCore.QPoint(0, 0), name, self))
 
         self.width = self.width
