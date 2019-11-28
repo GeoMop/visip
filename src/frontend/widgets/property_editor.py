@@ -71,6 +71,10 @@ class PropertyEditor(parametertree.ParameterTree):
         if item.param.arg is None:
             i = len(self.g_action.w_data_item.arguments)
             self.workflow.set_action_input(self.g_action.w_data_item, i, action)
+        elif item.param.arg.value is None:
+            i = self.g_action.w_data_item.arguments.index(item.param.arg)
+            self.workflow.set_action_input(self.g_action.w_data_item, i, action)
+            item.showEditor()
         else:
             if not isinstance(item.param.arg.value.action, _Value):
                 i = self.g_action.w_data_item.arguments.index(item.param.arg)

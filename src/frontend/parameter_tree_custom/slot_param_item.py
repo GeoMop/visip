@@ -2,10 +2,11 @@ from PyQt5 import QtGui, QtCore
 from PyQt5.QtWidgets import QSizePolicy
 from pyqtgraph import parametertree
 
+from frontend.parameter_tree_custom.base_widget_param_item import BaseWidgetParamItem
 from visip import _Value
 
 
-class SlotParamItem(parametertree.parameterTypes.WidgetParameterItem):
+class SlotParamItem(BaseWidgetParamItem):
     def __init__(self, param, depth):
         param.opts['enabled'] = False
         param.opts['default'] = 'None'
@@ -62,8 +63,6 @@ class SlotParamItem(parametertree.parameterTypes.WidgetParameterItem):
                     else:
                         print('Changing composite type not implemented yet!')
                         return
-
-        self.hideEditor()
 
     def setFocus(self):
         pass
