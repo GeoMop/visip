@@ -74,7 +74,7 @@ class _ResultCall(ActionCall):
 
 
 
-class _Workflow(base._ActionBase):
+class _Workflow(meta.ActionBase):
     """
     Represents a composed action.
     - Allows composition of the actions into a DAG
@@ -93,9 +93,6 @@ class _Workflow(base._ActionBase):
         super().__init__(name)
         self._module = None
         # Name of the module were the workflow is defined.
-        self.task_type = base.TaskType.Composed
-        # Task type determines how the actions are converted to the tasks.
-        # Composed tasks are expanded.
         self._result_call = _ResultCall()
         # Result action instance.
         self._slots = []
