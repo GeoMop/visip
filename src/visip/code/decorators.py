@@ -14,12 +14,11 @@ class _Variables:
     use 'x' as the variable name in subsequent code generation. Otherwise
     a Python variable name is not accessible at runtime.
     """
+
     def __setattr__(self, key, value):
         value = wrap.into_action(value)
         value = value.set_name(key)
         self.__dict__[key] = dummy.Dummy(value)
-
-
 
 
 def workflow(func):
@@ -39,7 +38,7 @@ def workflow(func):
     slots = [wf._SlotCall(name) for i, name in enumerate(param_names)]
     dummies = [dummy.Dummy(slot) for slot in slots]
     func_args.extend(dummies)
-    #print(func)
+    # print(func)
     output_action = wrap.into_action(func(*func_args))
     new_workflow = wf._Workflow(workflow_name)
     new_workflow.set_from_source(slots, output_type, output_action)
@@ -78,9 +77,9 @@ def Class(data_class):
         attr_default = data_class.__dict__.get(name, params.no_default)
         # Unwrapping of default value and type checking should be part of the Action creation.
         params.append(ActionParameter(name, attr_type, attr_default))
-    dataclass_action = constructor.ClassActionBase.construct_from_params(data_class.__name__, params, module=data_class.__module__)
+    dataclass_action = constructor.ClassActionBase.construct_from_params(data_class.__name__, params,
+                                                                         module=data_class.__module__)
     return wrap.public_action(dataclass_action)
-
 
 
 def action(func):
@@ -92,6 +91,5 @@ def action(func):
     action_name = func.__name__
     action = base._ActionBase(action_name)
     action._evaluate = func
+    action._extract_input_type()
     return wrap.public_action(action)
-
-

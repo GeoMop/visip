@@ -16,9 +16,10 @@ import heapq
 import numpy as np
 import time
 
-from . import data, task as task_mod, base, dfs,  dtype as dtype, action_instance as instance
+from . import data, task as task_mod, base, dfs, dtype as dtype, action_instance as instance
 from .action_workflow import _Workflow
 from ..action.constructor import Value
+
 
 class Resource:
     """
@@ -30,6 +31,7 @@ class Resource:
     We shall start with fixed number of resources, dynamic creation of executing PBS jobs can later be done.
 
     """
+
     def __init__(self):
         """
         Initialize time scaling and other features of the resource.
@@ -73,7 +75,7 @@ class Resource:
         if is_ready:
             task.evaluate()
             self._finished.append(task)
-            #self._evaluate(task)
+            # self._evaluate(task)
 
     def _evaluate(self, task):
         """
@@ -90,10 +92,8 @@ class Resource:
         return self._result
 
 
-
-
 class Scheduler:
-    def __init__(self, resources:Resource):
+    def __init__(self, resources: Resource):
         """
         :param tasks_dag: Tasks to be evaluated.
         """
@@ -127,13 +127,11 @@ class Scheduler:
         :param tasks: All tasks that are new or have changed inputs.
         :return: List of composed tasks to expand. If empty the optimization should be called.
         """
-        self.tasks.update({ t.id: t for t in tasks})
+        self.tasks.update({t.id: t for t in tasks})
 
     def ready_queue_push(self, task):
         if task.is_ready():
             heapq.heappush(self._ready_queue, task)
-
-
 
     def _collect_finished(self):
         # collect finished tasks, update ready queue
@@ -146,7 +144,6 @@ class Scheduler:
             finished.extend(new_finished)
         return finished
 
-
     def update(self):
         """
         Update resources, collect finished tasks, submit new ready tasks.
@@ -155,7 +152,7 @@ class Scheduler:
         finished = self._collect_finished()
         while self._ready_queue:
             task = heapq.heappop(self._ready_queue)
-            if task.id in self.tasks:   # deal with duplicate entrieas in the queue
+            if task.id in self.tasks:  # deal with duplicate entrieas in the queue
                 self.resources[task.resource_id].submit(task)
                 del self.tasks[task.id]
         return finished
@@ -167,6 +164,7 @@ class Scheduler:
         Assume just a single resource.
         :return:
         """
+
         # perform topological sort
         def predecessors(task):
             if task.is_finished():
@@ -183,19 +181,17 @@ class Scheduler:
             self.ready_queue_push(task)
             self._topology_sort.append(task)
 
-
         dfs.DFS(neighbours=predecessors,
                 postvisit=post_visit).run(self.tasks.values())
 
-        #print("N task: ", len(self.tasks))
-
+        # print("N task: ", len(self.tasks))
 
 
 @attr.s(auto_attribs=True)
 class Result:
     input: bytearray
     result: bytearray
-    result_hash: int    # ints are of any size in Python3
+    result_hash: int  # ints are of any size in Python3
 
     @staticmethod
     def make_result(input, result):
@@ -208,23 +204,17 @@ class Result:
         return deserialize(self.result)
 
 
-
-
-
-
-
 class ResultDB:
     """
     Simple result database.
     For an input hash find result, its environment and runtime, and result hash.
     """
+
     def __init__(self):
         self.result_dict = {}
 
-
     def get_result(self, input_hash):
         return self.result_dict.get(input_hash, None)
-
 
     def store_result(self, result: Result):
         input_hash = hash_fn(result.input)
@@ -257,8 +247,9 @@ class Evaluation:
     :param inputs:
     :return: List of all tasks.
     """
+
     @staticmethod
-    def make_analysis(action: base._ActionBase, inputs:List[dtype.DataType]):
+    def make_analysis(action: base._ActionBase, inputs: List[dtype.DataType]):
         """
         Bind values 'inputs' as parameters of the action using the Value action wrappers,
         returns a workflow without parameters.
@@ -267,7 +258,7 @@ class Evaluation:
         :return: a bind workflow instance
         """
         assert not action.parameters.is_variadic()
-        assert len(inputs) == action.parameters.size()
+        assert len(inputs) == action.parameters.size(), (len(inputs), action.parameters.size())
         bind_name = 'all_bind_' + action.name
         workflow = _Workflow(bind_name)
 
@@ -275,17 +266,9 @@ class Evaluation:
         for i, input in enumerate(inputs):
             value_instance = instance.ActionCall.create(Value(input))
             workflow.set_action_input(bind_action, i, value_instance)
-            assert bind_action.arguments[i].status >= instance.ActionInputStatus.seems_ok
+            #assert bind_action.arguments[i].status >= instance.ActionInputStatus.seems_ok,(i,bind_action.arguments[i].status)
         workflow.set_action_input(workflow.result, 0, bind_action)
         return workflow
-
-
-
-
-
-
-
-
 
     def __init__(self, analysis: base._ActionBase):
         """
@@ -294,7 +277,7 @@ class Evaluation:
 
         :param analysis: an action without inputs
         """
-        self.resources = [ Resource() ]
+        self.resources = [Resource()]
         self.scheduler = Scheduler(self.resources)
         self.result_db = ResultDB()
 
@@ -311,7 +294,6 @@ class Evaluation:
         # Used to force end of evaluation after an error.
         self.error_tasks = []
         # List of tasks finished with error.
-
 
         # init scheduler
         self.tasks_update([self.final_task])
@@ -332,7 +314,7 @@ class Evaluation:
         else:
             task.time_estimate = 1
 
-    def execute(self, assigned_tasks_limit = np.inf, process_tasks = np.inf):
+    def execute(self, assigned_tasks_limit=np.inf, process_tasks=np.inf):
         """
         Execute the workflow.
         :return:
@@ -342,17 +324,14 @@ class Evaluation:
             self.tasks_update(schedule)
             self.scheduler.update()
             self.scheduler.optimize()
-            if  self.scheduler.n_assigned_tasks == 0:
+            if self.scheduler.n_assigned_tasks == 0:
                 self.force_finish = True
 
-
         return self.final_task
-
 
     def enqueue(self, task: task_mod.Composed):
         heapq.heappush(self.queue, (self.composed_id, task.time_estimate, task))
         self.composed_id += 1
-
 
     def expand_tasks(self, assigned_tasks_limit):
         """
@@ -375,10 +354,5 @@ class Evaluation:
             self.tasks_update([composed_task])
         return schedule
 
-
-
     def extract_input(self):
         input_data = List(*[i._result for i in self._inputs])
-
-
-
