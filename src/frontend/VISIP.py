@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QApplication
 from frontend.widgets.main_widget import MainWidget
 
 
-if __name__ == "__main__":
+def main():
     app = QApplication(sys.argv)
     w = MainWidget(app)
     w.resize(1000, 720)
@@ -20,3 +20,7 @@ if __name__ == "__main__":
     w.show()
 
     sys.exit(app.exec_())
+
+
+if __name__ == "__main__":
+    main()

@@ -53,6 +53,7 @@ setuptools.setup(
                       'PyQt5',
                       'attrs',
                       'pytypes',
+                      'typing-inspect'
                       'pyqtgraph'],
     setup_requires=['wheel'],
     python_requires='>=3, <3.7',
