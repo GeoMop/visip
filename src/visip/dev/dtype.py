@@ -70,7 +70,12 @@ def is_base_type(dtype):
 
 
 def is_subtype(dtype, type_spec):
-    return pytypes.is_subtype(dtype, type_spec)
+    try:
+       ok = pytypes.is_subtype(dtype, type_spec)
+    except TypeError:
+        return False
+    return ok
+
 
 
 def closest_common_ancestor(*cls_list):
