@@ -23,7 +23,7 @@ from typing import List
 # - wrapped actions, i.e. names used in workflow definitions
 #   e.g. list, dict, tuple, load_yaml
 #
-# - action instances, single instance for every base action class (used in following list and then in the frontend)
+# - action instances, single instance for every base action class (used in following list and then in the visip_gui)
 #   list.action, dict.action, tuple.action, load_yaml.action
 #
 # - action classes (internal use only)

@@ -36,7 +36,7 @@ setuptools.setup(
         # eg: 'keyword1', 'keyword2', 'keyword3',
     ],
 
-    packages=['visip', 'frontend'],  # setuptools.find_packages(where='src'),
+    packages=['visip', 'visip_gui'],  # setuptools.find_packages(where='src'),
     package_dir={'': 'src'},
     # py_modules=[os.path.splitext(os.path.basename(path))[0] for path in glob.glob('src/*.py')],
     # package_data={
@@ -53,7 +53,7 @@ setuptools.setup(
                       'PyQt5',
                       'attrs',
                       'pytypes',
-                      'typing-inspect'
+                      'typing-inspect',
                       'pyqtgraph'],
     setup_requires=['wheel'],
     python_requires='>=3, <3.7',
@@ -62,11 +62,11 @@ setuptools.setup(
     #     #   'rst': ['docutils>=0.11'],
     #     #   ':python_version=="2.6"': ['argparse'],
     # },
-    entry_points={
-        'gui_scripts': [
-            'VISIP = frontend:VISIP',
-        ]
-    },
+    #entry_points={
+    #    'gui_scripts': [
+    #        'VISIP = frontend:VISIP',
+    #    ]
+    #},
 
     # ext_modules=ext_modules,
     # cmdclass={'build_ext': BuildExt}
