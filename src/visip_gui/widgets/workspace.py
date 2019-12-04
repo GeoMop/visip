@@ -114,23 +114,6 @@ class Workspace(GBaseModelView):
             self.setCursor(QtCore.Qt.ArrowCursor)
             self.viewport_moved = False
 
-    def keyPressEvent(self, key_event):
-        super(Workspace, self).keyPressEvent(key_event)
-        if key_event.key() == QtCore.Qt.Key_Control:
-            self.setDragMode(self.RubberBandDrag)
-
-    def keyReleaseEvent(self, key_event):
-        super(Workspace, self).keyReleaseEvent(key_event)
-        if key_event.key() == QtCore.Qt.Key_Control:
-            self.setDragMode(self.ScrollHandDrag)
-
-    def focusInEvent(self, focus_event):
-        super(Workspace, self).focusInEvent(focus_event)
-        if QApplication.queryKeyboardModifiers() & QtCore.Qt.ControlModifier:
-            self.setDragMode(self.RubberBandDrag)
-        else:
-            self.setDragMode(self.ScrollHandDrag)
-
     def show_fps(self):
         """Debug tool"""
         print("Fps: " + str(self.fps_count))
