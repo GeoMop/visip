@@ -8,6 +8,7 @@ class RootParamItem(BaseWidgetParamItem):
     def __init__(self, param, depth=0):
         super(RootParamItem, self).__init__(param, depth)
         super(RootParamItem, self).setExpanded(True)
+
         for c in [0, 1]:
             self.setBackground(c, QtGui.QBrush(QtGui.QColor(100, 100, 100)))
             self.setForeground(c, QtGui.QBrush(QtGui.QColor(220, 220, 255)))

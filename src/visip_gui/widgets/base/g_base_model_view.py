@@ -45,7 +45,7 @@ class GBaseModelView(QGraphicsView):
                     self.zoom = self.zoom / self.zoom_factor
 
             event.setAccepted(True)
-            
+
         if event.modifiers() & Qt.ShiftModifier:
             angle_delta = QPoint(event.angleDelta().y(), event.angleDelta().x())
             pixel_delta = QPoint(event.pixelDelta().y(), event.pixelDelta().x())

@@ -21,6 +21,7 @@ class PropertyEditor(parametertree.ParameterTree):
         self.menu = ParamMenu()
         self.menu.const_val.triggered.connect(self.on_const_val_triggered)
         self.itemDoubleClicked.connect(self.double_clicked)
+        self.setExpandsOnDoubleClick(False)
 
     def contextMenuEvent(self, ev):
         if len(self.selectedItems()) == 1:
