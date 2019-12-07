@@ -26,7 +26,7 @@ Zoom In/Out: Ctrl + Mouse Wheel
 
 Move View: Left Mouse Button Drag
 
-Scroll View: Mouse Wheel (+ Shift - scroll horizontaly)
+Scroll View: Mouse Wheel (+ Shift - scroll horizontally)
 
 Group Selection: Ctrl + Left Mouse Button Drag
 
@@ -54,7 +54,7 @@ Finish Editing/Adding constant value: Enter
 ## File Menu
 Create New Module in Given Path: File -> Create New Module...
 
-Open Moudule from Given Path: File -> Open Module...
+Open Module from Given Path: File -> Open Module...
 
 Export Current Module into file: File -> Export Module...
 
