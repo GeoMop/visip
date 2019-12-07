@@ -34,7 +34,6 @@ from typing import List
 #
 # Can we treat all actions in visip module directly instead of using following special list?
 base_system_actions = [_Slot(),
-                       _Result(),
                        list.action,
                        tuple.action,
                        dict.action,

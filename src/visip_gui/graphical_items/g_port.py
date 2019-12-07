@@ -110,7 +110,7 @@ class GInputPort(GPort):
         if not self.connections:
             super(GInputPort, self).mousePressEvent(event)
         else:
-            self.scene().detach_connection(self, QApplication.keyboardModifiers() & QtCore.Qt.AltModifier)
+            self.scene().detach_connection(self, QApplication.keyboardModifiers() & QtCore.Qt.ShiftModifier)
 
 class GOutputPort(GPort):
     """Class for output data."""
