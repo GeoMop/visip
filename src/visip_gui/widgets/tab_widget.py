@@ -1,10 +1,12 @@
 import os
 
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import QMargins
 from PyQt5.QtWidgets import QTabWidget
 
 from visip_gui.config.config_data import ConfigData
 from visip_gui.widgets.home_tab_widget import HomeTabWidget
+from visip_gui.widgets.module_navigation import ModuleNavigation
 from visip_gui.widgets.module_view import ModuleView
 from visip.dev.module import Module
 from visip_gui.widgets.tab import Tab
@@ -19,7 +21,6 @@ class TabWidget(QTabWidget):
         self.tabCloseRequested.connect(self.on_close_tab)
         self.edit_menu = edit_menu
         self.edit_menu.delete.triggered.connect(self.delete_items)
-        #self.edit_menu.add_random.triggered.connect(self.add_random_items)
         self.edit_menu.order_diagram.triggered.connect(self.order_diagram)
         self.currentChanged.connect(self.current_changed)
         self.tabBarClicked.connect(self.before_curr_index_change)
@@ -37,6 +38,8 @@ class TabWidget(QTabWidget):
             self.currentWidget().last_category = self.main_widget.toolbox.currentIndex()
 
     def _add_tab(self, module_filename, module):
+        self.setCurrentIndex(self.addTab(ModuleNavigation(module, self), module_filename))
+        '''
         self.module_views[module_filename] = ModuleView(self, module,self.edit_menu)
         w = Tab(self.module_views[module_filename])
         #self.main_widget.toolbox.on_workspace_change(self.module_views[module_filename].module,
@@ -45,6 +48,7 @@ class TabWidget(QTabWidget):
             w.addWidget(workspace)
 
         self.setCurrentIndex(self.addTab(w, module_filename))
+        '''
 
     def change_workspace(self, workspace):
         self.currentWidget().setCurrentWidget(workspace)
