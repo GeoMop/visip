@@ -6,10 +6,11 @@ Graphical object representing an action in pipeline.
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QPixmap, QPainter
+from PyQt5.QtGui import QPixmap, QPainter, QBrush, QPen
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QStyleOptionGraphicsItem, QGraphicsItem
 
 from visip_gui.graphical_items.g_tooltip_base import GTooltipBase
+from visip_gui.graphical_items.glow import Glow
 from .g_action_background import GActionBackground, ActionStatus
 from .g_port import GPort, GInputPort, GOutputPort
 from visip_gui.util.editable_text import EditableLabel
@@ -25,6 +26,8 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         :param parent: Action which holds this subaction: this GAction is inside parent GAction.
         """
         super(GAction, self).__init__(parent)
+        self.glow = Glow(self)
+        self.glow.hide()
         self._width = g_data_item.data(GActionData.WIDTH)
         self._height = g_data_item.data(GActionData.HEIGHT)
         self.in_ports = []
@@ -66,8 +69,6 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.width = self.width
 
         self.progress = 0
-
-
 
     def has_const_params(self):
         if len(self.w_data_item.parameters.parameters) > 0:
@@ -250,10 +251,17 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         '''
         return super(GAction, self).itemChange(change_type, value)
 
-    def paint(self, painter, item, widget=None):
+    def paint(self, painter, style, widget=None):
         """Update model of this GAction if necessary."""
         #self.setBrush(self.background.COLOR_PALETTE[self.status])
-        super(GAction, self).paint(painter, item, widget)
+
+        if style.state & QtWidgets.QStyle.State_Selected:
+            self.glow.show()
+        else:
+            self.glow.hide()
+        style.state &= ~QtWidgets.QStyle.State_Selected
+
+        super(GAction, self).paint(painter, style, widget)
 
     def paint_pixmap(self):
         progress = self.progress
@@ -268,19 +276,21 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         painter.setRenderHint(QPainter.Antialiasing, True)
         painter.translate(-rect.topLeft())
 
+        style = QStyleOptionGraphicsItem()
+        style.state &= ~QtWidgets.QStyle.State_Selected
         for child in self.childItems():
-            if child.flags() & QGraphicsItem.ItemStacksBehindParent:
+            if child.flags() & QGraphicsItem.ItemStacksBehindParent and child.isVisible():
                 painter.save()
                 painter.translate(child.mapToParent(self.pos()))
-                child.paint(painter, QStyleOptionGraphicsItem(), None)
+                child.paint(painter, style, None)
                 painter.restore()
 
-        self.paint(painter, QStyleOptionGraphicsItem())
+        self.paint(painter, style)
         for child in self.childItems():
-            if not child.flags() & QGraphicsItem.ItemStacksBehindParent:
+            if not child.flags() & QGraphicsItem.ItemStacksBehindParent and child.isVisible():
                 painter.save()
                 painter.translate(child.mapToParent(self.pos()))
-                child.paint(painter, QStyleOptionGraphicsItem(), None)
+                child.paint(painter, style, None)
                 painter.restore()
 
         painter.end()
@@ -293,6 +303,7 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.prepareGeometryChange()
         p = QtGui.QPainterPath()
         p.addRoundedRect(QtCore.QRectF(0, 0, self.width, self.height), 6, 6)
+        self.glow.update_path(p)
         if not self._hide_name:
             p.addRoundedRect(self.inner_area(), 4, 4)
         self.setPath(p)
