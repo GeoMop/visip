@@ -65,12 +65,6 @@ class MainWidget(QtWidgets.QMainWindow):
 
     def _init_docks(self):
         """Initializes docks"""
-        self.module_dock = QtWidgets.QDockWidget("Module", self)
-        self.module_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.module_dock)
-        self.module_dock.setMinimumWidth(150)
-        self.module_dock.setMinimumHeight(50)
-
         self.toolbox_dock = QtWidgets.QDockWidget("Toolbox", self)
         self.toolbox_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.toolbox_dock)
@@ -83,7 +77,7 @@ class MainWidget(QtWidgets.QMainWindow):
         filename = QtWidgets.QFileDialog.getSaveFileName(self.parent(), "Export Module", self.cfg.last_opened_directory, "Python File (*.py)")[0]
         if filename != "":
             self.cfg.last_opened_directory = os.path.dirname(filename)
-            code = self.tab_widget.current_module_view().module.code()
+            code = self.tab_widget.currentWidget()._module.code()
             with open(filename, 'w') as f:
                 f.write(code)
 

@@ -7,7 +7,6 @@ from PyQt5.QtWidgets import QTabWidget
 from visip_gui.config.config_data import ConfigData
 from visip_gui.widgets.home_tab_widget import HomeTabWidget
 from visip_gui.widgets.module_navigation import ModuleNavigation
-from visip_gui.widgets.module_view import ModuleView
 from visip.dev.module import Module
 from visip_gui.widgets.tab import Tab
 
@@ -76,30 +75,25 @@ class TabWidget(QTabWidget):
             self._add_tab(os.path.basename(filename), module)
 
     def current_changed(self, index):
-        if index != -1 and isinstance(self.widget(index), Tab):
-            curr_module_view = self.module_views[self.tabText(index)]
+        curr_module_view = self.widget(index)
+        if index != -1 and isinstance(curr_module_view, ModuleNavigation):
             self.disable_everything(False)
-            self.main_widget.module_dock.setWidget(curr_module_view)
             self.main_widget.toolbox_dock.setWidget(self.main_widget.toolbox)
 
-            self.main_widget.toolbox.on_module_change(curr_module_view.module,
-                                                      curr_module_view._current_workspace)
-            self.main_widget.toolbox.setCurrentIndex(self.currentWidget().last_category)
+            self.main_widget.toolbox.on_module_change(curr_module_view._module,
+                                                      curr_module_view.currentWidget())
+            self.main_widget.toolbox.setCurrentIndex(curr_module_view.last_category)
             return
 
         self.disable_everything(True)
-        self.main_widget.module_dock.setWidget(None)
         self.main_widget.toolbox_dock.setWidget(None)
 
     def disable_everything(self, boolean):
         self.main_widget.toolbox_dock.setDisabled(boolean)
-        self.main_widget.module_dock.setDisabled(boolean)
         self.main_widget.edit_menu.setDisabled(boolean)
         self.main_widget.eval_menu.setDisabled(boolean)
         self.main_widget.property_editor.setDisabled(boolean)
 
-    def current_module_view(self):
-        return self.module_views[self.tabText(self.currentIndex())]
 
     def on_close_tab(self, index):
         self.module_views.pop(self.tabText(index), None)

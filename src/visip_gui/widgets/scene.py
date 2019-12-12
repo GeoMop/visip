@@ -63,6 +63,9 @@ class Scene(GBaseModelScene):
         if action is None:
             action = self.unconnected_actions.get(item.data(GActionData.NAME))
 
+        if action is None:
+            i=0
+
         if not isinstance(action.action, _Value):
             if isinstance(action, _SlotCall):
                 self.actions.append(GInputAction(item, action, self.root_item))
@@ -158,7 +161,6 @@ class Scene(GBaseModelScene):
             name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.name)
             action.name = name
             self.workflow.insert_slot(len(self.workflow.slots), action)
-            self.main_widget.tab_widget.current_module_view().workspace_changed()
 
         elif action_name in self.available_actions[module]:
             action = ActionCall.create(self.available_actions[module][action_name])
