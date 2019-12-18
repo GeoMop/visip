@@ -244,6 +244,11 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
             for port in self.ports():
                 for conn in port.connections:
                     conn.update_gfx()
+        if change_type == QtWidgets.QGraphicsItem.ItemSelectedHasChanged:
+            if self.isSelected():
+                self.glow.show()
+            else:
+                self.glow.hide()
 
         '''
         elif change_type == self.ItemParentChange:
@@ -255,10 +260,6 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         """Update model of this GAction if necessary."""
         #self.setBrush(self.background.COLOR_PALETTE[self.status])
 
-        if style.state & QtWidgets.QStyle.State_Selected:
-            self.glow.show()
-        else:
-            self.glow.hide()
         style.state &= ~QtWidgets.QStyle.State_Selected
 
         super(GAction, self).paint(painter, style, widget)

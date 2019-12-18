@@ -10,6 +10,7 @@ from PyQt5.QtGui import QColor
 
 from visip.dev.action_instance import ActionInputStatus
 from visip_gui.graphical_items.g_tooltip_base import GTooltipBase
+from visip_gui.graphical_items.glow import Glow
 
 from .g_port import GPort, GOutputPort
 
@@ -30,6 +31,8 @@ class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
         :param parent: Action which holds this connection: this connection is inside parent action.
         """
         super(GConnection, self).__init__(parent)
+        self.glow = Glow(self)
+        self.glow.hide()
         self._shape = QtGui.QPainterPath()
         self.connection_set = False if port2 is None else True
         self.port1 = port1  # either first port when creating connection or always OutputPort if connection is set
@@ -74,9 +77,9 @@ class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
     def itemChange(self, change_type, value):
         if change_type == QtWidgets.QGraphicsItem.ItemSelectedHasChanged:
             if self.isSelected():
-                self.setPen(self.dash_pen)
+                self.glow.show()
             else:
-                self.setPen(self.full_pen)
+                self.glow.hide()
         return super(GConnection, self).itemChange(change_type, value)
 
     def paint(self, painter, style, widget=None):
@@ -119,6 +122,7 @@ class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self._shape.connectPath(right_curve)
         self._shape.closeSubpath()
 
+        self.glow.update_path(path)
 
         return path
 
