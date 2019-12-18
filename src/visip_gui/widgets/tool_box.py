@@ -91,7 +91,7 @@ class ToolBox(QToolBox):
             self.on_workspace_change(module, curr_workspace)
 
             for m in module.imported_modules:
-                if m.__name__ != "common":
+                if m.__name__ != "visip":
                     module_category = ActionCategory()
                     self.action_database[m.__name__] = {}
                     #todo: load each module from file and get actions from module.definitions
@@ -105,7 +105,7 @@ class ToolBox(QToolBox):
                             self.action_database[item.module][item.name] = item
 
                     self.import_modules[item.module] = module_category
-                    self.addItem(module_category, m.__name__)
+                    self.addItem(module_category, module._full_name_dict[m.__name__])
 
     def contextMenuEvent(self, event):
         dialog = ImportModule(self.parent())
