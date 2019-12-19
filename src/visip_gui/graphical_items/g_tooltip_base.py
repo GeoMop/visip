@@ -20,6 +20,8 @@ class GTooltipBase(QGraphicsItem):
         self.__widget_proxy.hide()
         self.widget = None
 
+        self.__auto_show = False
+
     @property
     def widget(self):
         return self.__widget
@@ -31,8 +33,18 @@ class GTooltipBase(QGraphicsItem):
         if widget is not None:
             self.__widget.hide()
 
+    def auto_show_tooltip(self, b):
+        if b:
+            self.__auto_show = False
+        else:
+            self.__auto_show = True
+
+    def tooltip_disabled(self):
+        return self.__disabled
+
     def show_tooltip(self):
         if self.__widget is not None:
+            self.__timer.stop()
             self.__widget_proxy.show()
             view = self.scene().views()[0]
             self.__position = view.mapFromGlobal(QCursor.pos())
@@ -54,7 +66,7 @@ class GTooltipBase(QGraphicsItem):
 
     def hoverEnterEvent(self, event):
         super(GTooltipBase, self).hoverEnterEvent(event)
-        if not self.__widget_proxy.isVisible():
+        if not self.__widget_proxy.isVisible() and not self.__auto_show:
             self.__timer.start()
 
     def hoverLeaveEvent(self, event):

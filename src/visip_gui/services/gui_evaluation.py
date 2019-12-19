@@ -29,7 +29,6 @@ class GUIEvaluation(QWidget):
         self.layout.addWidget(self.view)
 
         self.view.scene.update_states()
-        temp = self.evaluation.final_task
 
         self.navigation = EvaluationNavigation(self)
         self.navigation.add_item(self.evaluation.final_task, self.analysis.name)

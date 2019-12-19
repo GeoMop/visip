@@ -5,8 +5,10 @@ Representation of ports to which a connection can be attached.
 """
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import QPoint
-from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QApplication
+
+from visip_gui.graphical_items.g_tooltip import GTooltip
+from visip_gui.graphical_items.g_tooltip_base import GTooltipBase
 
 
 class GPort(QtWidgets.QGraphicsPathItem):
@@ -22,6 +24,7 @@ class GPort(QtWidgets.QGraphicsPathItem):
         """
         super(GPort, self).__init__(parent)
         self.name = name
+        self.constant = False
         if pos is not None:
             self.setPos(pos)
         self.connections = []
@@ -32,14 +35,16 @@ class GPort(QtWidgets.QGraphicsPathItem):
         self.setPen(QtCore.Qt.black)
         self.setBrush(QtCore.Qt.white)
         self.connections = []
-        #self.setAcceptHoverEvents(True)
+        self.setAcceptHoverEvents(True)
         self.setZValue(1.0)
         self.setFlag(self.ItemSendsGeometryChanges)
 
-        self.setToolTip("Type")
+        self.tool_tip = None
 
         self.index = index
         self.setCursor(QtCore.Qt.ArrowCursor)
+
+
 
     @property
     def appending_port(self):
@@ -55,16 +60,18 @@ class GPort(QtWidgets.QGraphicsPathItem):
         self.default = b
         self.setPath(self.draw_port_path())
 
+    def set_constant(self, b):
+        self.constant = b
+
     def draw_port_path(self):
+        p = QtGui.QPainterPath()
         if self.appending_port:
-            p = QtGui.QPainterPath()
             p.addEllipse(QtCore.QRectF(0, 0, self.RADIUS * 2, self.RADIUS * 2))
             p.moveTo(self.RADIUS - 3, self.RADIUS)
             p.lineTo(self.RADIUS + 3, self.RADIUS)
             p.moveTo(self.RADIUS, self.RADIUS - 3)
             p.lineTo(self.RADIUS, self.RADIUS + 3)
         else:
-            p = QtGui.QPainterPath()
             p.addEllipse(QtCore.QRectF(0, 0, self.RADIUS * 2, self.RADIUS * 2))
         return p
 
@@ -75,6 +82,14 @@ class GPort(QtWidgets.QGraphicsPathItem):
         if change_type == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
             for conn in self.connections:
                 conn.update_gfx()
+        if change_type == QtWidgets.QGraphicsItem.ItemToolTipChange:
+            if self.tool_tip is None:
+                self.tool_tip = value
+                return value
+            else:
+                self.tool_tip.setText(value.text())
+                return self.tool_tip
+
         return super(GPort, self).itemChange(change_type, value)
 
     def setEnabled(self, bool):
@@ -84,7 +99,15 @@ class GPort(QtWidgets.QGraphicsPathItem):
     def mousePressEvent(self, event):
         """If the port is pressed create a connection."""
         if event.button() == QtCore.Qt.LeftButton:
-            self.scene().add_connection(self)
+            if self.constant:
+                self.tool_tip.setText("Cannot connect to constant parameter!")
+                self.tool_tip.show_tooltip()
+
+            else:
+                self.scene().add_connection(self)
+
+    def hoverLeaveEvent(self, event):
+        super(GPort, self).hoverLeaveEvent(event)
 
     def get_connection_point(self):
         """Return scene coordinates to draw connection."""

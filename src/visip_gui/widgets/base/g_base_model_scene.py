@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import QGraphicsScene
 
 from visip import _Value
 from visip.dev.action_instance import ActionInputStatus
+from visip.dev.dtype import Constant
 from visip_gui.data.g_action_data_model import GActionDataModel
 from visip_gui.graphical_items.g_action import GAction
 from visip_gui.graphical_items.g_connection import GConnection
@@ -77,7 +78,11 @@ class GBaseModelScene(QGraphicsScene):
                             #self.addItem(port1.connections[-1])
                         else:
                             g_action = self.get_action(action_name)
-                            g_action.in_ports[i].set_default(True)
+                            port = g_action.in_ports[i]
+                            port.set_default(True)
+                            if action_argument.parameter.type is not None:
+                                if action_argument.parameter.is_constant():
+                                    port.set_constant(True)
 
                     i += 1
             actions = {item.name + 'g' if isinstance(item, GAction) else 'c': item for item in self.items() if hasattr(item, 'name')}
