@@ -39,7 +39,7 @@ class GPort(QtWidgets.QGraphicsPathItem):
         self.setZValue(1.0)
         self.setFlag(self.ItemSendsGeometryChanges)
 
-        self.tool_tip = None
+        self.tool_tip = GTooltip(self)
 
         self.index = index
         self.setCursor(QtCore.Qt.ArrowCursor)
@@ -82,14 +82,6 @@ class GPort(QtWidgets.QGraphicsPathItem):
         if change_type == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
             for conn in self.connections:
                 conn.update_gfx()
-        if change_type == QtWidgets.QGraphicsItem.ItemToolTipChange:
-            if self.tool_tip is None:
-                self.tool_tip = value
-                return value
-            else:
-                self.tool_tip.setText(value.text())
-                return self.tool_tip
-
         return super(GPort, self).itemChange(change_type, value)
 
     def setEnabled(self, bool):
