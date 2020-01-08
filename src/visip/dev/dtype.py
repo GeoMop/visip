@@ -14,7 +14,7 @@ import pytypes
 import itertools
 import inspect
 from . import tools
-from typing import Any, Union, List, Dict, Tuple, Generic, TypeVar, GenericMeta
+from typing import Any, Union, List, Dict, Tuple, Generic, TypeVar#, GenericMeta
 
 ############################# typing - undocumented interface ##################################
 
@@ -87,13 +87,28 @@ class DataClassBase:
         The class has to be registered.
         :return:
         """
-        return '!{}'.format(cls.__name__)
+        return '{}'.format(cls.__name__)
+
+    @tools.classproperty
+    def yaml_module(cls):
+        '''
+        Provides name od the module.
+        :return:
+        '''
+        return '{}'.format(cls.__module__)
 
     def from_yaml(self):
         pass
 
-    def to_yaml(self):
-        pass
+    @classmethod
+    def to_yaml(cls, representer, node):
+        # yaml_tag + represent like dict
+        # odkaz z 13.10. ve sdílené složce
+        # print(dir(node))
+        if node.yaml_module == 'visip.action.constructor':
+            return representer.represent_mapping('!{}'.format(node.yaml_tag), node.__dict__)
+        else:
+            return representer.represent_mapping('!{}.{}'.format(node.yaml_module, node.yaml_tag), node.__dict__)
 
 
 
