@@ -27,7 +27,10 @@ class ConfigData(object):
         if not os.path.exists(self.__config_dir__):
             os.mkdir(self.__config_dir__)
         if os.path.exists(self.FILE_PATH):
-            self.load()
+            try:
+                self.load()
+            except json.decoder.JSONDecodeError:
+                pass
 
     @property
     def module_root_directory(self):
