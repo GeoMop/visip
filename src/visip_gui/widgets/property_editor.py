@@ -88,6 +88,10 @@ class PropertyEditor(parametertree.ParameterTree):
 
         self.g_action.scene().data_changed()
         self.update_editor()
+        # todo: attempt to show editor after creating new parameter by double click
+        temp = self.topLevelItem(0).child(i)
+        temp.showEditor()
+
 
     def on_constant_changed(self, param, val: bool):
         action = ActionCall.create(_Value(None)) if not val else None
@@ -126,7 +130,13 @@ class PropertyEditor(parametertree.ParameterTree):
         self.lastSel = sel[0]
         if hasattr(sel[0], 'selected'):
             sel[0].selected(True)
-
+        # todo: attempt to show editor after creating new parameter by double click
+        if len(sel) == 1:
+            if sel[0].param.arg is None:
+                self.on_const_val_triggered()
+                self.root_item.child()
+            elif sel[0].param.arg.value is None:
+                self.on_const_val_triggered()
 
     def selectionChanged(self, *args):
         sel = self.selectedItems()
