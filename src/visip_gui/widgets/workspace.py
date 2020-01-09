@@ -64,6 +64,7 @@ class Workspace(GBaseModelView):
                 drag_enter.acceptProposedAction()
             if action_name in self.available_actions[module]:
                 drag_enter.acceptProposedAction()
+                asdasd
 
     def dropEvent(self, drop_event):
         """Create new action from dropped information"""
@@ -107,12 +108,13 @@ class Workspace(GBaseModelView):
     def contextMenuEvent(self, event):
         """Open context menu on right mouse button click if no dragging occurred."""
         super(Workspace, self).contextMenuEvent(event)
-        if not self.viewport_moved:
-            self.scene.new_action_pos = self.mapToScene(event.pos())
-            self.edit_menu.exec_(event.globalPos())
-        else:
-            self.setCursor(QtCore.Qt.ArrowCursor)
-            self.viewport_moved = False
+        if not event.isAccepted():
+            if not self.viewport_moved:
+                self.scene.new_action_pos = self.mapToScene(event.pos())
+                self.edit_menu.exec_(event.globalPos())
+            else:
+                self.setCursor(QtCore.Qt.ArrowCursor)
+                self.viewport_moved = False
 
     def show_fps(self):
         """Debug tool"""

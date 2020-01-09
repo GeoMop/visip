@@ -4,7 +4,7 @@ Representation of ports to which a connection can be attached.
 @contact: tomas.blazek@tul.cz
 """
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtCore import QPoint
+from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtWidgets import QApplication
 
 from visip_gui.graphical_items.g_tooltip import GTooltip
@@ -92,8 +92,8 @@ class GPort(QtWidgets.QGraphicsPathItem):
         """If the port is pressed create a connection."""
         if event.button() == QtCore.Qt.LeftButton:
             if self.constant:
-                self.tool_tip.setText("Cannot connect to constant parameter!")
-                self.tool_tip.show_tooltip()
+                self.tool_tip.set_text("Cannot connect to constant parameter!")
+                self.tool_tip.show_tooltip(Qt.red)
 
             else:
                 self.scene().add_connection(self)
