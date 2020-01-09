@@ -64,7 +64,6 @@ class Workspace(GBaseModelView):
                 drag_enter.acceptProposedAction()
             if action_name in self.available_actions[module]:
                 drag_enter.acceptProposedAction()
-                asdasd
 
     def dropEvent(self, drop_event):
         """Create new action from dropped information"""
