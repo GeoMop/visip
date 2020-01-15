@@ -9,18 +9,23 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 
 from visip.dev.action_instance import ActionInputStatus
+from visip_gui.graphical_items.g_tooltip import GTooltip
 from visip_gui.graphical_items.g_tooltip_base import GTooltipBase
 from visip_gui.graphical_items.glow import Glow
 
 from .g_port import GPort, GOutputPort
 
 
-class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
+class GConnection(QtWidgets.QGraphicsPathItem):
     """Representation of connection between two ports."""
-    color = {ActionInputStatus.ok: QColor(0,200,0),
-             ActionInputStatus.seems_ok: QColor(200,200,0),
-             ActionInputStatus.error_type: QColor(200,0,0),
-             ActionInputStatus.error_value: QColor(200,0,0)}
+    color = {ActionInputStatus.ok: QColor(0, 200, 0),
+             ActionInputStatus.seems_ok: QColor(200, 200, 0),
+             ActionInputStatus.error_type: QColor(200, 0, 0),
+             ActionInputStatus.error_value: QColor(200, 0, 0)}
+    text = {ActionInputStatus.ok: "Ok",
+             ActionInputStatus.seems_ok: "Seems ok",
+             ActionInputStatus.error_type: "Connection of incompatible types (error_type)",
+             ActionInputStatus.error_value: "(error_value)"}
 
     LINE_THICKNESS = 3
 
@@ -45,9 +50,12 @@ class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.setZValue(10.0)
         self.setFlag(self.ItemIsSelectable)
         self.update_gfx()
-        self.setToolTip("conn_type")
+        self.setToolTip("<p style='background='red'><b>HTML</b> <i>can</i> be shown too.. </p>")
+
         self.setCursor(Qt.ArrowCursor)
         self.setAcceptHoverEvents(True)
+        self.tool_tip = GTooltip(self, color)
+        self.tool_tip.set_text(self.text.get(state, "(Unknown state)"))
 
     @property
     def name(self):
@@ -55,6 +63,14 @@ class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
             return "Connection from: (" + str(self.port1) + ") to: (" + str(self.port2) + ")"
         else:
             return "Connection from: (" + str(self.port1) + ")"
+
+    def hoverEnterEvent(self, event):
+        super(GConnection, self).hoverEnterEvent(event)
+        self.tool_tip.tooltip_request(event.pos())
+
+    def hoverLeaveEvent(self, event):
+        super(GConnection, self).hoverLeaveEvent(event)
+        self.tool_tip.timer.stop()
 
     def is_connected(self, port):
         """Returns True if this connection is attached to specified port."""
@@ -65,6 +81,8 @@ class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
 
     def __repr__(self):
         return self.name
+
+
 
     def mousePressEvent(self, event):
         """Mouse press is ignored by this connection if it is inside port."""
