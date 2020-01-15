@@ -50,8 +50,6 @@ class GConnection(QtWidgets.QGraphicsPathItem):
         self.setZValue(10.0)
         self.setFlag(self.ItemIsSelectable)
         self.update_gfx()
-        self.setToolTip("<p style='background='red'><b>HTML</b> <i>can</i> be shown too.. </p>")
-
         self.setCursor(Qt.ArrowCursor)
         self.setAcceptHoverEvents(True)
         self.tool_tip = GTooltip(self, color)
@@ -67,6 +65,9 @@ class GConnection(QtWidgets.QGraphicsPathItem):
     def hoverEnterEvent(self, event):
         super(GConnection, self).hoverEnterEvent(event)
         self.tool_tip.tooltip_request(event.pos())
+
+    def hoverMoveEvent(self, event):
+        self.tool_tip.update_pos(event.pos())
 
     def hoverLeaveEvent(self, event):
         super(GConnection, self).hoverLeaveEvent(event)

@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt, QPoint, QTimer
-from PyQt5.QtGui import QPainterPath, QPen, QCursor
+from PyQt5.QtGui import QPainterPath, QPen, QCursor, QTransform
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsPathItem, QGraphicsItem, QGraphicsTextItem, QStyle
 
 
@@ -16,7 +16,7 @@ class GTooltip(QGraphicsTextItem):
         self.background.setFlag(self.ItemStacksBehindParent, True)
         self.setAcceptHoverEvents(True)
         self.setZValue(10.0)
-        self.setFlag(self.ItemIgnoresTransformations, True)
+        self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
         self.hide()
         self.setCursor(Qt.ArrowCursor)
         self.setTextInteractionFlags(Qt.TextSelectableByMouse)
@@ -28,16 +28,26 @@ class GTooltip(QGraphicsTextItem):
         self.timer.setInterval(500)
         self.color = color
         self.tooltip_pos = None
+        font = self.font()
+        font.setPointSize(9)
+        self.setFont(font)
 
-    def tooltip_request(self, tooltip_pos, color=None, interval=500):
-        self.timer.setInterval(interval)
+
+
+    def tooltip_request(self, tooltip_pos, color=None, delay=500):
+        self.timer.setInterval(delay)
         self.timer.start()
         if color is None:
             if self.color is not None:
                 self.color = self.color
             else:
                 self.color = Qt.black
+        else:
+            self.color = color
         self.tooltip_pos = tooltip_pos
+
+    def update_pos(self, pos):
+        self.tooltip_pos = pos
 
     def contextMenuEvent(self, event):
         event.accept()
@@ -61,58 +71,53 @@ class GTooltip(QGraphicsTextItem):
         return shape
 
     def boundingRect(self):
-        return super(GTooltip, self).boundingRect().united(self.g_item.mapRectToItem(self, self.g_item.boundingRect()))
+        return self.background.boundingRect().adjusted(0, -2, 0, 0)
 
     def _show_tooltip(self):
         color = self.color
 
         self.background.setPen(QPen(color))
         if not self.isVisible() and self.toPlainText():
-
             self.setFocus(Qt.MouseFocusReason)
             cursor = self.textCursor()
             cursor.clearSelection()
             self.setTextCursor(cursor)
             view = self.g_item.scene().views()[0]
-            tooltip_pos = view.transform().map(self.mapToScene(self.tooltip_pos))
+            view.scroll_changed.connect(self.close)
+            view.zoom_changed.connect(self.close)
 
+            tooltip_pos = self.g_item.mapToScene(self.tooltip_pos)
+            this_rect = super(GTooltip, self).boundingRect()
+            transform = QTransform()
+            transform = transform.scale(1/view.zoom, 1/view.zoom)
+            this_rect = transform.mapRect(this_rect)
+            d_pos = QPoint((-this_rect.width() / 2), self.ARROW_HEIGHT/view.zoom)
 
-            this_rect = view.mapFromScene(super(GTooltip, self).boundingRect()).boundingRect()
-
-
-            pos = QPoint(tooltip_pos.x() - this_rect.width() / 2, tooltip_pos.y() + self.ARROW_HEIGHT)
-
-
+            pos = tooltip_pos + d_pos
 
             scene_rect = view.mapToScene(view.viewport().geometry()).boundingRect()
             this_rect.moveTo(pos)
             pos.setX(max(scene_rect.left() + self.MARGIN,
                          min(pos.x(), scene_rect.right() - this_rect.width() - self.MARGIN)))
-
-            tooltip_pos = self.mapFromParent(self.tooltip_pos)
             if scene_rect.height() < this_rect.bottom() + self.ARROW_HEIGHT:
-                pos = QPoint(pos.x(),
-                             self.tooltip_pos.y() - this_rect.height() - self.ARROW_HEIGHT)
+                pos = QPoint(pos.x(), self.tooltip_pos.y() - this_rect.height() - self.ARROW_HEIGHT/view.zoom)
                 self.setPos(pos)
                 path = self.update_gfx()
                 rect = path.boundingRect()
-                item_rect = self.g_item.mapRectToItem(self, self.g_item.boundingRect())
-                path.moveTo(item_rect.center().x() - self.ARROW_HEIGHT, rect.bottom())
-                path.lineTo(item_rect.center().x(), item_rect.top())
-                path.lineTo(item_rect.center().x() + self.ARROW_HEIGHT, rect.bottom())
+                tooltip_pos = (tooltip_pos - pos) * view.zoom
+                path.moveTo(tooltip_pos.x() - self.ARROW_HEIGHT, rect.bottom())
+                path.lineTo(tooltip_pos.x(), tooltip_pos.y())
+                path.lineTo(tooltip_pos.x() + self.ARROW_HEIGHT, rect.bottom())
+
             else:
                 self.setPos(pos)
                 path = self.update_gfx()
                 rect = path.boundingRect()
-                item_rect = self.g_item.mapRectToItem(self, self.g_item.boundingRect())
-                tooltip_pos = self.mapFromParent(self.tooltip_pos)
+                tooltip_pos = (tooltip_pos - pos) * view.zoom
                 path.moveTo(tooltip_pos.x() - self.ARROW_HEIGHT, rect.top())
                 path.lineTo(tooltip_pos.x(), tooltip_pos.y())
                 path.lineTo(tooltip_pos.x() + self.ARROW_HEIGHT, rect.top())
-
-            tooltip_pos = self.mapFromScene(self.mapFromItem(self.g_item, self.tooltip_pos))
-            print(tooltip_pos)
-            path.addEllipse(tooltip_pos, 5,5)
+            self.background.prepareGeometryChange()
             self.background.setPath(path)
             self.g_item.scene().addItem(self)
             self.show()
@@ -135,5 +140,8 @@ class GTooltip(QGraphicsTextItem):
         pass
 
     def hoverLeaveEvent(self, *args, **kwargs):
+        self.close()
+
+    def close(self):
         self.g_item.scene().removeItem(self)
         self.hide()

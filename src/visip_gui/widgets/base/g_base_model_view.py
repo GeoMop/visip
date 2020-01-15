@@ -4,12 +4,14 @@ Base class for view of graphics scene containing DAG.
 @contact: tomas.blazek@tul.cz
 """
 from PyQt5 import QtGui, QtCore
-from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtCore import Qt, QPoint, pyqtSignal
 from PyQt5.QtGui import QWheelEvent
 from PyQt5.QtWidgets import QGraphicsView, QApplication
 
 
 class GBaseModelView(QGraphicsView):
+    zoom_changed = pyqtSignal()
+    scroll_changed = pyqtSignal()
     def __init__(self, parent=None):
         super(GBaseModelView, self).__init__(parent)
 
@@ -37,10 +39,12 @@ class GBaseModelView(QGraphicsView):
             self.setTransformationAnchor(self.AnchorUnderMouse)
             if steps > 0:
                 if self.zoom < self.max_zoom:
+                    self.zoom_changed.emit()
                     self.scale(self.zoom_factor, self.zoom_factor)
                     self.zoom = self.zoom * self.zoom_factor
             elif steps < 0:
                 if self.zoom > self.min_zoom:
+                    self.zoom_changed.emit()
                     self.scale(1 / self.zoom_factor, 1 / self.zoom_factor)
                     self.zoom = self.zoom / self.zoom_factor
 
@@ -53,8 +57,12 @@ class GBaseModelView(QGraphicsView):
             new_event = QWheelEvent(event.posF(), event.globalPosF(), pixel_delta, angle_delta, event.buttons(),
                                     modifiers, event.phase(), event.inverted(), event.source())
             event = new_event
-
+        self.scroll_changed.emit()
         super(GBaseModelView, self).wheelEvent(event)
+
+    def scroll(self, p_int, p_int_1, QRect=None):
+        print("scroll")
+        super(GBaseModelView, self).scroll(p_int, p_int_1, QRect)
 
     def keyPressEvent(self, key_event):
         super(GBaseModelView, self).keyPressEvent(key_event)

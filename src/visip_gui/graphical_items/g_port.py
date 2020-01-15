@@ -93,7 +93,8 @@ class GPort(QtWidgets.QGraphicsPathItem):
         if event.button() == QtCore.Qt.LeftButton:
             if self.constant:
                 self.tool_tip.set_text("Cannot connect to constant parameter!")
-                self.tool_tip.show_tooltip(Qt.red)
+                self.tool_tip.tooltip_request(event.pos(), Qt.red, 0)
+                #self.tool_tip.show_tooltip(Qt.red)
 
             else:
                 self.scene().add_connection(self)

@@ -6,13 +6,13 @@ from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsBlurEffect
 
 
 class Glow(QGraphicsPathItem):
-    WIDTH = 5
+    WIDTH = 3
 
     def __init__(self, parent):
         super(Glow, self).__init__(parent)
         self.setFlag(self.ItemStacksBehindParent, True)
         self.blur = QGraphicsBlurEffect()
-        self.blur.setBlurRadius(8)
+        self.blur.setBlurRadius(4)
         self.setGraphicsEffect(self.blur)
 
     def update_path(self, path):
