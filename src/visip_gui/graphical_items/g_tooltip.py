@@ -68,7 +68,7 @@ class GTooltip(QGraphicsTextItem):
         return shape
 
     def boundingRect(self):
-        return self.background.boundingRect().adjusted(0, -2, 0, 0)
+        return self.background.boundingRect().adjusted(0, -5, 0, 5)
 
     def _show_tooltip(self):
         color = self.color
@@ -140,5 +140,6 @@ class GTooltip(QGraphicsTextItem):
         self.close()
 
     def close(self):
-        self.g_item.scene().removeItem(self)
-        self.hide()
+        if self.isVisible():
+            self.g_item.scene().removeItem(self)
+            self.hide()
