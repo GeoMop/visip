@@ -64,7 +64,8 @@ class GConnection(QtWidgets.QGraphicsPathItem):
 
     def hoverEnterEvent(self, event):
         super(GConnection, self).hoverEnterEvent(event)
-        self.tool_tip.tooltip_request(event.pos())
+        if self.connection_set:
+            self.tool_tip.tooltip_request(event.pos())
 
     def hoverMoveEvent(self, event):
         self.tool_tip.update_pos(event.pos())

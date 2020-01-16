@@ -269,7 +269,8 @@ class Scene(GBaseModelScene):
                     port.setEnabled(enable)
 
     def keyPressEvent(self, key_event):
-        if key_event.key() == Qt.Key_Escape:
+        super(Scene, self).keyPressEvent(key_event)
+        if key_event.key() == Qt.Key_Escape and not key_event.isAccepted():
             if self.detached_port:
                 self.add_connection(self.detached_port)
             else:

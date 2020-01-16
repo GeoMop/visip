@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt, QPoint, QTimer
-from PyQt5.QtGui import QPainterPath, QPen, QCursor, QTransform
+from PyQt5.QtGui import QPainterPath, QPen, QCursor, QTransform, QKeySequence
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsPathItem, QGraphicsItem, QGraphicsTextItem, QStyle
 
 
@@ -20,7 +20,6 @@ class GTooltip(QGraphicsTextItem):
         self.hide()
         self.setCursor(Qt.ArrowCursor)
         self.setTextInteractionFlags(Qt.TextSelectableByMouse)
-        self.setTextCursor(self.textCursor())
         self.setFlag(QGraphicsItem.ItemIsFocusable, True)
         self.timer = QTimer()
         self.timer.setSingleShot(True)
@@ -31,8 +30,6 @@ class GTooltip(QGraphicsTextItem):
         font = self.font()
         font.setPointSize(9)
         self.setFont(font)
-
-
 
     def tooltip_request(self, tooltip_pos, color=None, delay=500):
         self.timer.setInterval(delay)

@@ -66,17 +66,19 @@ class GBaseModelView(QGraphicsView):
 
     def keyPressEvent(self, key_event):
         super(GBaseModelView, self).keyPressEvent(key_event)
-        if key_event.key() == QtCore.Qt.Key_Control:
-            self.setDragMode(self.RubberBandDrag)
-        if key_event.key() == QtCore.Qt.Key_Shift:
-            self.shift_pressed = True
+        if not key_event.isAccepted():
+            if key_event.key() == QtCore.Qt.Key_Control:
+                self.setDragMode(self.RubberBandDrag)
+            if key_event.key() == QtCore.Qt.Key_Shift:
+                self.shift_pressed = True
 
     def keyReleaseEvent(self, key_event):
         super(GBaseModelView, self).keyReleaseEvent(key_event)
-        if key_event.key() == QtCore.Qt.Key_Control:
-            self.setDragMode(self.ScrollHandDrag)
-        if key_event.key() == QtCore.Qt.Key_Shift:
-            self.shift_pressed = False
+        if not key_event.isAccepted():
+            if key_event.key() == QtCore.Qt.Key_Control:
+                self.setDragMode(self.ScrollHandDrag)
+            if key_event.key() == QtCore.Qt.Key_Shift:
+                self.shift_pressed = False
 
     def focusInEvent(self, focus_event):
         super(GBaseModelView, self).focusInEvent(focus_event)

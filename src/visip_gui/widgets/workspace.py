@@ -62,8 +62,11 @@ class Workspace(GBaseModelView):
             action_name = identifier[index + 1:]
             if module == "wf" and (action_name == "Slot"):
                 drag_enter.acceptProposedAction()
-            if action_name in self.available_actions[module]:
-                drag_enter.acceptProposedAction()
+            try:
+                if action_name in self.available_actions[module]:
+                    drag_enter.acceptProposedAction()
+            except:
+                pass
 
     def dropEvent(self, drop_event):
         """Create new action from dropped information"""
