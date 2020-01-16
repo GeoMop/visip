@@ -57,7 +57,7 @@ class GTooltip(QGraphicsTextItem):
     def update_gfx(self):
         path = QPainterPath()
         rect = super(GTooltip, self).boundingRect()
-        rect.adjust(-2, -2, 2, 2)
+        rect.adjust(-self.MARGIN + 1, -self.MARGIN + 1, self.MARGIN - 1, self.MARGIN - 1)
         path.addRoundedRect(rect, 3, 3)
         self.background.setPath(path)
         return path
@@ -88,15 +88,17 @@ class GTooltip(QGraphicsTextItem):
             transform = QTransform()
             transform = transform.scale(1/view.zoom, 1/view.zoom)
             this_rect = transform.mapRect(this_rect)
-            d_pos = QPoint((-this_rect.width() / 2), self.ARROW_HEIGHT/view.zoom)
+            d_pos = QPoint((-this_rect.width() / 2), (self.ARROW_HEIGHT + self.MARGIN)/view.zoom)
 
             pos = tooltip_pos + d_pos
 
             scene_rect = view.mapToScene(view.viewport().geometry()).boundingRect()
+            print(scene_rect)
             this_rect.moveTo(pos)
+            print(pos.y() + this_rect.height()*view.zoom + self.ARROW_HEIGHT*view.zoom)
             pos.setX(max(scene_rect.left() + self.MARGIN,
                          min(pos.x(), scene_rect.right() - this_rect.width() - self.MARGIN)))
-            if scene_rect.height() < this_rect.bottom() + self.ARROW_HEIGHT:
+            if scene_rect.bottom() < pos.y() + this_rect.height() + self.ARROW_HEIGHT:
                 pos = QPoint(pos.x(), self.tooltip_pos.y() - this_rect.height() - self.ARROW_HEIGHT/view.zoom)
                 self.setPos(pos)
                 path = self.update_gfx()

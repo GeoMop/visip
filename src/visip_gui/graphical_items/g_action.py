@@ -197,9 +197,9 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
 
     def _add_ports(self, n_ports, appending=False):
         for i in range(n_ports):
-            self.add_g_port(True, "Input Port" + str(i))
+            self.add_g_port(True, self.w_data_item.arguments[i], "Input Port" + str(i))
         if appending and self.appending_ports:
-            self.add_g_port(True, "Appending port")
+            self.add_g_port(True, self.w_data_item.parameters.parameters, "Appending port")
             self.in_ports[-1].appending_port = True
 
         self.add_g_port(False, "Output Port")
@@ -311,12 +311,12 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.update()
         self.background.update_gfx()
 
-    def add_g_port(self, is_input, name=""):
+    def add_g_port(self, is_input, argument, name=""):
         """Adds a port to this GAction.
         :param is_input: Decides if the new port will be input or output.
         """
         if is_input:
-            self.in_ports.append(GInputPort(len(self.in_ports), QtCore.QPoint(0, 0), name, self))
+            self.in_ports.append(GInputPort(len(self.in_ports), argument, QtCore.QPoint(0, 0), name, self))
         else:
             self.out_ports.clear()
             self.out_ports.append(GOutputPort(len(self.out_ports), QtCore.QPoint(0, 0), name, self))

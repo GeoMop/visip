@@ -16,6 +16,7 @@ class GBaseModelView(QGraphicsView):
         super(GBaseModelView, self).__init__(parent)
 
         self.setRenderHint(QtGui.QPainter.Antialiasing, True)
+        self.setRenderHint(QtGui.QPainter.SmoothPixmapTransform, True)
 
         self.setDragMode(self.ScrollHandDrag)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)

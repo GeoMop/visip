@@ -27,8 +27,10 @@ class ModuleNavigation(QTabWidget):
                                       self._tab_widget.main_widget.toolbox.action_database), wf.name)
 
     def contextMenuEvent(self, event):
-        self.menu_pos = event.pos()
-        self.menu.exec_(event.globalPos())
+        super(ModuleNavigation, self).contextMenuEvent(event)
+        if not event.isAccepted():
+            self.menu_pos = event.pos()
+            self.menu.exec_(event.globalPos())
 
     def add_workflow(self):
         names = []

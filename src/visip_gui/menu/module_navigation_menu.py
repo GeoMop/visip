@@ -10,3 +10,11 @@ class ModuleNavigationMenu(QMenu):
 
         self.remove_workflow = QAction("Remove workflow")
         self.addAction(self.remove_workflow)
+
+    def contextMenuEvent(self, event):
+        #event.accept()
+        super(ModuleNavigationMenu, self).contextMenuEvent(event)
+
+    def mousePressEvent(self, event):
+        print("press")
+        super(ModuleNavigationMenu, self).mousePressEvent(event)

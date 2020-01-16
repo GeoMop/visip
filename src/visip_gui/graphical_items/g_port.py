@@ -7,6 +7,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtWidgets import QApplication
 
+from visip.dev.action_instance import ActionArgument
 from visip_gui.graphical_items.g_tooltip import GTooltip
 from visip_gui.graphical_items.g_tooltip_base import GTooltipBase
 
@@ -17,12 +18,13 @@ class GPort(QtWidgets.QGraphicsPathItem):
     BORDER = 2
     SIZE = RADIUS * 2 + BORDER * 2
 
-    def __init__(self, index, pos=QPoint(0,0), name="", parent=None):
+    def __init__(self, index, argument, pos=QPoint(0,0), name="", parent=None):
         """Initializes class.
         :param pos: Position of this action inside parent action.
         :param parent: This port will be part of parent action.
         """
         super(GPort, self).__init__(parent)
+        self.argument = argument
         self.name = name
         self.constant = False
         if pos is not None:
@@ -115,12 +117,12 @@ class GPort(QtWidgets.QGraphicsPathItem):
 
 class GInputPort(GPort):
     """Class for input data."""
-    def __init__(self, index, pos=QPoint(0,0), name="", parent=None):
+    def __init__(self, index, argument, pos=QPoint(0,0), name="", parent=None):
         """Initializes class.
         :param pos: Position of this action inside parent action.
         :param parent: This port will be part of parent action.
         """
-        super(GInputPort, self).__init__(index, pos, name, parent)
+        super(GInputPort, self).__init__(index, argument, pos, name, parent)
 
     def mousePressEvent(self, event):
         if not self.connections:
@@ -135,4 +137,4 @@ class GOutputPort(GPort):
         :param pos: Position of this action inside parent action.
         :param parent: This port will be part of parent action.
         """
-        super(GOutputPort, self).__init__(index, pos, name, parent)
+        super(GOutputPort, self).__init__(index, None, pos, name, parent)
