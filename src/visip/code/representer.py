@@ -1,6 +1,6 @@
 import typing_inspect as ti
 from ..dev import dtype as dtype
-from . import format
+from . import formating
 
 
 class Representer:
@@ -41,19 +41,19 @@ class Representer:
     #TODO: Move Format into this file. Replace Format static methods by these two directly.
     @staticmethod
     def action_call(name, *arguments):
-        return format.Format.action_call(name, arguments)
+        return formating.Format.action_call(name, arguments)
 
     @staticmethod
     def list(prefix, postfix, argument_list):
-        return format.Format.list(prefix, postfix, argument_list)
+        return formating.Format.list(prefix, postfix, argument_list)
 
     @staticmethod
     def format(*token_list):
-        return format.Format(token_list)
+        return formating.Format(token_list)
 
     @staticmethod
     def token(name):
-        return format.Placeholder(name)
+        return formating.Placeholder(name)
 
 """
 TODO:

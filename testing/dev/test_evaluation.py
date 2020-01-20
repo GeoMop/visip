@@ -13,7 +13,7 @@ def test_evaluation(src_file):
 
     mod = module.Module(source_in_path)
     wf_test_class = mod.get_action(name='test_class')
-    assert sorted(list(wf_test_class._action_calls.keys())) == ['Point_1', 'Value_1', 'Value_2', '__result__', 'a', 'a_x', 'b', 'b_y']
+    assert sorted(list(wf_test_class.name_to_action_call.keys())) == ['Point_1', 'Value_1', 'Value_2', '__result__', 'a', 'a_x', 'b', 'b_y']
     Point = mod.get_action(name='Point')
     pa = Point.constructor(x=0, y=1)
     pb = Point.constructor(x=2, y=3)
@@ -23,7 +23,7 @@ def test_evaluation(src_file):
     # binded action and few Value action instances.
     # Then make_analysis (which binds all parameters) can be replaced this more general feature.
     analysis = evaluation.Evaluation.make_analysis(wf_test_class, [pa, pb])
-    assert sorted(list(analysis._action_calls.keys())) == ['Value_1', 'Value_2', '__result__', 'test_class_1']
+    assert sorted(list(analysis.name_to_action_call.keys())) == ['Value_1', 'Value_2', '__result__', 'test_class_1']
     eval = evaluation.Evaluation(analysis)
     result = eval.execute()
 
