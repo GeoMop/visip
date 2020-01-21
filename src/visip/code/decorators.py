@@ -92,6 +92,7 @@ def action_def(func):
     action_name = func.__name__
     action = base._ActionBase(action_name)
     action._evaluate = func
+    action._extract_input_type()
     return wrap.public_action(action)
 
 

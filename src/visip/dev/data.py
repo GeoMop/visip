@@ -1,17 +1,23 @@
 """
 Functions for uniform manipulation of the data. These functions treat the basic types and all attr classes.
-We support:
+We SHOULD support:
 - representation
 - serialization into a bytearray
 - deserialization from a byte array
 - hash
+
+TODO:
+- use renamed jsondata lib for serialization and deserialization of the VISIP data
+- need support for numpy objects
+- use serialized object for hashing instead of its str repr.
+- use some serious hashing function
 
 Same special dataclasses are implemented, in particular:
 - file wrapper
 - ...
 """
 from typing import NewType
-
+import pickle
 
 
 HashValue = NewType('HashValue', int)
@@ -21,7 +27,7 @@ def my_hash(x, seed=0):
     return default_hash_fn((x, seed))
 
 hasher_fn = my_hash
-def hash(stream: bytearray, previous:HashValue=0) -> HashValue:
+def hash_stream(stream: bytearray, previous:HashValue=0) -> HashValue:
     """
     Compute the hash of the bytearray.
     We use fast non-cryptographic hashes long enough to keep probability of collision rate at
@@ -34,6 +40,8 @@ def hash(stream: bytearray, previous:HashValue=0) -> HashValue:
     """
     return hasher_fn(stream, seed=previous)
 
+def hash(data, previous=0):
+    return hash_stream(str(data), previous)
 
 def serialize(data):
     """
@@ -42,6 +50,8 @@ def serialize(data):
     :return:
     """
 
+    return pickle.dumps(data)
+
 
 def deserialize(stream: bytearray):
     """
@@ -49,3 +59,4 @@ def deserialize(stream: bytearray):
     :param stream:
     :return:
     """
+    return pickle.loads(stream)

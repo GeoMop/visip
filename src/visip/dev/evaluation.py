@@ -10,7 +10,7 @@ Evaluation of a workflow.
     relay on equality of the data if the hashes are equal.
 4. Tasks are assigned to the resources by scheduler,
 """
-from typing import List
+from typing import List, Dict, Tuple, Any
 import attr
 import heapq
 import numpy as np
@@ -19,6 +19,8 @@ import time
 from . import data, task as task_mod, base, dfs,  dtype as dtype, action_instance as instance
 from .action_workflow import _Workflow
 from ..action.constructor import Value
+from ..eval.cache import ResultCache
+from ..code import wrap
 
 class Resource:
     """
@@ -46,6 +48,9 @@ class Resource:
         # Maximal number of MPI processes one can assign.
         self._finished = []
 
+
+        self.cache = ResultCache()
+
     # def assign_task(self, task, i_thread=None):
     #     """
     #     Just evaluate tthe task immediately.
@@ -71,23 +76,29 @@ class Resource:
         is_ready = task.is_ready()
         assert task.status >= task_mod.Status.ready
         if is_ready:
-            task.evaluate()
+            # hash of action and inputs
+            # TODO: move into task
+            task_hash = task.action_hash()
+            for input in task.inputs:
+                task_hash = data.hash(input.result_hash, previous=task_hash)
+
+            # Check result cache
+
+            res_value = self.cache.value(task_hash)
+            if res_value is self.cache.NoValue:
+                assert task.is_ready()
+                result = task.evaluate_fn()
+                data_inputs = [input.result for input in task.inputs]
+                res_value = result(data_inputs)
+                # print(task.action)
+                # print(task.inputs)
+                # print(task_hash, res_value)
+                self.cache.insert(task_hash, res_value)
+
+            task.finish(result=res_value, task_hash=task_hash)
             self._finished.append(task)
-            #self._evaluate(task)
 
-    def _evaluate(self, task):
-        """
-        Evaluate the task using the input from the input tasks.
-        :return:
-        """
 
-        input_data_hash = input_data.hash()
-        if self._last_input_hash and self._last_input_hash == input_data_hash:
-            return self._result
-        else:
-            self._result = action.evaluate(input_data)
-            self._last_input_hash = input_data_hash
-        return self._result
 
 
 
@@ -297,6 +308,8 @@ class Evaluation:
         self.scheduler = Scheduler(self.resources)
         self.result_db = ResultDB()
 
+        if isinstance(analysis, wrap.ActionWrapper):
+            analysis = analysis.action
         self.final_task = task_mod._TaskBase._create_task(None, '__root__', analysis, [])
 
         self.composed_id = 0
@@ -327,7 +340,7 @@ class Evaluation:
         :return:
         """
         if task.is_finished():
-            task.eval_time = task._end_time - task._start_time
+            task.eval_time = task.end_time - task.start_time
         else:
             task.time_estimate = 1
 
