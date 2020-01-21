@@ -14,7 +14,8 @@ import pytypes
 import itertools
 import inspect
 from . import tools
-from typing import Any, Union, List, Dict, Tuple, Generic, TypeVar#, GenericMeta
+from typing import Any, Union, List, Dict, Tuple, Generic, TypeVar  # , GenericMeta
+
 
 ############################# typing - undocumented interface ##################################
 
@@ -31,10 +32,11 @@ def get_generic_args(generic_type):
     else:
         return None
 
+
 ################################################################################################
 
 
-BasicType = Union[bool, int, float, complex, str]
+BasicType = Union[bool, int, float, complex, str, None]
 # valid_base_types = (bool, int, float, complex, str)
 
 DataType = Union[BasicType, List['DataType'], Dict['DataType', 'DataType'], Tuple['DataType', ...], 'DataClassBase']
@@ -44,18 +46,18 @@ DataType = Union[BasicType, List['DataType'], Dict['DataType', 'DataType'], Tupl
 
 ConstantValueType = TypeVar('ConstantValueType')
 
+
 class Constant(Generic[ConstantValueType]):
     """
     Wrapper for constant values. I.e. values that are not results of other actions.
     """
+
     def __init__(self, val: ConstantValueType):
         self._value: ConstantValueType = val
-
 
     @property
     def value(self):
         return self._value
-
 
     @classmethod
     def inner_type(cls):
@@ -71,7 +73,6 @@ def is_constant(xtype):
     """
     # is_subtype(xtype, Constant)
     return issubclass(xtype, Constant)
-
 
 
 class DataClassBase:
@@ -111,7 +112,6 @@ class DataClassBase:
             return representer.represent_mapping('!{}.{}'.format(node.yaml_module, node.yaml_tag), node.__dict__)
 
 
-
 def is_base_type(xtype):
     """ True for basic, i.e. scalar types."""
     return is_subtype(xtype, BasicType)
@@ -119,6 +119,7 @@ def is_base_type(xtype):
 
 def is_subtype(xtype, type_spec):
     return pytypes.is_subtype(xtype, type_spec)
+    # return pytypes.resolve_fw_decl(xtype, type_spec)
 
 
 def closest_common_ancestor(*cls_list):
@@ -127,5 +128,6 @@ def closest_common_ancestor(*cls_list):
     for ancestors in itertools.zip_longest(*mros):
         if len(set(ancestors)) == 1:
             ancestor = ancestors[0]
-        else: break
+        else:
+            break
     return ancestor

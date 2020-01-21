@@ -1,56 +1,61 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 from bgem.gmsh import gmsh_io
 
 # from visip import action_def
-
-from ..code.decorators import action_def
-from ..code.decorators import Class
+from src.visip.code.decorators import Class
 
 
-# @Class
+# from ..code.decorators import action_def
+# from ..code.decorators import Class
+
+
+@Class
 class Point:
-    # x: float = 0.0
-    # y: float = 0.0
-    # z: float = 0.0
-    def __init__(self, x, y, z):
-        self._x = x
-        self._y = y
-        self._z = z
+    x: float = 0.0
+    y: float = 0.0
+    z: float = 0.0
+    # def __init__(self, x, y, z):
+    #     self._x = x
+    #     self._y = y
+    #     self._z = z
 
 
-# @Class
+@Class
 class Element:
-    # type_id: int
-    # dim: int
-    # region_id: int
-    # shape_id: int
-    # partition_id: int
-    # nodes: List[int]
+    type_id: int = 0  # v commitu přepsáno na dict: type_id -> (dim,n_nodes)
+    dim: int = 0
+    region_id: int = 0
+    shape_id: Optional[int] = 0
+    partition_id: Optional[int] = 0
+    nodes: List = []
 
     # tags: [region_id, shape_id, partition_id]
-    def __init__(self, type_id: int, dim: int, tags: List[int], nodes: List[int]):
-        self._type = type_id
-        self._dim = dim
-        if len(tags) == 3:
-            self._region_id = tags[0]
-            self._shape_id = tags[1]
-            self._partition_id = tags[2]
-        elif len(tags) == 2:
-            self._region_id = tags[0]
-            self._shape_id = tags[1]
-        self._nodes = nodes
+
+    # def __init__(self, type_id: int, dim: int, tags: List[int], nodes: List[int]):
+    #     self._type = type_id
+    #     self._dim = dim
+    #     if len(tags) == 3:
+    #         self._region_id = tags[0]
+    #         self._shape_id = tags[1]
+    #         self._partition_id = tags[2]
+    #     elif len(tags) == 2:
+    #         self._region_id = tags[0]
+    #         self._shape_id = tags[1]
+    #     self._nodes = nodes
 
 
-# @Class
+@Class
 class MeshGMSH:
-    # nodes: Dict[int, Point]
-    # elements: Dict[int, Element]
-    # regions: Dict[str, Tuple[int, int]]
-    def __init__(self, nodes: Dict[int, Point], elements: Dict[int, Element], regions: Dict[str, Tuple[int, int]]):
-        self._nodes = nodes
-        self._elements = elements
-        self._regions = regions
+    nodes: Dict[int, Point] = None
+    elements: Dict[int, Element] = None
+    regions: Dict[str, Tuple[int, int]] = None
+
+
+# def __init__(self, nodes: Dict[int, Point], elements: Dict[int, Element], regions: Dict[str, Tuple[int, int]]):
+#     self._nodes = nodes
+#     self._elements = elements
+#     self._regions = regions
 
 
 # @action_def
@@ -69,7 +74,8 @@ def GMSH_reader(path):
 
     elements = {}
     for idx, element in reader.elements.items():
-        elements[idx] = Element(type_id=element[0], dim=None, tags=element[1], nodes=element[2])
+        print(element)
+        elements[idx] = Element(type_id=element[0], dim=None)  # , tags=element[1], nodes=element[2])
 
     my_Mesh = MeshGMSH(points, elements, reader.physical)
     # print(my_Mesh)

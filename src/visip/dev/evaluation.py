@@ -266,7 +266,7 @@ class Evaluation:
         :param inputs:
         :return: a bind workflow instance
         """
-        assert action.parameters.is_variadic() or len(inputs) == action.parameters.size()
+        #assert action.parameters.is_variadic() or len(inputs) == action.parameters.size()
         bind_name = 'all_bind_' + action.name
         workflow = _Workflow(bind_name)
 

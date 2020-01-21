@@ -13,22 +13,22 @@ import yaml
 # from ruamel.yaml import YAML, yaml_object
 
 # from visip.action.constructor import dict
-from ..dev.parameters import Parameters, ActionParameter
-from ..code.decorators import action_def
-from ..action.constructor import ClassActionBase
-from ..dev.dtype import DataClassBase
+# from ..dev.parameters import Parameters, ActionParameter
+# from ..code.decorators import action_def
+# from ..action.constructor import ClassActionBase
+# from ..dev.dtype import DataClassBase
 
 
-# from visip.action.constructor import ClassActionBase
-# from visip.dev.dtype import DataClassBase
-# from visip.dev.parameters import Parameters, ActionParameter, NoDefault
+from visip.action.constructor import ClassActionBase
+from visip.dev.dtype import DataClassBase
+from visip.dev.parameters import Parameters, ActionParameter, NoDefault
 
 
 def is_valid_identifier(s):
     return s.isidentifier() and not keyword.iskeyword(s)
 
 
-@action_def
+# @action_def
 def load_yaml(path: str):
     def default_ctor(loader, tag_suffix, node):
         dictionary = {}
@@ -95,7 +95,7 @@ def load_yaml(path: str):
     return data  # whole_obj(**data)
 
 
-@action_def
+# @action_def
 def write_yaml(data: Dict, path: str):  # -> file
     yaml.SafeDumper.add_multi_representer(DataClassBase, DataClassBase.to_yaml)
     # yaml.representer.add_representer(DataClassBase, DataClassBase.to_yaml)
@@ -104,11 +104,12 @@ def write_yaml(data: Dict, path: str):  # -> file
         yaml.safe_dump(data, output, default_flow_style=False)
         # yml.dump(data, output)
 
+    return 11
 
-# path_to_yaml = 'D:\\Git\\visip_fork\\visip\\testing\\action\\test_yamls\\flow_input.yaml'
-#
-# vysledek = load_yaml(path_to_yaml)
-# print(vysledek)
+path_to_yaml = 'D:\\Git\\visip_fork\\visip\\testing\\action\\test_yamls\\flow_input.yaml'
+
+vysledek = load_yaml(path_to_yaml)
+print(vysledek)
 # print(load_yaml(path_to_yaml))
 # print('__')
 # print(vysledek.problem)
