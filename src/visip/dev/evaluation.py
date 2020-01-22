@@ -10,7 +10,7 @@ Evaluation of a workflow.
     relay on equality of the data if the hashes are equal.
 4. Tasks are assigned to the resources by scheduler,
 """
-from typing import List, Dict, Tuple, Any
+from typing import List, Dict, Tuple, Any, Union
 import attr
 import heapq
 import numpy as np
@@ -308,8 +308,6 @@ class Evaluation:
         self.scheduler = Scheduler(self.resources)
         self.result_db = ResultDB()
 
-        if isinstance(analysis, wrap.ActionWrapper):
-            analysis = analysis.action
         self.final_task = task_mod._TaskBase._create_task(None, '__root__', analysis, [])
 
         self.composed_id = 0
@@ -356,7 +354,7 @@ class Evaluation:
         """
         return []
 
-    def execute(self, assigned_tasks_limit = np.inf, process_tasks = np.inf):
+    def execute(self, assigned_tasks_limit = np.inf, process_tasks = np.inf) -> task_mod._TaskBase:
         """
         Execute the workflow.
         :return:
@@ -404,8 +402,20 @@ class Evaluation:
 
 
 
-    def extract_input(self):
-        input_data = List(*[i._result for i in self._inputs])
+    # def extract_input(self):
+    #     input_data = List(*[i._result for i in self._inputs])
 
 
-
+def run(action: Union[base._ActionBase,
+        wrap.ActionWrapper], inputs:List[dtype.DataType] = None) -> task_mod._TaskBase:
+    """
+    Run the 'action' with given arguments 'inputs'.
+    Return resulting task.
+    """
+    if isinstance(action, wrap.ActionWrapper):
+        action = action.action
+    if inputs is None:
+        inputs = []
+    analysis = Evaluation.make_analysis(action, inputs)
+    eval_obj = Evaluation(analysis)
+    return eval_obj.execute()

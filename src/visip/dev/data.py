@@ -18,7 +18,7 @@ Same special dataclasses are implemented, in particular:
 """
 from typing import NewType
 import pickle
-
+import hashlib
 
 HashValue = NewType('HashValue', int)
 
@@ -42,6 +42,21 @@ def hash_stream(stream: bytearray, previous:HashValue=0) -> HashValue:
 
 def hash(data, previous=0):
     return hash_stream(str(data), previous)
+
+
+def hash_file(file_path):
+    # BUF_SIZE is totally arbitrary, change for your app!
+    BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
+    sha1 = hashlib.sha1()
+
+    with open(file_path, 'rb') as f:
+        while True:
+            data = f.read(BUF_SIZE)
+            if not data:
+                break
+            sha1.update(data)
+    return hash(sha1.digest())
+
 
 def serialize(data):
     """

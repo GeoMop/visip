@@ -1,6 +1,8 @@
 from visip import dev
 from visip.dev import dtype
 import visip.action as action
+from visip.code import wrap
+import typing
 
 import ruamel.yaml as yaml
 
@@ -92,3 +94,18 @@ def test_closest_common_ancestor():
     assert cca(C, D) is A
     assert cca(A, B) is A
     assert cca(A, int) is object
+
+
+def test_unwrap_type():
+    type_hint = wrap.unwrap_type(typing.List[int])
+    print("\nType Hint:")
+    print(type_hint)
+
+    print("\nElement test:")
+    class Element:
+        nodes:typing.List[int] = []
+
+    for name, ann in Element.__annotations__.items():
+        attr_type = wrap.unwrap_type(ann)
+        print(name, ann, attr_type)
+
