@@ -114,6 +114,7 @@ class Workspace(GBaseModelView):
             if not self.viewport_moved:
                 self.scene.new_action_pos = self.mapToScene(event.pos())
                 self.edit_menu.exec_(event.globalPos())
+                event.accept()
             else:
                 self.setCursor(QtCore.Qt.ArrowCursor)
                 self.viewport_moved = False

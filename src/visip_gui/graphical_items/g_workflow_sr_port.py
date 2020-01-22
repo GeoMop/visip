@@ -9,7 +9,7 @@ class GWorkflowSRPort(GPort):
 
     def __init__(self, is_slot_port=True, index=0, pos=QPoint(0,0), name="", parent=None):
         self.is_slot_port = is_slot_port
-        super(GWorkflowSRPort, self).__init__(index, pos, name, parent)
+        super(GWorkflowSRPort, self).__init__(index, None, pos, name, parent)
         if is_slot_port:
             gradient = QLinearGradient(QPoint(GPort.RADIUS, -6 * GPort.RADIUS), QPoint(GPort.RADIUS, GPort.RADIUS))
         else:

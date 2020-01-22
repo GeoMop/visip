@@ -12,20 +12,15 @@ from visip.dev.action_instance import ActionInputStatus
 from visip_gui.graphical_items.g_tooltip import GTooltip
 from visip_gui.graphical_items.g_tooltip_base import GTooltipBase
 from visip_gui.graphical_items.glow import Glow
+import visip_gui.graphical_items.g_status_mapping as mapping
 
 from .g_port import GPort, GOutputPort
 
 
 class GConnection(QtWidgets.QGraphicsPathItem):
     """Representation of connection between two ports."""
-    color = {ActionInputStatus.ok: QColor(0, 200, 0),
-             ActionInputStatus.seems_ok: QColor(200, 200, 0),
-             ActionInputStatus.error_type: QColor(200, 0, 0),
-             ActionInputStatus.error_value: QColor(200, 0, 0)}
-    text = {ActionInputStatus.ok: "Ok",
-             ActionInputStatus.seems_ok: "Seems ok",
-             ActionInputStatus.error_type: "Connection of incompatible types (error_type)",
-             ActionInputStatus.error_value: "(error_value)"}
+    color = mapping.color
+    text = mapping.text
 
     LINE_THICKNESS = 3
 
@@ -41,7 +36,7 @@ class GConnection(QtWidgets.QGraphicsPathItem):
         self._shape = QtGui.QPainterPath()
         self.connection_set = False if port2 is None else True
         self.port1 = port1  # either first port when creating connection or always OutputPort if connection is set
-        self.port2 = port2 if self.connection_set else GPort(-1, self.port1.get_connection_point())  # usually InputPort
+        self.port2 = port2 if self.connection_set else GPort(-1, None, self.port1.get_connection_point())  # usually InputPort
         # drawing options
         color = self.color.get(state, Qt.black)
         self.full_pen = QtGui.QPen(color, self.LINE_THICKNESS)
@@ -54,6 +49,8 @@ class GConnection(QtWidgets.QGraphicsPathItem):
         self.setAcceptHoverEvents(True)
         self.tool_tip = GTooltip(self, color)
         self.tool_tip.set_text(self.text.get(state, "(Unknown state)"))
+        if self.tool_tip.toPlainText() == "(Unknown state)":
+            i = 0
 
     @property
     def name(self):
@@ -65,9 +62,19 @@ class GConnection(QtWidgets.QGraphicsPathItem):
     def hoverEnterEvent(self, event):
         super(GConnection, self).hoverEnterEvent(event)
         if self.connection_set:
-            self.tool_tip.tooltip_request(event.pos())
+            if (    not self.port1.mapToScene(self.port1.boundingRect()).boundingRect()
+                    .contains(self.mapToScene(event.pos())) and
+                    not self.port2.mapToScene(self.port2.boundingRect()).boundingRect()
+                            .contains(self.mapToScene(event.pos()))):
+                self.tool_tip.tooltip_request(event.pos())
 
     def hoverMoveEvent(self, event):
+        if not self.tool_tip.timer.isActive():
+            if (not self.port1.mapToScene(self.port1.boundingRect()).boundingRect()
+                    .contains(self.mapToScene(event.pos())) and
+                    not self.port2.mapToScene(self.port2.boundingRect()).boundingRect()
+                            .contains(self.mapToScene(event.pos()))):
+                self.tool_tip.tooltip_request(event.pos())
         self.tool_tip.update_pos(event.pos())
 
     def hoverLeaveEvent(self, event):

@@ -32,8 +32,10 @@ class ModuleNavigation(QTabWidget):
             self.addTab(NoWorkflowTab(self.add_workflow), self.home_tab_name)
 
     def contextMenuEvent(self, event):
-        self.menu_pos = event.pos()
-        self.menu.exec_(event.globalPos())
+        super(ModuleNavigation, self).contextMenuEvent(event)
+        if not event.isAccepted():
+            self.menu_pos = event.pos()
+            self.menu.exec_(event.globalPos())
 
     def add_workflow(self):
         if type(self.widget(0)) is NoWorkflowTab:
