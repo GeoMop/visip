@@ -1,7 +1,7 @@
 import os
 import visip as wf
 from visip.dev import evaluation
-
+script_dir = os.path.dirname(os.path.realpath(__file__))
 
 @wf.action_def
 def read_file(input: wf.File) -> int:
@@ -42,11 +42,14 @@ def test_system():
     Test system action with mock command.
     :return:
     """
-    os.remove("msg_file.txt")
+    try:
+        os.remove(os.path.join(script_dir, "msg_file.txt"))
+    except FileNotFoundError:
+        pass
 
     print("Root workspace: ", os.getcwd())
     script_name = "_mock_script_test_system.py"
-    result = evaluation.run(system_test_wf, [script_name])
+    result = evaluation.run(system_test_wf, [script_name], workspace=script_dir)
     assert result.result.stdout == b"I'm here.\n"
 
 

@@ -68,7 +68,6 @@ def test_action_skipping():
     evaluation.
     :return:
     """
-    eval = evaluation.Evaluation(make_calls)
-    result = eval.execute()
+    result = evaluation.run(make_calls)
     assert len(result.result) == 3
     assert global_n_calls == 2

@@ -10,6 +10,7 @@ Evaluation of a workflow.
     relay on equality of the data if the hashes are equal.
 4. Tasks are assigned to the resources by scheduler,
 """
+import os
 from typing import List, Dict, Tuple, Any, Union
 import attr
 import heapq
@@ -223,23 +224,22 @@ class Result:
 
 
 
-
-class ResultDB:
+class change_cwd:
     """
-    Simple result database.
-    For an input hash find result, its environment and runtime, and result hash.
+    Context manager that change CWD, to given relative or absolute path.
     """
-    def __init__(self):
-        self.result_dict = {}
+    def __init__(self, path: str):
+        self.path = path
+        self.orig_cwd = ""
 
+    def __enter__(self):
+        if self.path:
+            self.orig_cwd = os.getcwd()
+            os.chdir(self.path)
 
-    def get_result(self, input_hash):
-        return self.result_dict.get(input_hash, None)
-
-
-    def store_result(self, result: Result):
-        input_hash = hash_fn(result.input)
-        self.result_dict[input_hash] = result
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.orig_cwd:
+            os.chdir(self.orig_cwd)
 
 
 class Evaluation:
@@ -306,7 +306,6 @@ class Evaluation:
         """
         self.resources = [ Resource() ]
         self.scheduler = Scheduler(self.resources)
-        self.result_db = ResultDB()
 
         self.final_task = task_mod._TaskBase._create_task(None, '__root__', analysis, [])
 
@@ -354,21 +353,25 @@ class Evaluation:
         """
         return []
 
-    def execute(self, assigned_tasks_limit = np.inf, process_tasks = np.inf) -> task_mod._TaskBase:
+    def execute(self, assigned_tasks_limit = np.inf,
+                process_tasks = np.inf,
+                workspace: str = ".") -> task_mod._TaskBase:
         """
         Execute the workflow.
         :return:
         """
-        invalid_connections = self.validate_connections(self.final_task.action)
-        if invalid_connections:
-            raise Exception(invalid_connections)
-        while not self.force_finish:
-            schedule = self.expand_tasks(assigned_tasks_limit)
-            self.tasks_update(schedule)
-            self.scheduler.update()
-            self.scheduler.optimize()
-            if  self.scheduler.n_assigned_tasks == 0:
-                self.force_finish = True
+        os.makedirs(workspace, exist_ok=True)
+        with change_cwd(workspace):
+            invalid_connections = self.validate_connections(self.final_task.action)
+            if invalid_connections:
+                raise Exception(invalid_connections)
+            while not self.force_finish:
+                schedule = self.expand_tasks(assigned_tasks_limit)
+                self.tasks_update(schedule)
+                self.scheduler.update()
+                self.scheduler.optimize()
+                if  self.scheduler.n_assigned_tasks == 0:
+                    self.force_finish = True
         return self.final_task
 
 
@@ -406,8 +409,9 @@ class Evaluation:
     #     input_data = List(*[i._result for i in self._inputs])
 
 
-def run(action: Union[base._ActionBase,
-        wrap.ActionWrapper], inputs:List[dtype.DataType] = None) -> task_mod._TaskBase:
+def run(action: Union[base._ActionBase, wrap.ActionWrapper],
+        inputs:List[dtype.DataType] = None,
+        **kwargs) -> task_mod._TaskBase:
     """
     Run the 'action' with given arguments 'inputs'.
     Return resulting task.
@@ -418,4 +422,4 @@ def run(action: Union[base._ActionBase,
         inputs = []
     analysis = Evaluation.make_analysis(action, inputs)
     eval_obj = Evaluation(analysis)
-    return eval_obj.execute()
+    return eval_obj.execute(**kwargs)
