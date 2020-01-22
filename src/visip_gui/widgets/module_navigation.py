@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QTabWidget, QWidget, QFrame, QVBoxLayout
 from visip.dev.action_workflow import _Workflow
 from visip_gui.dialogs.get_text import GetText
 from visip_gui.menu.module_navigation_menu import ModuleNavigationMenu
+from visip_gui.widgets.no_workflow_tab import NoWorkflowTab
 from visip_gui.widgets.workspace import Workspace
 
 
@@ -18,6 +19,7 @@ class ModuleNavigation(QTabWidget):
         self.menu = ModuleNavigationMenu()
         self.menu.new_workflow.triggered.connect(self.add_workflow)
         self.menu.remove_workflow.triggered.connect(self.remove_workflow)
+        self.home_tab_name = "Home"
 
         self.currentChanged.connect(self.current_changed)
 
@@ -26,11 +28,16 @@ class ModuleNavigation(QTabWidget):
                 self.addTab(Workspace(wf, self._tab_widget.main_widget,
                                       self._tab_widget.main_widget.toolbox.action_database), wf.name)
 
+        if self.count() == 0:
+            self.addTab(NoWorkflowTab(self.add_workflow), self.home_tab_name)
+
     def contextMenuEvent(self, event):
         self.menu_pos = event.pos()
         self.menu.exec_(event.globalPos())
 
     def add_workflow(self):
+        if type(self.widget(0)) is NoWorkflowTab:
+            self.removeTab(0)
         names = []
         for wf in self._module.definitions:
             names.append(wf.name)
@@ -58,6 +65,8 @@ class ModuleNavigation(QTabWidget):
                 break
 
         self.removeTab(index)
+        if self.count() == 0:
+            self.addTab(NoWorkflowTab(self.add_workflow), self.home_tab_name)
 
     def current_changed(self, index):
         self._tab_widget.main_widget.toolbox.on_workspace_change(self._module, self.currentWidget())

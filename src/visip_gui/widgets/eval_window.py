@@ -14,6 +14,7 @@ class EvalWindow(QMainWindow):
         self.tab_widget.setTabsClosable(True)
         self.tab_widget.setTabShape(1)
         self.tab_widget.tabCloseRequested.connect(self.on_close_tab)
+        self.setWindowTitle("Evaluation")
 
         self.tab_widget.currentChanged.connect(self.tab_changed)
         self.setCentralWidget(self.tab_widget)
@@ -30,7 +31,6 @@ class EvalWindow(QMainWindow):
         self.navigation_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.navigation_dock)
         self.last_tab_widget = None
-
         self.resize(1000, 700)
 
     def add_eval(self, gui_eval):

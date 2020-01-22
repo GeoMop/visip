@@ -21,8 +21,9 @@ class ImportModule(QDialog):
 
         self.second_line = QHBoxLayout()
         self.layout.addLayout(self.second_line)
-        self.second_line.addWidget(QLabel("Module name:"))
+        self.second_line.addWidget(QLabel("Module alias:"))
         self.module_name = QLineEdit()
+        self.module_name.setPlaceholderText("Optional")
         self.second_line.addWidget(self.module_name)
 
         self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)

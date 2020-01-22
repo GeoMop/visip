@@ -8,7 +8,7 @@ class HomeTabWidget(QWidget):
         self.main_widget = main_widget
         self.layout = QVBoxLayout(self)
         self.layout.addStretch()
-        self.welcome = QLabel("Welcome to Analysis.\nStart by opening existing module or create a new one.")
+        self.welcome = QLabel("Welcome to VISIP.\nStart by opening existing module or create a new one.")
         self.welcome.setAlignment(Qt.AlignCenter)
         self.layout.addWidget(self.welcome)
 

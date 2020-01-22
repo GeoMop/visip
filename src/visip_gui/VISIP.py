@@ -16,7 +16,7 @@ def main():
     w = MainWidget(app)
     w.resize(1000, 720)
     w.move(300, 50)
-    w.setWindowTitle('Analysis')
+    w.setWindowTitle('VISIP')
     w.show()
 
     sys.exit(app.exec_())
