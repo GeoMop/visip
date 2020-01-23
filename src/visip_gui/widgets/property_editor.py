@@ -66,7 +66,7 @@ class PropertyEditor(parametertree.ParameterTree):
         action = ActionCall.create(_Value(0))
         action.name = 'Value_1'
         i = 2
-        while action.name in self.workflow._action_calls:
+        while action.name in self.workflow.action_call_dict:
             action.name = 'Value_' + str(i)
             i += 1
         if item.param.arg is None:

@@ -59,7 +59,7 @@ class GBaseModelScene(QGraphicsScene):
             if self.new_connection is not None:
                 self.addItem(self.new_connection)
 
-            all_actions = {**self.workflow._action_calls, **self.unconnected_actions, "__result__": self.workflow._result_call}
+            all_actions = {**self.workflow.action_call_dict, **self.unconnected_actions, "__result__": self.workflow._result_call}
             for action_name, action in all_actions.items():
                 i = 0
                 for action_argument in action.arguments:

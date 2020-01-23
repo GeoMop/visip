@@ -48,7 +48,7 @@ class Scene(GBaseModelScene):
             self.main_widget.property_editor.clear()
 
     def initialize_workspace_from_workflow(self):
-        for action_name, action in {**self.workflow._action_calls, "__result__": self.workflow._result_call}.items():
+        for action_name, action in {**self.workflow.action_call_dict, "__result__": self.workflow._result_call}.items():
             if not isinstance(action.action, _Value):
                 self._add_action(QPoint(0.0, 0.0), action_name)
 
@@ -58,7 +58,7 @@ class Scene(GBaseModelScene):
         self.parent().center_on_content = True
 
     def draw_action(self, item):
-        action = {**self.workflow._action_calls, "__result__":self.workflow._result_call}.get(item.data(GActionData.NAME))
+        action = {**self.workflow.action_call_dict, "__result__":self.workflow._result_call}.get(item.data(GActionData.NAME))
 
         if action is None:
             action = self.unconnected_actions.get(item.data(GActionData.NAME))
@@ -238,10 +238,10 @@ class Scene(GBaseModelScene):
                     for argument in action.arguments:
                         update_unconected(argument.value)
 
-                if action1 in self.workflow._action_calls.values():
+                if action1 in self.workflow.action_call_dict.values():
                     update_unconected(action1)
 
-                if action2 in self.workflow._action_calls.values():
+                if action2 in self.workflow.action_call_dict.values():
                     update_unconected(action2)
 
                 if port2.appending_port:
@@ -331,7 +331,7 @@ class Scene(GBaseModelScene):
             for argument in action.arguments:
                 put_all_actions_to_unconnected(argument.value)
 
-        if action1 not in self.workflow._action_calls:
+        if action1 not in self.workflow.action_call_dict:
             put_all_actions_to_unconnected(action1)
         conn.port1.connections.remove(conn)
         conn.port2.connections.remove(conn)
