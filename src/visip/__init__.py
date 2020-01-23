@@ -42,7 +42,9 @@ base_system_actions = [_Slot(),
                        dict.action,
                        _converter.GetAttribute(),
                        _converter.GetItem(), #GetKey()
-
+                       file_r.action,
+                       file_w.action,
+                       system.action
                        ]
 
 """

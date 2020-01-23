@@ -117,7 +117,7 @@ class _Workflow(base._ActionBase):
         return self._result_call
 
     @property
-    def name_to_action_call(self):
+    def action_call_dict(self):
         return {ac.name : ac for ac in self._action_calls}
 
     @property
@@ -236,7 +236,7 @@ class _Workflow(base._ActionBase):
         # Make dict: full_instance_name -> (format, [arg full names])
         inst_order = []
         inst_exprs = {}
-        name_to_action = self.name_to_action_call
+        name_to_action = self.action_call_dict
         for iname in self._sorted_calls:
             action_call = name_to_action[iname]
             full_name = action_call.get_code_instance_name()
@@ -415,7 +415,7 @@ class _Workflow(base._ActionBase):
         # TODO: fix connection of slots to inputs
         for slot, input in zip(self._slots, inputs):
             childs[slot.name] = input
-        name_to_action = self.name_to_action_call
+        name_to_action = self.action_call_dict
         for action_instance_name in self._sorted_calls:
             if action_instance_name not in childs:
                 action_instance = name_to_action[action_instance_name]

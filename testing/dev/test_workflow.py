@@ -51,7 +51,7 @@ def test_workflow_modification():
     ## ActionCall rename
     list_1.name ='list_2'
     assert list_1.name == 'list_2'
-    assert sorted(list(w.name_to_action_call.keys())) == ['__result__', 'a_slot', 'b_slot', 'list_2']
+    assert sorted(list(w.action_call_dict.keys())) == ['__result__', 'a_slot', 'b_slot', 'list_2']
 
 
     # unlink
