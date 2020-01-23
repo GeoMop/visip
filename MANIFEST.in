@@ -1,0 +1,2 @@
+recursive-include src/visip_gui *
+recursive-include src/visip *

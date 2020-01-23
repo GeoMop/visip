@@ -120,7 +120,7 @@ class ActionCall:
         check_type = param.type
         if param.type is None:
             return ActionArgument(param, value, is_default, ActionInputStatus.error_impl)
-        if dtype.is_constant(param.type):
+        if param.is_constant():
             if isinstance(value, Value):
                 check_type = param.type.inner_type()
             else:

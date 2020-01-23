@@ -14,7 +14,8 @@ import pytypes
 import itertools
 import inspect
 from . import tools
-from typing import Any, Union, List, Dict, Tuple, Generic, TypeVar, GenericMeta
+from typing import Any, Union, List, Dict, Tuple, Generic, TypeVar
+
 
 ############################# typing - undocumented interface ##################################
 

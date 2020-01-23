@@ -11,7 +11,7 @@ All underscored names are private
 """
 
 from .action.wrapped import *
-from .dev.action_workflow import _Slot as _Slot, _ResultCall as _Result
+from .dev.action_workflow import _Slot as _Slot, _Result as _Result
 from .action.constructor import Value as _Value
 from .action.std import file_r, file_w, File, Folder, system, SysFile, ExecResult
 from .code.decorators import workflow, analysis, action_def, Class
@@ -24,7 +24,7 @@ from typing import List
 # - wrapped actions, i.e. names used in workflow definitions
 #   e.g. list, dict, tuple, load_yaml
 #
-# - action instances, single instance for every base action class (used in following list and then in the frontend)
+# - action instances, single instance for every base action class (used in following list and then in the visip_gui)
 #   list.action, dict.action, tuple.action, load_yaml.action
 #
 # - action classes (internal use only)
@@ -35,8 +35,6 @@ from typing import List
 #
 # Can we treat all actions in visip module directly instead of using following special list?
 base_system_actions = [_Slot(),
-                       _Result(),
-                       _Value(None),   # can be deleted
                        list.action,
                        tuple.action,
                        dict.action,
