@@ -72,6 +72,10 @@ target/
 *.e4p
 *.e4m
 
+#pytest cache
+.pytest_cache/*
+**/.pytest_cache
+
 #Profiling files
 *.profile
 *.timings

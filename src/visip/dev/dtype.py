@@ -41,6 +41,8 @@ BasicType = Union[bool, int, float, complex, str]
 DataType = Union[BasicType, List['DataType'], Dict['DataType', 'DataType'], Tuple['DataType', ...], 'DataClassBase']
 # All valid data types that can be passed between VISIP actions.
 # TODO: check that all type check methods work with this definition.
+# ?? Can pytypes of typing inspect work with this recursive type definition.
+# We can possibly simplify code in wrap.unwrap_type.
 
 
 ConstantValueType = TypeVar('ConstantValueType')

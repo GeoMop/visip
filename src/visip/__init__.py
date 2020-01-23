@@ -13,6 +13,7 @@ All underscored names are private
 from .action.wrapped import *
 from .dev.action_workflow import _Slot as _Slot, _Result as _Result
 from .action.constructor import Value as _Value
+from .action.std import file_r, file_w, File, Folder, system, SysFile, ExecResult
 from .code.decorators import workflow, analysis, action_def, Class
 from visip.action import converter as _converter
 from typing import List
@@ -39,6 +40,9 @@ base_system_actions = [_Slot(),
                        dict.action,
                        _converter.GetAttribute(),
                        _converter.GetItem(), #GetKey()
+                       file_r.action,
+                       file_w.action,
+                       system.action
                        ]
 
 """
