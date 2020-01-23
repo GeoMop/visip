@@ -4,7 +4,7 @@ import typing
 from ..dev.base import _ActionBase
 from ..dev import dtype as dtype
 from ..dev.parameters import Parameters, ActionParameter
-
+from ..dev import data
 
 
 class Value(_ActionBase):
@@ -12,7 +12,7 @@ class Value(_ActionBase):
         super().__init__()
         self.value = value
 
-    def hash(self):
+    def action_hash(self):
         return data.hash(self.value)
 
     def _evaluate(self):
@@ -122,8 +122,13 @@ class ClassActionBase(_ActionBase):
     def __init__(self, data_class):
         super().__init__(data_class.__name__)
         self._data_class = data_class
+        # Attr.s dataclass
         self._module = self._data_class.__module__
+        # module where the data class is defined
+
         self._extract_input_type(func=data_class.__init__, skip_self=True)
+        # Initialize parameters of the action.
+
 
     @staticmethod
     def dataclass_from_params(name: str, params: Parameters, module=None):
@@ -180,3 +185,8 @@ class ClassActionBase(_ActionBase):
 
         return "\n".join(lines)
 
+    def action_hash(self):
+        a_hash = data.hash(self.name)
+        for param in self.parameters:
+            a_hash = data.hash(param.name, previous=a_hash)
+            a_hash = data.hash(param.name, previous=a_hash)

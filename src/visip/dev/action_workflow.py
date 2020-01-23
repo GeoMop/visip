@@ -79,6 +79,11 @@ class _Workflow(base._ActionBase):
     Represents a composed action.
     - Allows composition of the actions into a DAG
     - Is a child of _ActionBase, encapsulates its internal structure.
+    - All actions are kept in the self._action_calls set.
+    - action cals connected to the result are are topologicaly sorted in the 'update' method
+      and stored in correct order in self._sorted_calls.
+    - action_calls can be freely renamed as workflow makes name -> action_call dict only temporally
+      (the. name_to_action_call property)
     """
 
     def __init__(self, name):
@@ -100,7 +105,7 @@ class _Workflow(base._ActionBase):
         # Result action instance.
         self._slots = []
         # Definition of the workspace parameters ?
-        self._action_calls = {}
+        self._action_calls = set()
         # Dict:  unique action instance name -> action instance.
         self._sorted_calls = []
         # topologically sorted action instance names
@@ -110,6 +115,10 @@ class _Workflow(base._ActionBase):
     @property
     def result(self):
         return self._result_call
+
+    @property
+    def action_call_dict(self):
+        return {ac.name : ac for ac in self._action_calls}
 
     @property
     def slots(self):
@@ -138,11 +147,11 @@ class _Workflow(base._ActionBase):
         :param result_instance: the result action
         :return: True in the case of sucessfull update, False - detected cycle
         """
-        actions = {}
+        actions = set()
         topology_sort = []
         instance_names = {}
         # clear output_actions
-        for action in self._action_calls.values():
+        for action in self._action_calls:
             action.output_actions = []
 
         def construct_postvisit(action_call):
@@ -164,7 +173,7 @@ class _Workflow(base._ActionBase):
             # handle slots
             #if isinstance(action, Slot):
             #    assert action is self._slots[action.rank]
-            actions[action_call.name] = action_call
+            actions.add(action_call)
             topology_sort.append(action_call.name)
 
         # def edge_visit(previous, action, i_arg):
@@ -178,7 +187,7 @@ class _Workflow(base._ActionBase):
         self._action_calls = actions
         self._sorted_calls = topology_sort
         # set backlinks
-        for action in self._action_calls.values():
+        for action in self._action_calls:
             for i_arg, arg in enumerate(action.arguments):
                 if arg.value is not None:
                     arg.value.output_actions.append((action, i_arg))
@@ -193,7 +202,7 @@ class _Workflow(base._ActionBase):
         """
         :return: List of used actions (including workflows and converters).
         """
-        return [v.action_name() for v in self._action_calls.values()]
+        return [v.action_name() for v in self._action_calls]
 
     @attr.s(auto_attribs=True)
     class InstanceRepr:
@@ -227,8 +236,9 @@ class _Workflow(base._ActionBase):
         # Make dict: full_instance_name -> (format, [arg full names])
         inst_order = []
         inst_exprs = {}
+        name_to_action = self.action_call_dict
         for iname in self._sorted_calls:
-            action_call = self._action_calls[iname]
+            action_call = name_to_action[iname]
             full_name = action_call.get_code_instance_name()
             subst_prob = action_call.substitution_probability()
             code = action_call.code(representer, make_rel_name)
@@ -405,9 +415,10 @@ class _Workflow(base._ActionBase):
         # TODO: fix connection of slots to inputs
         for slot, input in zip(self._slots, inputs):
             childs[slot.name] = input
+        name_to_action = self.action_call_dict
         for action_instance_name in self._sorted_calls:
             if action_instance_name not in childs:
-                action_instance = self._action_calls[action_instance_name]
+                action_instance = name_to_action[action_instance_name]
                 arg_tasks = [childs[arg.value.name] for arg in action_instance.arguments]
                 childs[action_instance.name] = task_creator(action_instance.name, action_instance.action, arg_tasks)
         return childs

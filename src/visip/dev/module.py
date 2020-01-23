@@ -5,6 +5,7 @@ import traceback
 from typing import Callable
 from types import ModuleType
 
+from ..action import constructor
 from ..code import wrap
 from ..code.representer import Representer
 from . import base, action_workflow as wf, dtype as dtype
@@ -186,6 +187,24 @@ class Module:
         self.definitions.insert(pos, action)
         self._name_to_def[action.name] = action
 
+    def rename_definition(self, name:str, new_name: str) -> None:
+        """
+        Rename workflow or dataclass. Renaming other actions fails.
+        """
+        action = self.get_action(name)
+        if isinstance(action, wf._Workflow):
+            action.name = new_name
+            self._name_to_def[new_name] = action
+            del self._name_to_def[name]
+        elif isinstance(action, constructor.ClassActionBase):
+            action.name = new_name
+            self._name_to_def[new_name] = action
+            del self._name_to_def[name]
+        else:
+            assert False, "Only workflow and classes can be renamed."
+
+        #dclass._evaluate
+
 
     def relative_name(self, module, name):
         """
@@ -270,8 +289,12 @@ class Module:
         return self._name_to_def[name]
 
     def get_dataclass(self, name:str) -> Callable[..., dtype.DataClassBase]:
-        dclass = self._name_to_def[name]
-        return dclass._evaluate
+        """
+        ??? Not clear why this should exist.
+        """
+        assert False
+        #dclass = self._name_to_def[name]
+        #return dclass._evaluate
 
 """
 Object progression:

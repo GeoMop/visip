@@ -1,5 +1,7 @@
 import enum
+from . import data
 from .parameters import Parameters, extract_func_signature
+
 
 
 # Name for the first parameter of the workflow definiton function that is used
@@ -62,6 +64,17 @@ class _ActionBase:
         assert self._module
         return self._module
 
+    def action_hash(self):
+        """
+        Hash of values representing the action. Hash must be different if the action
+        produce different result for the same input.
+        TODO: Make generic implementation more general. Possibly replacing nearly all specializations.
+        - hash action parameters
+        - hash values of constant parameters
+        :return:
+        """
+        return data.hash(self.name)
+
 
     def _extract_input_type(self, func=None, skip_self=True):
         """
@@ -74,11 +87,6 @@ class _ActionBase:
         self.parameters, self.output_type = extract_func_signature(func, skip_self)
         pass
 
-    # def hash(self):
-    #     """
-    #     Hash of the atomic action. Should be unique for the particular Action instance.
-    #     """
-    #     return data.hash(self.name)
 
 
     def evaluate(self, inputs):

@@ -1,9 +1,10 @@
 numpy==1.12.0
 PyQt5
+indexed.py
 attrs
 pytypes
 pytest
-pyqtgraph # used for property editor
+ruamel.yaml
 
 # pip3
 # setuptools
