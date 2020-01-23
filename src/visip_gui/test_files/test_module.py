@@ -26,3 +26,13 @@ def test_analysis(self):
     self.extract = self.list[1]
     list_0 = [self.tuple, self.point, self.extract]
     return list_0
+
+@wf.workflow
+def system_test_wf(self, script_name: str):
+    script = wf.file_r(script_name)
+    self.res = wf.system(
+        ['echo', "Hallo world"],
+        stdout=wf.file_w('msg_file.txt'))
+    self.msg_file = wf.file_r('msg_file.txt', self.res.workdir)
+    self.res = wf.system(['python', script, "-m", self.msg_file, 123], stdout=wf.SysFile.PIPE, stderr=wf.SysFile.STDOUT)
+    return self.res

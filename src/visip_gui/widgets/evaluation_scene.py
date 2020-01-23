@@ -41,7 +41,7 @@ class EvaluationScene(GBaseModelScene):
     def initialize_scene_from_workflow(self, workflow):
         self._clear_actions()
         self.workflow = workflow
-        for action_name in {**self.workflow._action_calls, "__result__": self.workflow._result_call}:
+        for action_name in {**self.workflow.action_call_dict, "__result__": self.workflow._result_call}:
             self._add_action(QPoint(0.0, 0.0), action_name)
 
         self.update_scene()
@@ -50,7 +50,7 @@ class EvaluationScene(GBaseModelScene):
         #self.parent().center_on_content = True
 
     def draw_action(self, item):
-        action = {**self.workflow._action_calls, "__result__":self.workflow._result_call}.get(item.data(GActionData.NAME))
+        action = {**self.workflow.action_call_dict, "__result__":self.workflow._result_call}.get(item.data(GActionData.NAME))
 
         if action is None:
             action = self.unconnected_actions.get(item.data(GActionData.NAME))
