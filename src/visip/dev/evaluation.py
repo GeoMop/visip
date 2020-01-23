@@ -10,7 +10,8 @@ Evaluation of a workflow.
     relay on equality of the data if the hashes are equal.
 4. Tasks are assigned to the resources by scheduler,
 """
-from typing import List
+import os
+from typing import List, Dict, Tuple, Any, Union
 import attr
 import heapq
 import numpy as np
@@ -19,6 +20,8 @@ import time
 from . import data, task as task_mod, base, dfs,  dtype as dtype, action_instance as instance
 from .action_workflow import _Workflow
 from ..action.constructor import Value
+from ..eval.cache import ResultCache
+from ..code import wrap
 
 class Resource:
     """
@@ -46,6 +49,9 @@ class Resource:
         # Maximal number of MPI processes one can assign.
         self._finished = []
 
+
+        self.cache = ResultCache()
+
     # def assign_task(self, task, i_thread=None):
     #     """
     #     Just evaluate tthe task immediately.
@@ -71,23 +77,29 @@ class Resource:
         is_ready = task.is_ready()
         assert task.status >= task_mod.Status.ready
         if is_ready:
-            task.evaluate()
+            # hash of action and inputs
+            # TODO: move into task
+            task_hash = task.action_hash()
+            for input in task.inputs:
+                task_hash = data.hash(input.result_hash, previous=task_hash)
+
+            # Check result cache
+
+            res_value = self.cache.value(task_hash)
+            if res_value is self.cache.NoValue:
+                assert task.is_ready()
+                result = task.evaluate_fn()
+                data_inputs = [input.result for input in task.inputs]
+                res_value = result(data_inputs)
+                # print(task.action)
+                # print(task.inputs)
+                # print(task_hash, res_value)
+                self.cache.insert(task_hash, res_value)
+
+            task.finish(result=res_value, task_hash=task_hash)
             self._finished.append(task)
-            #self._evaluate(task)
 
-    def _evaluate(self, task):
-        """
-        Evaluate the task using the input from the input tasks.
-        :return:
-        """
 
-        input_data_hash = input_data.hash()
-        if self._last_input_hash and self._last_input_hash == input_data_hash:
-            return self._result
-        else:
-            self._result = action.evaluate(input_data)
-            self._last_input_hash = input_data_hash
-        return self._result
 
 
 
@@ -212,23 +224,22 @@ class Result:
 
 
 
-
-class ResultDB:
+class change_cwd:
     """
-    Simple result database.
-    For an input hash find result, its environment and runtime, and result hash.
+    Context manager that change CWD, to given relative or absolute path.
     """
-    def __init__(self):
-        self.result_dict = {}
+    def __init__(self, path: str):
+        self.path = path
+        self.orig_cwd = ""
 
+    def __enter__(self):
+        if self.path:
+            self.orig_cwd = os.getcwd()
+            os.chdir(self.path)
 
-    def get_result(self, input_hash):
-        return self.result_dict.get(input_hash, None)
-
-
-    def store_result(self, result: Result):
-        input_hash = hash_fn(result.input)
-        self.result_dict[input_hash] = result
+    def __exit__(self, exc_type, exc_value, traceback):
+        if self.orig_cwd:
+            os.chdir(self.orig_cwd)
 
 
 class Evaluation:
@@ -295,7 +306,6 @@ class Evaluation:
         """
         self.resources = [ Resource() ]
         self.scheduler = Scheduler(self.resources)
-        self.result_db = ResultDB()
 
         self.final_task = task_mod._TaskBase._create_task(None, '__root__', analysis, [])
 
@@ -327,7 +337,7 @@ class Evaluation:
         :return:
         """
         if task.is_finished():
-            task.eval_time = task._end_time - task._start_time
+            task.eval_time = task.end_time - task.start_time
         else:
             task.time_estimate = 1
 
@@ -343,21 +353,25 @@ class Evaluation:
         """
         return []
 
-    def execute(self, assigned_tasks_limit = np.inf, process_tasks = np.inf):
+    def execute(self, assigned_tasks_limit = np.inf,
+                process_tasks = np.inf,
+                workspace: str = ".") -> task_mod._TaskBase:
         """
         Execute the workflow.
         :return:
         """
-        invalid_connections = self.validate_connections(self.final_task.action)
-        if invalid_connections:
-            raise Exception(invalid_connections)
-        while not self.force_finish:
-            schedule = self.expand_tasks(assigned_tasks_limit)
-            self.tasks_update(schedule)
-            self.scheduler.update()
-            self.scheduler.optimize()
-            if  self.scheduler.n_assigned_tasks == 0:
-                self.force_finish = True
+        os.makedirs(workspace, exist_ok=True)
+        with change_cwd(workspace):
+            invalid_connections = self.validate_connections(self.final_task.action)
+            if invalid_connections:
+                raise Exception(invalid_connections)
+            while not self.force_finish:
+                schedule = self.expand_tasks(assigned_tasks_limit)
+                self.tasks_update(schedule)
+                self.scheduler.update()
+                self.scheduler.optimize()
+                if  self.scheduler.n_assigned_tasks == 0:
+                    self.force_finish = True
         return self.final_task
 
 
@@ -391,8 +405,21 @@ class Evaluation:
 
 
 
-    def extract_input(self):
-        input_data = List(*[i._result for i in self._inputs])
+    # def extract_input(self):
+    #     input_data = List(*[i._result for i in self._inputs])
 
 
-
+def run(action: Union[base._ActionBase, wrap.ActionWrapper],
+        inputs:List[dtype.DataType] = None,
+        **kwargs) -> task_mod._TaskBase:
+    """
+    Run the 'action' with given arguments 'inputs'.
+    Return resulting task.
+    """
+    if isinstance(action, wrap.ActionWrapper):
+        action = action.action
+    if inputs is None:
+        inputs = []
+    analysis = Evaluation.make_analysis(action, inputs)
+    eval_obj = Evaluation(analysis)
+    return eval_obj.execute(**kwargs)

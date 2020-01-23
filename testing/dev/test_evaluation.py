@@ -2,6 +2,7 @@ import pytest
 import os
 
 from visip.dev import evaluation, task, module
+from visip.code import decorators
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -44,5 +45,29 @@ def test_evaluation(src_file):
     assert test_wf_task.child('b').result.x == 2
     assert test_wf_task.child('b').result.y == 3
 
+global_n_calls = 0
+
+@decorators.action_def
+def count_calls(a: int):
+    global global_n_calls
+    global_n_calls += 1
+    return 2 * a
 
 
+@decorators.analysis
+def make_calls(self):
+    return [
+        count_calls(0),
+        count_calls(1),
+        count_calls(0)]
+
+
+def test_action_skipping():
+    """
+    Test skipping already performed actions. Currently only within single
+    evaluation.
+    :return:
+    """
+    result = evaluation.run(make_calls)
+    assert len(result.result) == 3
+    assert global_n_calls == 2

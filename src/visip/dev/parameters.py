@@ -3,6 +3,7 @@ from typing import *
 import inspect
 
 from . import dtype
+from . import data
 
 class NoDefault:
     """
@@ -56,6 +57,16 @@ class ActionParameter:
         else:
             return False, None
 
+    def hash(self):
+        p_hash = data.hash(self.name)
+        # TODO: possibly remove type spec from hashing, as it doesn't influance evaluation
+        p_hash = data.hash(str(self.type), previous=p_hash)
+        p_hash = data.hash(self.default, previous=p_hash)
+        p_hash = data.hash(self._idx, previous=p_hash)
+        p_hash = data.hash(self.config_param, previous=p_hash)
+        return p_hash
+
+
     def is_constant(self):
         return dtype.is_constant(self.type)
 
@@ -64,7 +75,7 @@ class Parameters:
     # For convenience when operating on the Parameters instance.
 
     def __init__(self):
-        self.parameters = []
+        self.parameters: List[ActionParameter] = []
         # List of Action Parameters
         self._name_dict = {}
         # Map names to parameters.

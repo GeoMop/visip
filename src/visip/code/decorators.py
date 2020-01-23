@@ -1,3 +1,5 @@
+import enum
+import inspect
 from ..code import dummy, wrap
 from ..dev import base
 from ..dev import action_workflow as wf
@@ -32,7 +34,7 @@ def workflow(func):
     param_names = [param.name for param in params]
     func_args = []
     variables = _Variables()
-    if param_names[0] == 'self':
+    if param_names and param_names[0] == 'self':
         func_args.append(variables)
         param_names = param_names[1:]
 
@@ -81,6 +83,9 @@ def Class(data_class):
     dataclass_action = constructor.ClassActionBase.construct_from_params(data_class.__name__, params, module=data_class.__module__)
     return wrap.public_action(dataclass_action)
 
+def Enum(enum_cls):
+    items = {key: val for key,val in inspect.getmembers(enum_cls) if not key.startswith("__") and not key.endswith("__")}
+    return enum.IntEnum(enum_cls.__name__, items)
 
 
 def action_def(func):
@@ -92,6 +97,9 @@ def action_def(func):
     action_name = func.__name__
     action = base._ActionBase(action_name)
     action._evaluate = func
+    action._extract_input_type()
     return wrap.public_action(action)
+
+
 
 
