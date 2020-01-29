@@ -1,4 +1,6 @@
-from visip import dev
+import typing
+
+from visip import dev, wrap
 from visip.dev import dtype
 import visip.action as action
 
@@ -18,7 +20,7 @@ def test_type_inspection():
     assert dtype.get_generic_args(X) is None
     assert dtype.get_generic_args(dtype.List[bool]) == (bool,)
     assert dtype.get_generic_args(dtype.Dict[int, float]) == (int, float)
-    assert dtype.get_generic_args(dtype.Constant[dtype.List[int]]) == (dtype.List[int], )
+    assert dtype.get_generic_args(dtype.Constant[dtype.List[int]]) == (dtype.List[int],)
 
 
 def test_data_class_base():
@@ -35,6 +37,7 @@ def test_data_class_base():
     serialized = yaml.dump(my_instance)
     # assert serialized == "!my_module.my_class {x: 3, y: 7}"
 
+
 def test_config_generic():
     def get_attr(
             key: dtype.Constant[str],
@@ -49,7 +52,6 @@ def test_config_generic():
     assert key_type.inner_type() is str
 
 
-
 def test_is_base_type():
     assert dtype.is_base_type(int)
     assert dtype.is_base_type(float)
@@ -58,33 +60,41 @@ def test_is_base_type():
     assert not dtype.is_base_type(dtype.List)
     assert not dtype.is_base_type(dtype.DataClassBase)
 
+
 class Point2d(dtype.DataClassBase):
-    x:float
-    y:float
+    x: float
+    y: float
+
 
 class Point3d(Point2d):
-    z:float
+    z: float
 
 
 def test_is_subtype():
-    #assert dtype.is_subtype(Point2d, dtype.DataType)
+    # assert dtype.is_subtype(Point2d, dtype.DataType)
     assert dtype.is_subtype(Point2d, dtype.DataClassBase)
     assert dtype.is_subtype(Point3d, Point2d)
 
 
-
-
-
 class A:
     pass
+
+
 class B(A):
     pass
+
+
 class C(A):
     pass
+
+
 class D(B):
     pass
+
+
 class E(B):
     pass
+
 
 def test_closest_common_ancestor():
     cca = dtype.closest_common_ancestor
@@ -92,3 +102,8 @@ def test_closest_common_ancestor():
     assert cca(C, D) is A
     assert cca(A, B) is A
     assert cca(A, int) is object
+
+
+def test_unwrap_type():
+    type_hint = wrap.unwrap_type(typing.List[int])
+    print(type_hint)

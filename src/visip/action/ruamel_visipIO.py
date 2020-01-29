@@ -113,9 +113,10 @@ def deep_convert_dict(layer):
         except AttributeError:
             pass
     elif isinstance(layer, ruamel.yaml.comments.CommentedSeq):
-        to_ret = list(layer)
+        to_ret = []
         try:
-            to_ret = deep_convert_dict(to_ret)
+            for elem in layer:
+                to_ret.append(deep_convert_dict(elem))
         except AttributeError:
             pass
 

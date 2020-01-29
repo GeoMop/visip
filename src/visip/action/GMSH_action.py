@@ -3,11 +3,11 @@ from typing import Dict, List, Tuple, Optional
 from bgem.gmsh import gmsh_io
 
 # from visip import action_def
-from src.visip.code.decorators import Class
+# from src.visip.code.decorators import Class
 
 
-# from ..code.decorators import action_def
-# from ..code.decorators import Class
+from ..code.decorators import action_def
+from ..code.decorators import Class
 
 
 @Class
@@ -28,7 +28,7 @@ class Element:
     region_id: int = 0
     shape_id: Optional[int] = 0
     partition_id: Optional[int] = 0
-    nodes: List = []
+    nodes: List[int] = []
 
     # tags: [region_id, shape_id, partition_id]
 
