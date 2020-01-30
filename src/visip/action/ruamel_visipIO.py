@@ -7,13 +7,15 @@ import ruamel.yaml
 from ruamel.yaml.compat import ordereddict
 from ruamel.yaml.scalarstring import walk_tree, preserve_literal, SingleQuotedScalarString
 
-from src.visip.code.decorators import Class, action_def
+# from src.visip.code.decorators import Class, action_def
+
+from ..code.decorators import action_def
 
 yaml = ruamel.yaml.YAML(typ='rt')
 
 
 @yaml.register_class
-class MyMap(ruamel.yaml.comments.CommentedMap):
+class CustomTag(ruamel.yaml.comments.CommentedMap):
     def __init__(self, tag):
         ruamel.yaml.comments.CommentedMap.__init__(self)
         self._tag = tag
@@ -44,7 +46,7 @@ def construct_any_tag(self, tag_suffix, node):
     else:
         orig_tag = "!" + tag_suffix
     if isinstance(node, ruamel.yaml.nodes.MappingNode):
-        data = MyMap(orig_tag)
+        data = CustomTag(orig_tag)
         yield data
         state = ruamel.yaml.constructor.SafeConstructor.construct_mapping(self, node, deep=True)
         data.update(state)
@@ -64,12 +66,12 @@ def get_yaml_serializer():
     return yaml
 
 
-# @action_def
-def load_yaml(path) -> MyMap:
+@action_def
+def load_yaml(path) -> CustomTag:
     yml = get_yaml_serializer()
     with open(path, 'r') as stream:
         data = yml.load(stream)
-
+    #volat deep_convert na dict??
     return data
 
 
@@ -87,8 +89,8 @@ def write_yaml(data, path) -> str:
 # data = yaml.load(yaml_str)
 # yaml.dump(data, sys.stdout)
 
-path = "D:\\Git\\visip_fork\\visip\\testing\\action\\test_yamls\\flow_input.yaml"
-data = load_yaml(path)
+# path = "D:\\Git\\visip_fork\\visip\\testing\\action\\test_yamls\\flow_input.yaml"
+# data = load_yaml(path)
 
 
 # print(type(data))
@@ -99,13 +101,9 @@ data = load_yaml(path)
 def deep_convert_dict(layer):
     to_ret = layer
     if isinstance(layer, collections.OrderedDict):
-        if isinstance(layer, MyMap):
-            # print(layer.get_tag)
+        if isinstance(layer, CustomTag):
             to_ret.update({'_class_': layer.get_class_name})
             to_ret.update({'_module_': layer.get_module})
-        # elif isinstance(layer, ruamel.yaml.comments.CommentedMap):
-        #     print(layer)
-        #     print('_')
         to_ret = dict(layer)
         try:
             for key, value in to_ret.items():
@@ -123,9 +121,9 @@ def deep_convert_dict(layer):
     return to_ret
 
 
-trans = deep_convert_dict(data)
-print(trans)
-print(list(trans))
+# trans = deep_convert_dict(data)
+# print(trans)
+# print(list(trans))
 # print(type(trans['problem']['flow_equation']['input_fields']))
 # print(type(trans))
 
@@ -138,7 +136,7 @@ print(list(trans))
 #     for idx, values in node.items():
 #         ndict[idx] = values
 #         ndict['children'] = []
-#         if isinstance(values, MyMap) or isinstance(values, ruamel.yaml.comments.CommentedMap):
+#         if isinstance(values, CustomTag) or isinstance(values, ruamel.yaml.comments.CommentedMap):
 #             for idx, child in enumerate(values.items()):
 #                 child_dict = {}
 #                 dfs(child, child_dict)
