@@ -45,11 +45,11 @@ class Element:
     #     self._nodes = nodes
 
 
-@Class
-class MeshGMSH:
-    nodes: Dict[int, Point] = None
-    elements: Dict[int, Element] = None
-    regions: Dict[str, Tuple[int, int]] = None
+# @Class
+# class MeshGMSH:
+    # nodes: Dict[int, Point] = None # No code representation for the type: typing.Dict[int, <visip.code.wrap.ActionWrapper object at 0x000001E037504780>]
+    # elements: Dict[int, Element] = None # No code representation for the type: typing.Dict[int, <visip.code.wrap.ActionWrapper object at 0x000001E037504780>]
+    # regions: Dict[str, Tuple[int, int]] = None # stejný error
 
 
 # def __init__(self, nodes: Dict[int, Point], elements: Dict[int, Element], regions: Dict[str, Tuple[int, int]]):
@@ -58,7 +58,7 @@ class MeshGMSH:
 #     self._regions = regions
 
 
-# @action_def
+@action_def
 def GMSH_reader(path):
     reader = gmsh_io.GmshIO(path)
     reader.read()
@@ -77,10 +77,10 @@ def GMSH_reader(path):
         print(element)
         elements[idx] = Element(type_id=element[0], dim=None)  # , tags=element[1], nodes=element[2])
 
-    my_Mesh = MeshGMSH(points, elements, reader.physical)
+    # my_Mesh = MeshGMSH(points, elements, reader.physical)
     # print(my_Mesh)
-    return my_Mesh
-
+    # return my_Mesh
+    return elements
 
 # path = "D:\\Git\\muj_PyBS\\PyBS\\tests\\gmsh\\complex\\meshes\\random_fractures_01.msh"
 # GMSH_reader(path)
