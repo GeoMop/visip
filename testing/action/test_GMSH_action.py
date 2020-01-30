@@ -9,7 +9,7 @@ from visip.action.constructor import ClassActionBase
 from visip.code import decorators as wf
 from visip.code import wrap
 
-from visip.action.GMSH_action import Point, Element, GMSH_reader  # , MeshGMSH
+from visip.action.GMSH_action import Point, Element, GMSH_reader, MeshGMSH
 
 
 def test_GMSH_Point():
@@ -33,7 +33,14 @@ def test_GMSH_Element():
     assert params[5].name == 'nodes' and params[5].type == typing.List[int]
 
 
+def test_GMSH_Mesh():
+    mesh_wrap = MeshGMSH
+    mesh_action = mesh_wrap.action
+    params = list(mesh_action.parameters)
+    assert params
+
+
 @pytest.mark.parametrize('file', ['D:\\Git\\muj_PyBS\\PyBS\\tests\\gmsh\\complex\\meshes\\random_fractures_01.msh'])
 def test_GMSH_reader(file):
-    reader = GMSH_reader(file)
+    reader = GMSH_reader(file).action
     print(reader)
