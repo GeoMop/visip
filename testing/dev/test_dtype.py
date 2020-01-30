@@ -1,8 +1,9 @@
 from visip import dev
-from visip.dev import dtype
+from visip.dev import dtype, evaluation
 import visip.action as action
 from visip.code import wrap
 import typing
+import visip as wf
 
 import ruamel.yaml as yaml
 
@@ -73,7 +74,17 @@ def test_is_subtype():
     assert dtype.is_subtype(Point2d, dtype.DataClassBase)
     assert dtype.is_subtype(Point3d, Point2d)
 
+@wf.Class
+class Point:
+    x:float
+    y: float
 
+@wf.Class
+class Complex:
+    p_dict: typing.Dict[int, Point]
+
+def test_type_hint_unwrapping():
+    res = evaluation.run(Complex, [{1:Point(2,3)}])
 
 
 

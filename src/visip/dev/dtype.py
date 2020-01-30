@@ -26,7 +26,8 @@ def get_generic_args(generic_type):
     :param xtype: A type hint.
     :return: Tuple of types that are parameters of the input generic type.
     """
-    # TODO: better check for generic types.
+    # TODO: better check for generic types. type_inspect is used in type_unwrap function
+
     if hasattr(generic_type, '__args__'):
         return generic_type.__args__
     else:
@@ -106,7 +107,10 @@ def is_base_type(xtype):
 
 
 def is_subtype(xtype, type_spec):
-    return pytypes.is_subtype(xtype, type_spec)
+    try:
+        return pytypes.is_subtype(xtype, type_spec)
+    except:
+        return False
 
 
 def closest_common_ancestor(*cls_list):

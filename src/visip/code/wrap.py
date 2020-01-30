@@ -66,6 +66,13 @@ def unwrap_type(type_hint):
             assert len(type_args) == 1
             item_type = type_args[0]
             return typing.List[unwrap_type(item_type)]
+        if type_name == 'Dict':
+            type_args = ti.get_args(type_hint)
+            assert len(type_args) == 2
+            key_type = type_args[0]
+            item_type = type_args[1]
+            return typing.Dict[unwrap_type(key_type), unwrap_type(item_type)]
+
         else:
             assert False, "No code representation for the type: {}".format(type_hint)
 
