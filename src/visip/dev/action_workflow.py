@@ -15,7 +15,10 @@ Implementation of the Workflow composed action.
 
 
 class _Slot(base._ActionBase):
-    pass
+    def __init__(self):
+        super().__init__("_Slot")
+        self._parameters = Parameters()
+        self._output_type = Any
 
 class _SlotCall(ActionCall):
     def __init__(self, slot_name):
@@ -52,10 +55,10 @@ class _Result(_ListBase):
     """
     def __init__(self):
         super().__init__(action_name='result')
-        self.parameters = Parameters()
-        self.parameters.append(ActionParameter(name="result", type=Any, default=ActionParameter.no_default))
+        self._parameters = Parameters()
+        self._parameters.append(ActionParameter(name="result", type=Any, default=ActionParameter.no_default))
         # The return value, there should be always some return value, as we want to use "functional style".
-        self.parameters.append(ActionParameter(name=None, type=Any, default=ActionParameter.no_default))
+        self._parameters.append(ActionParameter(name=None, type=Any, default=ActionParameter.no_default))
         # The "side effects" of the workflow.
 
 
@@ -130,7 +133,7 @@ class _Workflow(base._ActionBase):
         """
         self._slots = slots
         self._result_call.set_single_input(0, output_action)
-        self._result_call.action.output_type = output_type
+        self._result_call.action._output_type = output_type
 
         is_dfs = self.update(self._result_call)
         assert is_dfs
@@ -387,12 +390,12 @@ class _Workflow(base._ActionBase):
         Update outer interface: parameters and result_type according to slots and result actions.
         TODO: Check and set types.
         """
-        self.parameters = Parameters()
+        self._parameters = Parameters()
         for i_param, slot in enumerate(self._slots):
             slot_expected_types = [a.arguments[i_arg].parameter.type  for a, i_arg in slot.output_actions]
             common_type = None #types.closest_common_ancestor(slot_expected_types)
             p = ActionParameter(slot.name, common_type)
-            self.parameters.append(p)
+            self._parameters.append(p)
 
 
     def expand(self, inputs, task_creator):

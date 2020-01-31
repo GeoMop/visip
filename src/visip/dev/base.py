@@ -42,18 +42,18 @@ class _ActionBase:
     - implement expansion to the Task DAG.
     - have _code representation
     """
-    def __init__(self, action_name = None ):
+    def __init__(self, action_name = None):
         self.task_type = TaskType.Atomic
         self.is_analysis = False
         self.name = action_name or self.__class__.__name__
         self._module = "wf"
         # Module where the action is defined.
-        self.parameters = Parameters()
+        self._parameters = None
         # Parameter specification list, class attribute, no parameters by default.
-        self.output_type = None
+        self._output_type = None
         # Output type of the action, class attribute.
         # Both _parameters and _outputtype can be extracted from type annotations of the evaluate method using the _extract_input_type.
-        self._extract_input_type()
+
 
     @property
     def module(self):
@@ -76,17 +76,34 @@ class _ActionBase:
         return data.hash(self.name)
 
 
-    def _extract_input_type(self, func=None, skip_self=True):
+    def _extract_input_type(self, func=None, skip_self=True) -> None:
         """
         Extract input and output types of the action from its evaluate method.
         Only support fixed numbeer of parameters named or positional.
         set: cls._input_type, cls._output_type
         """
+        if self._parameters is not None:
+            return
         if func is None:
             func = self._evaluate
-        self.parameters, self.output_type = extract_func_signature(func, skip_self)
-        pass
+        self._parameters, self._output_type = extract_func_signature(func, skip_self)
+        self.check_type_annotations()
 
+    def check_type_annotations(self):
+        for param in self.parameters:
+            assert param.type is not None, "Missing type annotation, param: {}, action: {}".format(param.name, self.name)
+        assert self.output_type is not None, "Missing return type annotation, action: {}".format(self.name)
+
+    @property
+    def output_type(self):
+        self._extract_input_type()
+        return self._output_type
+
+
+    @property
+    def parameters(self):
+        self._extract_input_type()
+        return self._parameters
 
 
     def evaluate(self, inputs):

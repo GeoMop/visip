@@ -3,7 +3,7 @@ import typing
 
 from ..dev.base import _ActionBase
 from ..dev import dtype as dtype
-from ..dev.parameters import Parameters, ActionParameter
+from ..dev.parameters import Parameters, ActionParameter, extract_func_signature
 from ..dev import data
 
 
@@ -15,7 +15,7 @@ class Value(_ActionBase):
     def action_hash(self):
         return data.hash(self.value)
 
-    def _evaluate(self):
+    def _evaluate(self) -> typing.Any:
         return self.value
 
     def format(self, representer, action_name, arg_names, arg_values):
@@ -52,10 +52,11 @@ class _ListBase(_ActionBase):
 
     def __init__(self, action_name):
         super().__init__(action_name)
-        self.parameters = Parameters()
-        self.parameters.append(
+        self._parameters = Parameters()
+        self._parameters.append(
             ActionParameter(name=None, type=typing.Any,
                                        default=ActionParameter.no_default))
+        self._output_type = typing.Any
 
 
 class A_list(_ListBase):
@@ -65,7 +66,7 @@ class A_list(_ListBase):
     def format(self, representer, action_name, arg_names, arg_values):
         return representer.list("[", "]", [(None, arg) for arg in arg_names])
 
-    def evaluate(self, inputs):
+    def evaluate(self, inputs) -> typing.Any:
         return list(inputs)
 
 
@@ -80,17 +81,18 @@ class A_tuple(_ListBase):
     def format(self, representer, action_name, arg_names, arg_values):
         return representer.list("(", ")", [(None, arg) for arg in arg_names])
 
-    def evaluate(self, inputs):
+    def evaluate(self, inputs) -> typing.Any:
         return tuple(inputs)
 
 
 class A_dict(_ActionBase):
     def __init__(self):
         super().__init__(action_name='dict')
-        self.parameters = Parameters()
-        self.parameters.append(
+        self._parameters = Parameters()
+        self._parameters.append(
             ActionParameter(name=None, type=typing.Tuple[typing.Any, typing.Any],
                             default=ActionParameter.no_default))
+        self._output_type = typing.Any
 
     def format(self, representer, action_name, arg_names, arg_values):
         # TODO: dict as action_name with prefix
@@ -99,8 +101,8 @@ class A_dict(_ActionBase):
 
         return _ActionBase.format(self, representer, action_name, arg_names, arg_values)
 
-    def evaluate(self, inputs):
-        return { key: val for key, val in inputs}
+    def evaluate(self, inputs) -> typing.Any:
+        return {key: val for key, val in inputs}
         #item_pairs = ( (key, val) for key, val in inputs)
         #return dict(item_pairs)
 
@@ -126,7 +128,8 @@ class ClassActionBase(_ActionBase):
         self._module = self._data_class.__module__
         # module where the data class is defined
 
-        self._extract_input_type(func=data_class.__init__, skip_self=True)
+        self._parameters, _ = extract_func_signature(data_class.__init__, skip_self=True)
+        self._output_type = data_class
         # Initialize parameters of the action.
 
 

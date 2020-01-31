@@ -13,7 +13,7 @@ def read_file(input: wf.File) -> int:
 MY_FILE = "my_file.txt"
 WORKSPACE = "_workspace"
 @wf.analysis
-def my_file_count():
+def my_file_count() -> None:
     return read_file(wf.file_r(MY_FILE, workspace=WORKSPACE))
 
 def test_file():
@@ -22,13 +22,13 @@ def test_file():
     with open(os.path.join(WORKSPACE, MY_FILE), "w") as f:
         f.write("one\ntwo\nthree")
     result = evaluation.run(my_file_count)
-    print(result.result)
-    assert result.result == 3
+    print(result)
+    assert result == 3
 
 
 
 @wf.workflow
-def system_test_wf(self, script_name: str):
+def system_test_wf(self, script_name: str)  -> wf.ExecResult:
     script = wf.file_r(script_name)
     self.res = wf.system(
         ['echo', "Hallo world"],
@@ -50,7 +50,9 @@ def test_system():
     print("Root workspace: ", os.getcwd())
     script_name = "_mock_script_test_system.py"
     result = evaluation.run(system_test_wf, [script_name], workspace=script_dir)
-    assert result.result.stdout == b"I'm here.\n"
+    assert result.stdout == b"I'm here.\n"
+
+
 
 
 def test_file_action_skipping():

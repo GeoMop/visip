@@ -422,4 +422,4 @@ def run(action: Union[base._ActionBase, wrap.ActionWrapper],
         inputs = []
     analysis = Evaluation.make_analysis(action, inputs)
     eval_obj = Evaluation(analysis)
-    return eval_obj.execute(**kwargs)
+    return eval_obj.execute(**kwargs).result
