@@ -1,6 +1,6 @@
 import enum
 import attr
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Optional
 from . import base
 from .parameters import ActionParameter
 from ..action.constructor import Value
@@ -21,7 +21,7 @@ class ActionInputStatus(enum.IntEnum):
 @attr.s(auto_attribs=True)
 class ActionArgument:
     parameter: ActionParameter
-    value: 'base._ActionBase' = None
+    value: Optional['base._ActionBase'] = None
     is_default: bool = False
     status: ActionInputStatus = ActionInputStatus.missing
 
@@ -94,13 +94,13 @@ class ActionCall:
     def action_name(self):
         return self.action.name
 
-    def make_argument(self, param, value):
+    def make_argument(self, param, value: Optional['ActionCall']):
         """
         Make ActionArgument from the ActionParameter and a value or ActionCall.
         - possibly get default value
         - check result type of ActionCall
         :param param:
-        :param value:
+        :param value: ActionCall connected to this argument
         :return:
         """
 
