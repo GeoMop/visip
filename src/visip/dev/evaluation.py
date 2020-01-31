@@ -22,6 +22,7 @@ from .action_workflow import _Workflow
 from ..action.constructor import Value
 from ..eval.cache import ResultCache
 from ..code import wrap
+from . import tools
 
 class Resource:
     """
@@ -224,22 +225,6 @@ class Result:
 
 
 
-class change_cwd:
-    """
-    Context manager that change CWD, to given relative or absolute path.
-    """
-    def __init__(self, path: str):
-        self.path = path
-        self.orig_cwd = ""
-
-    def __enter__(self):
-        if self.path:
-            self.orig_cwd = os.getcwd()
-            os.chdir(self.path)
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if self.orig_cwd:
-            os.chdir(self.orig_cwd)
 
 
 class Evaluation:
@@ -277,7 +262,7 @@ class Evaluation:
         :param inputs:
         :return: a bind workflow instance
         """
-        assert action.parameters.is_variadic() or len(inputs) == action.parameters.size()
+        #assert action.parameters.is_variadic() or len(inputs) == action.parameters.size()
         bind_name = 'all_bind_' + action.name
         workflow = _Workflow(bind_name)
 
@@ -361,7 +346,7 @@ class Evaluation:
         :return:
         """
         os.makedirs(workspace, exist_ok=True)
-        with change_cwd(workspace):
+        with tools.change_cwd(workspace):
             invalid_connections = self.validate_connections(self.final_task.action)
             if invalid_connections:
                 raise Exception(invalid_connections)

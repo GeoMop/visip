@@ -107,7 +107,15 @@ class ActionWrapper:
         # action_instance.set_metadata(private_args)
         return dummy.Dummy.wrap(action_instance)
 
-
+    def call(self,  *args):
+        """
+        Call an action from an action_def, i.e. regular Python function.
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        # TODO: assert for arguments types
+        return self.action.evaluate(args)
 
 def public_action(action):
     """
