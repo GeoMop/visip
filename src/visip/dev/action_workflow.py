@@ -40,7 +40,7 @@ class _SlotCall(ActionCall):
     def substitution_probability(self):
         return 1.0
 
-    def code(self, representer, module_dict):
+    def code(self, representer):
         return None
 
 class _Result(_ListBase):
@@ -221,7 +221,7 @@ class _Workflow(base._ActionBase):
             else:
                 return self.subst_prob
     
-    def code_of_definition(self, representer, make_rel_name):
+    def code_of_definition(self, representer):
         """
         Represent workflow by its source.
         :return: list of lines containing representation of the workflow as a decorated function.
@@ -244,7 +244,7 @@ class _Workflow(base._ActionBase):
             action_call = name_to_action[iname]
             full_name = action_call.get_code_instance_name()
             subst_prob = action_call.substitution_probability()
-            code = action_call.code(representer, make_rel_name)
+            code = action_call.code(representer)
             if code:
                 inst_repr = self.InstanceRepr(code, subst_prob)
                 for name in code.placeholders:

@@ -1,7 +1,7 @@
 import typing_inspect as ti
 from ..dev import dtype as dtype
 from . import formating
-
+from ..dev import parameters
 
 class Representer:
     """
@@ -10,8 +10,9 @@ class Representer:
     It is passed to the particular action representation
     methods as parameter.
     """
-    def __init__(self):
-        pass
+    def __init__(self, make_rel_name):
+        self.make_rel_name = make_rel_name
+        # function to make full name of the action (using correct name of module)
 
     def type_code(self, type_hint):
         """
@@ -54,6 +55,18 @@ class Representer:
     @staticmethod
     def token(name):
         return formating.Placeholder(name)
+
+
+    def parameter(self, param: parameters.ActionParameter) -> str:
+        type_code = self.type_code(param.type)
+        type_str = self.make_rel_name(param.type.__module__, type_code)
+
+        if param.default == param.no_default:
+            default = ""
+        else:
+            default = "={}".format(param.default)
+        return "    {}:{}{}".format(param.name, type_str, default)
+
 
 """
 TODO:

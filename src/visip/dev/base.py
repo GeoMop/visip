@@ -151,6 +151,14 @@ class _ActionBase:
         return self.evaluate(inputs)
 
 
+    def code_of_definition(self, representer):
+        # TODO: make derived class for actions implemented in user module
+        # and move thic method there
+        lines = [
+            "# @wf.action_def",
+            "# def {}() ".format(self.name),
+            "#     # User defined action cen not been represented."]
+        return "\n".join(lines)
 
 
 

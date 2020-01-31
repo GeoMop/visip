@@ -164,7 +164,7 @@ class ClassActionBase(_ActionBase):
     def _evaluate(self, *args) -> dtype.DataClassBase:
         return self.constructor(*args)
 
-    def code_of_definition(self, representer, make_rel_name):
+    def code_of_definition(self, representer):
         """
         TODO:
         1. prefixin gfor typing.Any and other builtin types is wrong.
@@ -176,15 +176,7 @@ class ClassActionBase(_ActionBase):
         lines = ['@wf.Class']
         lines.append('class {}:'.format(self.name))
         for attribute in self.parameters:
-            type_code = representer.type_code(attribute.type)
-            type_str = make_rel_name(attribute.type.__module__, type_code)
-
-
-            if attribute.default == self.parameters.no_default:
-                default = ""
-            else:
-                default = "={}".format(attribute.default)
-            lines.append("    {}:{}{}".format(attribute.name, type_str, default))
+            lines.append(representer.parameter(attribute))
 
         return "\n".join(lines)
 

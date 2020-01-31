@@ -231,7 +231,7 @@ class Module:
         Generate the source code of the whole module.
         :return:
         """
-        representer = Representer()
+        representer = Representer(self.relative_name)
         source = []
         # make imports
         for impr in self.imported_modules:
@@ -247,12 +247,12 @@ class Module:
         for v in self.definitions:
             # TODO:
             # Definitions are not arbitrary actions, currently only Workflow and DataClass
-            # currently these provides the cond_of_definition method.
+            # currently these provides the code_of_definition method.
             # We should move the code definition routines into Representer as the representation
-            # should not specialized for user defined actions since the representation is given by the Python syntax.
+            # should not be specialized for user defined actions since the representation is given by the Python syntax.
             action = v
             source.extend(["", ""])     # two empty lines as separator
-            def_code = action.code_of_definition(representer, self.relative_name)
+            def_code = action.code_of_definition(representer)
             source.append(def_code)
         return "\n".join(source)
 

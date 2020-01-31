@@ -220,7 +220,7 @@ class ActionCall:
             return 0.5
 
 
-    def code(self, representer, make_rel_name):
+    def code(self, representer):
         """
         Return a representation of the action instance.
         This is generic representation code that calls the constructor.
@@ -234,7 +234,7 @@ class ActionCall:
         """
         arg_names = [arg.value.get_code_instance_name() for arg in self.arguments]
         arg_values = [arg.value for arg in self.arguments]
-        full_action_name = make_rel_name(self.action.module, self.action_name)
+        full_action_name = representer.make_rel_name(self.action.module, self.action_name)
         #print(self.action)
         expr_format = self.action.format(representer, full_action_name, arg_names, arg_values)
         return expr_format
