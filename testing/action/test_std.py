@@ -65,14 +65,14 @@ def test_file_from_template():
     # analysis setup and different during evaluation
     # possibly we should just store absolute path in FileIn as it should mimic open()
     result = evaluation.run(wf.file_from_template,
-                            [wf.file_in('flow_case/darcy_flow.yaml.tmpl'), dict(MESH='my_mesh.msh')], workspace=script_dir)
+                            [wf.file_in('../integration/flow_case/darcy_flow.yaml.tmpl'), dict(MESH='my_mesh.msh')], workspace=script_dir)
     with open('action/flow_case/darcy_flow.yaml', "r") as f:
         content = f.read()
     assert content.find('my_mesh.msh')
 
 @wf.analysis
 def my_mesh_yaml():
-    return wf.file_from_template(wf.file_in('flow_case/darcy_flow.yaml.tmpl'), dict(MESH='my_mesh.msh'))
+    return wf.file_from_template(wf.file_in('../integration/flow_case/darcy_flow.yaml.tmpl'), dict(MESH='my_mesh.msh'))
 
 
 def test_file_from_template_wf():
