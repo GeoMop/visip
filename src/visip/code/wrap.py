@@ -36,7 +36,7 @@ def into_action(value):
         wrap_values = [into_action((key, val)) for key, val in value.items()]
         return instance.ActionCall.create(constructor.A_dict(), *wrap_values)
     elif isinstance(value, dummy.Dummy):
-        return value._action
+        return value._action_call
     else:
         raise base.ExcActionExpected("Can not wrap into action, value: {}".format(str(value)))
 

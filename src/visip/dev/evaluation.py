@@ -22,6 +22,7 @@ from .action_workflow import _Workflow
 from ..action.constructor import Value
 from ..eval.cache import ResultCache
 from ..code import wrap
+from ..code.dummy import Dummy
 from . import tools
 
 class Resource:
@@ -225,7 +226,7 @@ class Result:
 
 
 
-
+DataOrDummy = Union[dtype.DataType, Dummy]
 
 class Evaluation:
     """/
@@ -254,7 +255,7 @@ class Evaluation:
     :return: List of all tasks.
     """
     @staticmethod
-    def make_analysis(action: base._ActionBase, inputs:List[dtype.DataType]):
+    def make_analysis(action: base._ActionBase, inputs:List[DataOrDummy]):
         """
         Bind values 'inputs' as parameters of the action using the Value action wrappers,
         returns a workflow without parameters.
@@ -268,8 +269,11 @@ class Evaluation:
 
         bind_action = instance.ActionCall.create(action)
         for i, input in enumerate(inputs):
-            value_instance = instance.ActionCall.create(Value(input))
-            workflow.set_action_input(bind_action, i, value_instance)
+            if isinstance(input, Dummy):
+                input_action = input._action_call
+            else:
+                input_action = instance.ActionCall.create(Value(input))
+            workflow.set_action_input(bind_action, i, input_action)
             #assert bind_action.arguments[i].status >= instance.ActionInputStatus.seems_ok
         workflow.set_action_input(workflow.result, 0, bind_action)
         return workflow
@@ -389,18 +393,16 @@ class Evaluation:
             self.tasks_update([composed_task])
         return schedule
 
-
-
     # def extract_input(self):
     #     input_data = List(*[i._result for i in self._inputs])
 
 
 def run(action: Union[base._ActionBase, wrap.ActionWrapper],
-        inputs:List[dtype.DataType] = None,
-        **kwargs) -> task_mod._TaskBase:
+        inputs:List[DataOrDummy] = None,
+        **kwargs) -> dtype.DataType:
     """
     Run the 'action' with given arguments 'inputs'.
-    Return resulting task.
+    Return the data result.
     """
     if isinstance(action, wrap.ActionWrapper):
         action = action.action
