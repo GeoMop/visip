@@ -56,7 +56,7 @@ def test_system():
 
 def test_file_from_template():
     try:
-        os.remove(os.path.join(script_dir, "flow_case/darcy_flow.yaml"))
+        os.remove(os.path.join(script_dir, "_workspace/darcy_flow.yaml"))
     except FileNotFoundError:
         pass
 
@@ -65,25 +65,25 @@ def test_file_from_template():
     # analysis setup and different during evaluation
     # possibly we should just store absolute path in FileIn as it should mimic open()
     result = evaluation.run(wf.file_from_template,
-                            [wf.file_in('../integration/flow_case/darcy_flow.yaml.tmpl'), dict(MESH='my_mesh.msh')], workspace=script_dir)
-    with open('action/flow_case/darcy_flow.yaml', "r") as f:
+                            [wf.file_in('_workspace/darcy_flow.yaml.tmpl'), dict(MESH='my_mesh.msh')], workspace=script_dir)
+    with open('action/_workspace/darcy_flow.yaml', "r") as f:
         content = f.read()
     assert content.find('my_mesh.msh')
 
 @wf.analysis
 def my_mesh_yaml():
-    return wf.file_from_template(wf.file_in('../integration/flow_case/darcy_flow.yaml.tmpl'), dict(MESH='my_mesh.msh'))
+    return wf.file_from_template(wf.file_in('_workspace/darcy_flow.yaml.tmpl'), dict(MESH='my_mesh.msh'))
 
 
 def test_file_from_template_wf():
     try:
-        os.remove(os.path.join(script_dir, "flow_case/darcy_flow.yaml"))
+        os.remove(os.path.join(script_dir, "_workspace/darcy_flow.yaml"))
     except FileNotFoundError:
         pass
 
     print("Root workspace: ", os.getcwd())
     result = evaluation.run(my_mesh_yaml, workspace=script_dir)
-    with open('action/flow_case/darcy_flow.yaml', "r") as f:
+    with open('action/_workspace/darcy_flow.yaml', "r") as f:
         content = f.read()
     assert content.find('my_mesh.msh')
 
