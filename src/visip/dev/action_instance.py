@@ -94,6 +94,10 @@ class ActionCall:
     def action_name(self):
         return self.action.name
 
+    @property
+    def have_proper_name(self):
+        return self._proper_instance_name
+
     def make_argument(self, param, value: Optional['ActionCall']):
         """
         Make ActionArgument from the ActionParameter and a value or ActionCall.

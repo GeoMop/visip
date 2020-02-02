@@ -304,10 +304,8 @@ class _Workflow(base._ActionBase):
                     body.append(line)
 
         assert len(self._result_call.arguments) > 0
-
-
-        result_action = self._result_call.arguments[0].value
-        body.append("    return {}".format(result_action.name))
+        result_action_call = self._result_call.arguments[0].value
+        body.append("{}return {}".format(indent, result_action_call.get_code_instance_name()))
         return "\n".join(body)
 
 

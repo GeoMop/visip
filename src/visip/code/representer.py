@@ -67,7 +67,8 @@ class Representer:
         return formating.Placeholder(name)
 
 
-    def parameter(self, param: parameters.ActionParameter) -> str:
+    def parameter(self, param: parameters.ActionParameter, indent:int = 4) -> str:
+        indent_str = indent * " "
         type_code = self.type_code(param.type)
         type_str = self.make_rel_name(param.type.__module__, type_code)
 
@@ -75,7 +76,7 @@ class Representer:
             default = ""
         else:
             default = "={}".format(param.default)
-        return "    {}:{}{}".format(param.name, type_str, default)
+        return "{}{}:{}{}".format(indent_str, param.name, type_str, default)
 
 
 """

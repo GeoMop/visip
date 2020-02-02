@@ -10,8 +10,8 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 
 
 
-@pytest.mark.parametrize("src_file", ["analysis_in.py", "dep_module_in.py", 'quadrature_in.py'])
-#@pytest.mark.parametrize("src_file", ["analysis_in.py", "dep_module_in.py"])
+@pytest.mark.parametrize("src_file", ["analysis_in.py", "dep_module_in.py", 'quadrature_in.py', 'wf_complex_in.py'])
+#@pytest.mark.parametrize("src_file", ["analysis_in.py", "dep_module_in.py", 'quadrature_in.py'])
 def test_representation(src_file):
     base, ext = os.path.splitext(src_file)
     assert ext == ".py"

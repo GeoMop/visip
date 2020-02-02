@@ -168,10 +168,14 @@ class _ActionBase:
     def code_of_definition(self, representer):
         # TODO: make derived class for actions implemented in user module
         # and move thic method there
+        type_code = representer.type_code(self.output_type)
+        type_code = representer.make_rel_name(self.output_type.__module__, type_code)
+        params_code = ", ".join([representer.parameter(p, indent = 0) for p in self.parameters])
         lines = [
-            "# @wf.action_def",
-            "# def {}() ".format(self.name),
-            "#     # User defined action cen not been represented."]
+            "@wf.action_def",
+            "def {}({}) -> {}:".format(self.name, params_code, type_code),
+            "    # User defined action cen not been represented.",
+            "    pass"]
         return "\n".join(lines)
 
 
