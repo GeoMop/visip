@@ -128,21 +128,35 @@ class _ActionBase:
         assert False, "Implementation has to be provided."
 
 
-    def format(self, representer, full_action_name, arg_names, arg_values):
+    def call_format(self, representer, full_action_name, arg_names, arg_values):
         """
-        Return a format string for the expression that constructs the action.
-        :param n_args: Number of arguments, number of placeholders. Can be None if the action is not variadic.
-        :return: str, format
-        Format contains '{N}' placeholders for the given N-th argument, the named placeholer '{VAR}'
-        is used for the variadic arguments, these are substituted as an argument list separated by comma and space.
-        E.g. "Action({0}, {1}, {})" can be expanded to :
-        "Action(arg0, arg1, arg2, arg3)"
+        Return a Format of the action call with placeholders for the actual arguments.
+        Names of placehloders are given by action_call names 'arg_names'.
+        TODO: Keyword arguments.
+        - usually it is better to use keyword arguments as it is more desriptive
+        - if there is variadic parameter, we can not use keyword arguments at all
+        - some actions are so common, that we may prefer to not use the keyword
+          or use it only for some parameter
+
+        1. don't use named arguments if there is variadic parameter
+        2. don't use named argument if value is named action_call
+        3. otherwise use named argument
+
+        :param representer ... Representer
+        :param full_action_name ... name with correct module prefix
+        :param arg_names ... action_call names within workflow
+        :param arg_values ... action_calls
+        :return: Format ... basically list of strings and placeholders (for argument values).
         """
         args = []
         for i, arg in enumerate(arg_names):
-            param = self.parameters.get_index(i)
-            assert param is not None
-            args.append( (param.name, arg) )
+            if  self.parameters.is_variadic():
+                param_name = None
+            else:
+                param = self.parameters.get_index(i)
+                assert param is not None
+                param_name = param.name
+            args.append( (param_name, arg) )
         return representer.action_call(full_action_name, *args)
 
 

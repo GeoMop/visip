@@ -18,14 +18,8 @@ class Value(_ActionBase):
     def _evaluate(self) -> typing.Any:
         return self.value
 
-    def format(self, representer, action_name, arg_names, arg_values):
-        value = self.value
-        if type(value) is str:
-            expr = "'{}'".format(value)
-        else:
-            expr = str(value)
-
-        return representer.format(expr)
+    def call_format(self, representer, action_name, arg_names, arg_values):
+        return representer.value_code(self.value)
 
 
 class Pass(_ActionBase):
@@ -63,7 +57,7 @@ class A_list(_ListBase):
     def __init__(self):
         super().__init__(action_name='list')
 
-    def format(self, representer, action_name, arg_names, arg_values):
+    def call_format(self, representer, action_name, arg_names, arg_values):
         return representer.list("[", "]", [(None, arg) for arg in arg_names])
 
     def evaluate(self, inputs) -> typing.Any:
@@ -78,7 +72,7 @@ class A_tuple(_ListBase):
     def __init__(self):
         super().__init__(action_name='tuple')
 
-    def format(self, representer, action_name, arg_names, arg_values):
+    def call_format(self, representer, action_name, arg_names, arg_values):
         return representer.list("(", ")", [(None, arg) for arg in arg_names])
 
     def evaluate(self, inputs) -> typing.Any:
@@ -94,12 +88,12 @@ class A_dict(_ActionBase):
                             default=ActionParameter.no_default))
         self._output_type = typing.Any
 
-    def format(self, representer, action_name, arg_names, arg_values):
+    def call_format(self, representer, action_name, arg_names, arg_values):
         # TODO: dict as action_name with prefix
         # Todo: check that inputs are pairs, extract key/value
         #return format.Format.list("{", "}", [(None, arg) for arg in arg_names])
 
-        return _ActionBase.format(self, representer, action_name, arg_names, arg_values)
+        return _ActionBase.call_format(self, representer, action_name, arg_names, arg_values)
 
     def evaluate(self, inputs) -> typing.Any:
         return {key: val for key, val in inputs}

@@ -65,7 +65,7 @@ class _Result(_ListBase):
     def evaluate(self, inputs):
         return inputs[0]
 
-    def format(self, representer, action_name, arg_names, arg_values):
+    def call_format(self, representer, action_name, arg_names, arg_values):
         return representer.format("return", representer.token(arg_names[0]))
 
 class _ResultCall(ActionCall):

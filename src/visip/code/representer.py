@@ -10,6 +10,8 @@ class Representer:
     It is passed to the particular action representation
     methods as parameter.
     """
+    visip_alias = 'wf'
+
     def __init__(self, make_rel_name):
         self.make_rel_name = make_rel_name
         # function to make full name of the action (using correct name of module)
@@ -33,13 +35,21 @@ class Representer:
                 type_args = ti.get_args(type_hint)
                 assert len(type_args) == 1
                 item_type = type_args[0]
-                return 'wf.List[{}]'.format(self.type_code(item_type))
+                return '{}.List[{}]'.format(self.visip_alias, self.type_code(item_type))
             else:
                 print("No code representation for the type: {}[{}]"
                       .format(type_name, ti.get_args(type_hint)))
-                return 'wf.Any'
+                return '{}.Any'.format(self.visip_alias)
 
-    #TODO: Move Format into this file. Replace Format static methods by these two directly.
+    def value_code(self, value):
+        if hasattr(value, '__code__'):
+            expr = value.__code__(self)
+        elif type(value) is str:
+            expr = "'{}'".format(value)
+        else:
+            expr = str(value)
+        return formating.Format(expr)
+
     @staticmethod
     def action_call(name, *arguments):
         return formating.Format.action_call(name, arguments)
