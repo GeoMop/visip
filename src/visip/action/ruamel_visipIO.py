@@ -13,7 +13,7 @@ yaml = ruamel.yaml.YAML(typ='rt')
 
 
 @yaml.register_class
-class MyMap(ruamel.yaml.comments.CommentedMap):
+class CustomTag(ruamel.yaml.comments.CommentedMap):
     def __init__(self, tag):
         ruamel.yaml.comments.CommentedMap.__init__(self)
         self._tag = tag
@@ -44,7 +44,7 @@ def construct_any_tag(self, tag_suffix, node):
     else:
         orig_tag = "!" + tag_suffix
     if isinstance(node, ruamel.yaml.nodes.MappingNode):
-        data = MyMap(orig_tag)
+        data = CustomTag(orig_tag)
         yield data
         state = ruamel.yaml.constructor.SafeConstructor.construct_mapping(self, node, deep=True)
         data.update(state)
@@ -65,11 +65,11 @@ def get_yaml_serializer():
 
 
 @action_def
-def load_yaml(path) -> MyMap:
+def load_yaml(path) -> CustomTag:
     yml = get_yaml_serializer()
     with open(path, 'r') as stream:
         data = yml.load(stream)
-
+    #volat přetypování na slovník a vracet slovník?
     return data
 
 
@@ -99,7 +99,7 @@ def write_yaml(data, path) -> str:
 def deep_convert_dict(layer):
     to_ret = layer
     if isinstance(layer, collections.OrderedDict):
-        if isinstance(layer, MyMap):
+        if isinstance(layer, CustomTag):
             # print(layer.get_tag)
             to_ret.update({'_class_': layer.get_class_name})
             to_ret.update({'_module_': layer.get_module})
@@ -138,7 +138,7 @@ def deep_convert_dict(layer):
 #     for idx, values in node.items():
 #         ndict[idx] = values
 #         ndict['children'] = []
-#         if isinstance(values, MyMap) or isinstance(values, ruamel.yaml.comments.CommentedMap):
+#         if isinstance(values, CustomTag) or isinstance(values, ruamel.yaml.comments.CommentedMap):
 #             for idx, child in enumerate(values.items()):
 #                 child_dict = {}
 #                 dfs(child, child_dict)
