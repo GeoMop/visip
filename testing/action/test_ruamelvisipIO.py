@@ -4,8 +4,8 @@ from visip.dev.dtype import DataClassBase
 import os
 
 this_folder = os.path.dirname(os.path.abspath(__file__))
-input_file = os.path.join(this_folder, 'test_yamls\\flow_input.yaml')
-output_file = os.path.join(this_folder, 'test_yamls\\write_yaml.yaml')
+input_file = os.path.join(this_folder, 'test_yamls', 'flow_input.yaml')
+output_file = os.path.join(this_folder, 'test_yamls', 'write_yaml.yaml')
 
 print(input_file)
 print(output_file)
@@ -15,8 +15,6 @@ print(output_file)
 def test_io_load():
     action = load_yaml.action
     assert action
-    # analysis = evaluation.Evaluation.make_analysis(action, [
-    #     'D:\\Git\\muj_visip\\visip\\testing\\action\\test_yamls\\flow_input.yaml'])
 
     analysis = evaluation.Evaluation.make_analysis(action, [input_file])
 

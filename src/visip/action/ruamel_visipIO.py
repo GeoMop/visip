@@ -65,16 +65,16 @@ def get_yaml_serializer():
 
 
 @action_def
-def load_yaml(path) -> CustomTag:
+def load_yaml(path: str) -> CustomTag:
     yml = get_yaml_serializer()
     with open(path, 'r') as stream:
         data = yml.load(stream)
-    #volat přetypování na slovník a vracet slovník?
+    # volat přetypování na slovník a vracet slovník?
     return data
 
 
 @action_def
-def write_yaml(data, path) -> str:
+def write_yaml(data: CustomTag, path: str) -> str:
     yml = get_yaml_serializer()
     with open(path, 'w')as stream:
         yml.dump(data, stream)
@@ -121,7 +121,6 @@ def deep_convert_dict(layer):
             pass
 
     return to_ret
-
 
 # trans = deep_convert_dict(data)
 # print(trans)
