@@ -47,9 +47,9 @@ class Element:
 
 @Class
 class MeshGMSH:
-    nodes: Dict[int, Point] = None # No code representation for the type: typing.Dict[int, <visip.code.wrap.ActionWrapper object at 0x000001E037504780>]
-    elements: Dict[int, Element] = None # No code representation for the type: typing.Dict[int, <visip.code.wrap.ActionWrapper object at 0x000001E037504780>]
-    regions: Dict[str, Tuple[int, int]] = None # stejný error
+    nodes: Dict[int, Point] = None
+    elements: Dict[int, Element] = None
+    regions: Dict[str, Tuple[int, int]] = None
 
 
 # def __init__(self, nodes: Dict[int, Point], elements: Dict[int, Element], regions: Dict[str, Tuple[int, int]]):
