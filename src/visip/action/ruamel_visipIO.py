@@ -7,7 +7,7 @@ import ruamel.yaml
 from ruamel.yaml.compat import ordereddict
 from ruamel.yaml.scalarstring import walk_tree, preserve_literal, SingleQuotedScalarString
 
-from src.visip.code.decorators import Class, action_def
+from ..code.decorators import Class, action_def
 
 yaml = ruamel.yaml.YAML(typ='rt')
 
