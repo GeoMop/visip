@@ -99,7 +99,7 @@ class _Workflow(base._ActionBase):
         :param output_type:
         """
         super().__init__(name)
-        self._module = None
+        self.__visip_module__ = None
         # Name of the module were the workflow is defined.
         self.task_type = base.TaskType.Composed
         # Task type determines how the actions are converted to the tasks.

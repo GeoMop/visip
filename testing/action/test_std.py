@@ -22,7 +22,7 @@ def test_file():
     with open(os.path.join(WORKSPACE, MY_FILE), "w") as f:
         f.write("one\ntwo\nthree")
     result = evaluation.run(my_file_count)
-    print(result)
+    # print(result)
     assert result == 3
 
 

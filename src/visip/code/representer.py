@@ -10,7 +10,6 @@ class Representer:
     It is passed to the particular action representation
     methods as parameter.
     """
-    visip_alias = 'wf'
 
     def __init__(self, make_rel_name):
         self.make_rel_name = make_rel_name
@@ -19,6 +18,7 @@ class Representer:
     def type_code(self, type_hint):
         """
         dtype is a type specification.
+        TODO: More general type representation.
         :param type_hint:
         :return:
         """
@@ -35,11 +35,13 @@ class Representer:
                 type_args = ti.get_args(type_hint)
                 assert len(type_args) == 1
                 item_type = type_args[0]
-                return '{}.List[{}]'.format(self.visip_alias, self.type_code(item_type))
+                list_typing = self.make_rel_name('visip', 'List')
+                return '{}[{}]'.format(list_typing, self.type_code(item_type))
             else:
                 print("No code representation for the type: {}[{}]"
                       .format(type_name, ti.get_args(type_hint)))
-                return '{}.Any'.format(self.visip_alias)
+                any_typing = self.make_rel_name('visip', 'Any')
+                return any_typing
 
     def value_code(self, value):
         if hasattr(value, '__code__'):

@@ -351,7 +351,7 @@ class Evaluation:
         """
         os.makedirs(workspace, exist_ok=True)
         with tools.change_cwd(workspace):
-            print("CWD: ", os.getcwd())
+            # print("CWD: ", os.getcwd())
             invalid_connections = self.validate_connections(self.final_task.action)
             if invalid_connections:
                 raise Exception(invalid_connections)

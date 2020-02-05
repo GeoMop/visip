@@ -119,7 +119,7 @@ class ClassActionBase(_ActionBase):
         super().__init__(data_class.__name__)
         self._data_class = data_class
         # Attr.s dataclass
-        self._module = self._data_class.__module__
+        self.__visip_module__ = self._data_class.__module__
         # module where the data class is defined
 
         self._parameters, _ = extract_func_signature(data_class.__init__, skip_self=True)
@@ -139,6 +139,7 @@ class ClassActionBase(_ActionBase):
         data_class = type(name, (dtype.DataClassBase,), attributes)
         if module:
             data_class.__module__ = module
+
         return attr.s(data_class)
 
     @classmethod

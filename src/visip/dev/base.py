@@ -46,7 +46,7 @@ class _ActionBase:
         self.task_type = TaskType.Atomic
         self.is_analysis = False
         self.name = action_name or self.__class__.__name__
-        self._module = "wf"
+        self.__visip_module__ = "visip"
         # Module where the action is defined.
         self._parameters = None
         # Parameter specification list, class attribute, no parameters by default.
@@ -61,8 +61,8 @@ class _ActionBase:
         Module prefix used in code generationn.
         :return:
         """
-        assert self._module
-        return self._module
+        assert self.__visip_module__
+        return self.__visip_module__
 
     def action_hash(self):
         """
