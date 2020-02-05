@@ -33,6 +33,7 @@ def get_generic_args(generic_type):
     else:
         return None
 
+
 ################################################################################################
 
 
@@ -48,18 +49,18 @@ DataType = Union[BasicType, List['DataType'], Dict['DataType', 'DataType'], Tupl
 
 ConstantValueType = TypeVar('ConstantValueType')
 
+
 class Constant(Generic[ConstantValueType]):
     """
     Wrapper for constant values. I.e. values that are not results of other actions.
     """
+
     def __init__(self, val: ConstantValueType):
         self._value: ConstantValueType = val
-
 
     @property
     def value(self):
         return self._value
-
 
     @classmethod
     def inner_type(cls):
@@ -75,7 +76,6 @@ def is_constant(xtype):
     """
     # is_subtype(xtype, Constant)
     return issubclass(xtype, Constant)
-
 
 
 class DataClassBase:
@@ -99,6 +99,12 @@ class DataClassBase:
     def to_yaml(self):
         pass
 
+#psáno jako rychlá oprava na konzultaci
+def is_dataclass(type_hint):
+    try:
+        return issubclass(type_hint, DataClassBase)
+    except:
+        return False
 
 
 def is_base_type(xtype):
@@ -119,5 +125,6 @@ def closest_common_ancestor(*cls_list):
     for ancestors in itertools.zip_longest(*mros):
         if len(set(ancestors)) == 1:
             ancestor = ancestors[0]
-        else: break
+        else:
+            break
     return ancestor

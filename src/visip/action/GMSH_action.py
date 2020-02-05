@@ -26,8 +26,8 @@ class Element:
     type_id: int = 0  # v commitu přepsáno na dict: type_id -> (dim,n_nodes)
     dim: int = 0
     region_id: int = 0
-    shape_id: Optional[int] = 0
-    partition_id: Optional[int] = 0
+    shape_id: int = 0  # má být optional
+    partition_id: int = 0  # má být optional
     nodes: List[int] = []
 
     # tags: [region_id, shape_id, partition_id]
@@ -49,7 +49,7 @@ class Element:
 class MeshGMSH:
     nodes: Dict[int, Point] = None
     elements: Dict[int, Element] = None
-    regions: Dict[str, Tuple[int, int]] = None
+    # regions: Dict[str, List[int]] = None
 
 
 # def __init__(self, nodes: Dict[int, Point], elements: Dict[int, Element], regions: Dict[str, Tuple[int, int]]):
@@ -74,13 +74,21 @@ def GMSH_reader(path):
 
     elements = {}
     for idx, element in reader.elements.items():
-        print(element)
-        elements[idx] = Element(type_id=element[0], dim=None)  # , tags=element[1], nodes=element[2])
+        # print(element)
+        # elements[idx] = Element(type_id=element[0], dim=None, tags=element[1], nodes=element[2])
+        try:
+            elements[idx] = Element(type_id=element[0], dim=None, region_id=element[1][0], shape_id=element[1][1],
+                                    partition_id=element[1][2], nodes=element[2])
+        except:
+            elements[idx] = Element(type_id=element[0], dim=None, region_id=element[1][0], shape_id=element[1][1],
+                                    nodes=element[2])
 
-    # my_Mesh = MeshGMSH(points, elements, reader.physical)
+    my_Mesh = MeshGMSH(points, elements)  # , reader.physical)
     # print(my_Mesh)
-    # return my_Mesh
-    return elements
+    return my_Mesh
+    # return elements
+
 
 # path = "D:\\Git\\muj_PyBS\\PyBS\\tests\\gmsh\\complex\\meshes\\random_fractures_01.msh"
-# GMSH_reader(path)
+# vysledek = GMSH_reader(path)
+# print('_')

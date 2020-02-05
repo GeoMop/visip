@@ -55,11 +55,12 @@ def unwrap_type(type_hint):
         return data_type
     elif dtype.is_base_type(type_hint):
         return type_hint
-    elif issubclass(type_hint, dtype.DataClassBase):
+    elif dtype.is_dataclass(type_hint):
         return type_hint
     elif type_hint is typing.Any:
         return type_hint
     else:
+        assert hasattr(type_hint,'__name__'), type_hint
         type_name = type_hint.__name__
         if type_name == 'List':
             type_args = ti.get_args(type_hint)
