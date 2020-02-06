@@ -1,4 +1,5 @@
 import os
+import shutil
 import visip as wf
 from visip.dev import evaluation
 script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -56,9 +57,11 @@ def test_system():
 
 def test_file_from_template():
     try:
-        os.remove(os.path.join(script_dir, "_workspace/darcy_flow.yaml"))
+        os.remove(os.path.join(script_dir, "_workspace", "darcy_flow.yaml"))
     except FileNotFoundError:
         pass
+    shutil.copyfile(os.path.join(script_dir, "inputs", "darcy_flow.yaml.tmpl"),
+                    os.path.join(script_dir, "_workspace", "darcy_flow.yaml.tmpl"))
 
     print("Root workspace: ", os.getcwd())
     # TODO: Serious problem, when we have different workspace during
@@ -77,9 +80,11 @@ def my_mesh_yaml():
 
 def test_file_from_template_wf():
     try:
-        os.remove(os.path.join(script_dir, "_workspace/darcy_flow.yaml"))
+        os.remove(os.path.join(script_dir, "_workspace", "darcy_flow.yaml"))
     except FileNotFoundError:
         pass
+    shutil.copyfile(os.path.join(script_dir, "inputs", "darcy_flow.yaml.tmpl"),
+                    os.path.join(script_dir, "_workspace", "darcy_flow.yaml.tmpl"))
 
     print("Root workspace: ", os.getcwd())
     result = evaluation.run(my_mesh_yaml, workspace=script_dir)
