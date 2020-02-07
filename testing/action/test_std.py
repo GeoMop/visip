@@ -54,19 +54,20 @@ def test_system():
     assert result.stdout == b"I'm here.\n"
 
 
-
-def test_file_from_template():
+def prepare_workspace_template():
     try:
         os.remove(os.path.join(script_dir, "_workspace", "darcy_flow.yaml"))
     except FileNotFoundError:
         pass
+    os.makedirs(os.path.join(script_dir, "_workspace"), exist_ok=True)
     shutil.copyfile(os.path.join(script_dir, "inputs", "darcy_flow.yaml.tmpl"),
                     os.path.join(script_dir, "_workspace", "darcy_flow.yaml.tmpl"))
 
     print("Root workspace: ", os.getcwd())
-    # TODO: Serious problem, when we have different workspace during
-    # analysis setup and different during evaluation
-    # possibly we should just store absolute path in FileIn as it should mimic open()
+
+
+def test_file_from_template():
+    prepare_workspace_template()
     result = evaluation.run(wf.file_from_template,
                             [wf.file_in('_workspace/darcy_flow.yaml.tmpl'), dict(MESH='my_mesh.msh')], workspace=script_dir)
     with open('action/_workspace/darcy_flow.yaml', "r") as f:
@@ -79,14 +80,7 @@ def my_mesh_yaml():
 
 
 def test_file_from_template_wf():
-    try:
-        os.remove(os.path.join(script_dir, "_workspace", "darcy_flow.yaml"))
-    except FileNotFoundError:
-        pass
-    shutil.copyfile(os.path.join(script_dir, "inputs", "darcy_flow.yaml.tmpl"),
-                    os.path.join(script_dir, "_workspace", "darcy_flow.yaml.tmpl"))
-
-    print("Root workspace: ", os.getcwd())
+    prepare_workspace_template()
     result = evaluation.run(my_mesh_yaml, workspace=script_dir)
     with open('action/_workspace/darcy_flow.yaml', "r") as f:
         content = f.read()
