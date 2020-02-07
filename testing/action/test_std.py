@@ -1,5 +1,6 @@
 import os
 import shutil
+import visip.dev.tools as tools
 import visip as wf
 from visip.dev import evaluation
 script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -55,13 +56,11 @@ def test_system():
 
 
 def prepare_workspace_template():
-    try:
-        os.remove(os.path.join(script_dir, "_workspace", "darcy_flow.yaml"))
-    except FileNotFoundError:
-        pass
-    os.makedirs(os.path.join(script_dir, "_workspace"), exist_ok=True)
-    shutil.copyfile(os.path.join(script_dir, "inputs", "darcy_flow.yaml.tmpl"),
-                    os.path.join(script_dir, "_workspace", "darcy_flow.yaml.tmpl"))
+    with tools.change_cwd(script_dir):
+        shutil.rmtree("_workspace", ignore_errors=True)
+        os.makedirs("_workspace")
+        shutil.copyfile(os.path.join("inputs", "darcy_flow.yaml.tmpl"),
+                        os.path.join("_workspace", "darcy_flow.yaml.tmpl"))
 
     print("Root workspace: ", os.getcwd())
 
@@ -70,7 +69,8 @@ def test_file_from_template():
     prepare_workspace_template()
     result = evaluation.run(wf.file_from_template,
                             [wf.file_in('_workspace/darcy_flow.yaml.tmpl'), dict(MESH='my_mesh.msh')], workspace=script_dir)
-    with open('action/_workspace/darcy_flow.yaml', "r") as f:
+
+    with open(os.path.join(script_dir, "_workspace", "darcy_flow.yaml"), "r") as f:
         content = f.read()
     assert content.find('my_mesh.msh')
 
@@ -82,7 +82,7 @@ def my_mesh_yaml():
 def test_file_from_template_wf():
     prepare_workspace_template()
     result = evaluation.run(my_mesh_yaml, workspace=script_dir)
-    with open('action/_workspace/darcy_flow.yaml', "r") as f:
+    with open(os.path.join(script_dir, "_workspace", "darcy_flow.yaml"), "r") as f:
         content = f.read()
     assert content.find('my_mesh.msh')
 
