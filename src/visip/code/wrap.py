@@ -36,7 +36,7 @@ def into_action(value):
         wrap_values = [into_action((key, val)) for key, val in value.items()]
         return instance.ActionCall.create(constructor.A_dict(), *wrap_values)
     elif isinstance(value, dummy.Dummy):
-        return value._action
+        return value._action_call
     else:
         raise base.ExcActionExpected("Can not wrap into action, value: {}".format(str(value)))
 
@@ -115,7 +115,15 @@ class ActionWrapper:
         # action_instance.set_metadata(private_args)
         return dummy.Dummy.wrap(action_instance)
 
-
+    def call(self,  *args):
+        """
+        Call an action from an action_def, i.e. regular Python function.
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        # TODO: assert for arguments types
+        return self.action.evaluate(args)
 
 def public_action(action):
     """

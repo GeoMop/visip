@@ -48,7 +48,7 @@ def test_evaluation(src_file):
 global_n_calls = 0
 
 @decorators.action_def
-def count_calls(a: int):
+def count_calls(a: int) -> int:
     global global_n_calls
     global_n_calls += 1
     return 2 * a
@@ -69,5 +69,5 @@ def test_action_skipping():
     :return:
     """
     result = evaluation.run(make_calls)
-    assert len(result.result) == 3
+    assert len(result) == 3
     assert global_n_calls == 2
