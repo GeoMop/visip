@@ -39,3 +39,9 @@ def test_dict(self, a, b, c):
     self.brace_dict = wf.dict((2, a), (3, b), (5, c))
     tuple_7 = (self.direct_dict[5], self.brace_dict[3])
     return tuple_7
+
+
+@wf.action_def
+def add(a:float, b:float) -> float:
+    # User defined action cen not been represented.
+    pass

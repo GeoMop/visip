@@ -31,15 +31,18 @@ def test_analysis(self):
     return [self.tuple, self.point, self.extract]
 
 @wf.workflow
-def test_dict(self, a: float, b:float, c:float):
+def test_dict(self, a, b, c):
     self.direct_dict = wf.dict((2, a), (3, b), (5, c))
     self.brace_dict = {2:a, 3:b, 5:c}
     return (self.direct_dict[5], self.brace_dict[3])
     #return (self.brace_dict[3], )
 
 
+@wf.action_def
+def add(a: float, b: float) -> float:
+    return a + b
+
 """
 TODO:
-- missing type hints in fn declaration
 - results should be substituted
 """
