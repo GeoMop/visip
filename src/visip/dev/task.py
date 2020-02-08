@@ -38,6 +38,9 @@ class _TaskBase:
         # Task is identified by the hash of the hash of its parent task and its name within the parent.
         self.parent: Optional['Composed'] = None
         # parent task, filled during expand
+        self.child_id = None
+        # name of current task within parent
+
         self.status = Status.none
         # Status of the task, possibly need not to be stored explicitly.
         self._result: Any = self.no_value
@@ -82,9 +85,17 @@ class _TaskBase:
     def is_ready(self):
         assert False, "Not implemented."
 
+    def get_path(self):
+        path = []
+        t = self
+        while t is not None:
+            path.append(t.child_id)
+            t = t.parent
+        return path
 
     def set_id(self, parent_task, child_id):
         self.parent = parent_task
+        self.child_id = child_id
         if parent_task is None:
             parent_hash = data.hash(None)
         else:
