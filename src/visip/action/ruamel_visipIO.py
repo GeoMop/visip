@@ -4,6 +4,7 @@ from typing import Dict
 import ruamel.yaml
 
 import visip
+from visip import FileIn
 from ..code.decorators import Class, action_def
 
 yaml = ruamel.yaml.YAML(typ='rt')
