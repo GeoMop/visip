@@ -1,12 +1,9 @@
 import collections
-import re
-import sys
-# from collections import Iterable
+from typing import Dict
 
 import ruamel.yaml
-from ruamel.yaml.compat import ordereddict
-from ruamel.yaml.scalarstring import walk_tree, preserve_literal, SingleQuotedScalarString
 
+import visip
 from ..code.decorators import Class, action_def
 
 yaml = ruamel.yaml.YAML(typ='rt')
@@ -14,6 +11,9 @@ yaml = ruamel.yaml.YAML(typ='rt')
 
 @yaml.register_class
 class CustomTag(ruamel.yaml.comments.CommentedMap):
+    """
+    class for !Tag representation to yaml
+    """
     def __init__(self, tag):
         ruamel.yaml.comments.CommentedMap.__init__(self)
         self._tag = tag
@@ -26,7 +26,7 @@ class CustomTag(ruamel.yaml.comments.CommentedMap):
     def get_module(self):
         full_tag = self._tag.split('.')
         module = ".".join(full_tag[:len(full_tag) - 1])
-        return module.lstrip('!')  # strip '!'
+        return module.lstrip('!')
 
     @property
     def get_class_name(self):
@@ -39,6 +39,13 @@ class CustomTag(ruamel.yaml.comments.CommentedMap):
 
 
 def construct_any_tag(self, tag_suffix, node):
+    """
+    !tag contructor
+    :param self:
+    :param tag_suffix:
+    :param node:
+    :return:
+    """
     if tag_suffix is None:
         orig_tag = None
     else:
@@ -56,7 +63,7 @@ def get_yaml_serializer():
     """
     Get YAML serialization/deserialization object with proper
     configuration for conversion.
-    :return: Confugured instance of ruamel.yaml.YAML.
+    :return: Configured instance of ruamel.yaml.YAML.
     """
     yaml.indent(mapping=2, sequence=4, offset=2)
     yaml.width = 120
@@ -64,48 +71,18 @@ def get_yaml_serializer():
     return yaml
 
 
-@action_def
-def load_yaml(path: str) -> CustomTag:
-    yml = get_yaml_serializer()
-    with open(path, 'r') as stream:
-        data = yml.load(stream)
-    # volat přetypování na slovník a vracet slovník?
-    return data
-
-
-@action_def
-def write_yaml(data: CustomTag, path: str) -> str:
-    yml = get_yaml_serializer()
-    with open(path, 'w')as stream:
-        yml.dump(data, stream)
-
-    return 'zapsano'
-
-
-# yaml = ruamel.yaml.YAML()
-# yaml.constructor.add_multi_constructor("!", construct_any_tag)
-# data = yaml.load(yaml_str)
-# yaml.dump(data, sys.stdout)
-
-# path = "D:\\Git\\visip_fork\\visip\\testing\\action\\test_yamls\\flow_input.yaml"
-# data = load_yaml(path)
-
-
-# print(type(data))
-
-# print(data.get('problem').get_tag)
-
-
 def deep_convert_dict(layer):
+    """
+    recursive tranform of a CustomTag class to Dict
+    :param layer:
+    :return: Dict
+    """
     to_ret = layer
     if isinstance(layer, collections.OrderedDict):
         if isinstance(layer, CustomTag):
-            # print(layer.get_tag)
             to_ret.update({'_class_': layer.get_class_name})
             to_ret.update({'_module_': layer.get_module})
-        # elif isinstance(layer, ruamel.yaml.comments.CommentedMap):
-        #     print(layer)
-        #     print('_')
+
         to_ret = dict(layer)
         try:
             for key, value in to_ret.items():
@@ -122,33 +99,31 @@ def deep_convert_dict(layer):
 
     return to_ret
 
-# trans = deep_convert_dict(data)
-# print(trans)
-# print(list(trans))
-# print(type(trans['problem']['flow_equation']['input_fields']))
-# print(type(trans))
 
-# pokus = dict(data)
-#
-# print(pokus)
-#
-#
-# def dfs(node, ndict):
-#     for idx, values in node.items():
-#         ndict[idx] = values
-#         ndict['children'] = []
-#         if isinstance(values, CustomTag) or isinstance(values, ruamel.yaml.comments.CommentedMap):
-#             for idx, child in enumerate(values.items()):
-#                 child_dict = {}
-#                 dfs(child, child_dict)
-#                 ndict['children'].append(child_dict)
-#         else:
-#             pass
+@action_def
+def load_yaml(path: str) -> dict:
+    """
+    action that loads yaml file to dictionary
+    :param path: file path
+    :return: Dict
+    """
+    yml = get_yaml_serializer()
+    with open(path, 'r') as stream:
+        data = yml.load(stream)
+    data_dict = deep_convert_dict(data)
+    return data_dict
 
-# my_dict = {}
-# dfs(pokus, my_dict)
-# print(data['problem'].get_tag)
-# print(data['problem'].get_module)
-# print(data['problem'].get_class_name)
 
-# write_yaml(data, "pokus.yaml")
+@action_def
+def write_yaml(data: Dict, path: str) -> FileIn:
+    """
+    action for writting to yaml
+    :param data: Dict to be written
+    :param path: file path
+    :return: FileIn
+    """
+    yml = get_yaml_serializer()
+    with open(path, 'w')as stream:
+        yml.dump(data, stream)
+
+    return visip.file_in.call(path)
