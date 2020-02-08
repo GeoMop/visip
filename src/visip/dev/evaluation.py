@@ -22,6 +22,8 @@ from .action_workflow import _Workflow
 from ..action.constructor import Value
 from ..eval.cache import ResultCache
 from ..code import wrap
+from ..code.dummy import Dummy
+from . import tools
 
 class Resource:
     """
@@ -224,23 +226,7 @@ class Result:
 
 
 
-class change_cwd:
-    """
-    Context manager that change CWD, to given relative or absolute path.
-    """
-    def __init__(self, path: str):
-        self.path = path
-        self.orig_cwd = ""
-
-    def __enter__(self):
-        if self.path:
-            self.orig_cwd = os.getcwd()
-            os.chdir(self.path)
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if self.orig_cwd:
-            os.chdir(self.orig_cwd)
-
+DataOrDummy = Union[dtype.DataType, Dummy]
 
 class Evaluation:
     """/
@@ -269,7 +255,7 @@ class Evaluation:
     :return: List of all tasks.
     """
     @staticmethod
-    def make_analysis(action: base._ActionBase, inputs:List[dtype.DataType]):
+    def make_analysis(action: base._ActionBase, inputs:List[DataOrDummy]):
         """
         Bind values 'inputs' as parameters of the action using the Value action wrappers,
         returns a workflow without parameters.
@@ -277,14 +263,17 @@ class Evaluation:
         :param inputs:
         :return: a bind workflow instance
         """
-        assert action.parameters.is_variadic() or len(inputs) == action.parameters.size()
+        #assert action.parameters.is_variadic() or len(inputs) == action.parameters.size()
         bind_name = 'all_bind_' + action.name
         workflow = _Workflow(bind_name)
 
         bind_action = instance.ActionCall.create(action)
         for i, input in enumerate(inputs):
-            value_instance = instance.ActionCall.create(Value(input))
-            workflow.set_action_input(bind_action, i, value_instance)
+            if isinstance(input, Dummy):
+                input_action = input._action_call
+            else:
+                input_action = instance.ActionCall.create(Value(input))
+            workflow.set_action_input(bind_action, i, input_action)
             #assert bind_action.arguments[i].status >= instance.ActionInputStatus.seems_ok
         workflow.set_action_input(workflow.result, 0, bind_action)
         return workflow
@@ -361,7 +350,8 @@ class Evaluation:
         :return:
         """
         os.makedirs(workspace, exist_ok=True)
-        with change_cwd(workspace):
+        with tools.change_cwd(workspace):
+            # print("CWD: ", os.getcwd())
             invalid_connections = self.validate_connections(self.final_task.action)
             if invalid_connections:
                 raise Exception(invalid_connections)
@@ -403,18 +393,16 @@ class Evaluation:
             self.tasks_update([composed_task])
         return schedule
 
-
-
     # def extract_input(self):
     #     input_data = List(*[i._result for i in self._inputs])
 
 
 def run(action: Union[base._ActionBase, wrap.ActionWrapper],
-        inputs:List[dtype.DataType] = None,
-        **kwargs) -> task_mod._TaskBase:
+        inputs:List[DataOrDummy] = None,
+        **kwargs) -> dtype.DataType:
     """
     Run the 'action' with given arguments 'inputs'.
-    Return resulting task.
+    Return the data result.
     """
     if isinstance(action, wrap.ActionWrapper):
         action = action.action
@@ -422,4 +410,4 @@ def run(action: Union[base._ActionBase, wrap.ActionWrapper],
         inputs = []
     analysis = Evaluation.make_analysis(action, inputs)
     eval_obj = Evaluation(analysis)
-    return eval_obj.execute(**kwargs)
+    return eval_obj.execute(**kwargs).result
