@@ -3,6 +3,7 @@ from visip.dev import dtype, evaluation
 import visip.action as action
 from visip.code import wrap
 import typing
+import typing_inspect as ti
 import visip as wf
 
 import ruamel.yaml as yaml
@@ -120,3 +121,51 @@ def test_unwrap_type():
         attr_type = wrap.unwrap_type(ann)
         print(name, ann, attr_type)
 
+
+def test_type_inspect():
+    ty = typing
+    basic_type = int
+    list_type = ty.List[int]
+    dict_type = ty.Dict[int, str]
+    tuple_type = ty.Tuple[ ty.Dict[int, str], str, ty.List[str]]
+    union_type = ty.Union[list_type, dict_type, None]
+
+    type_a = ty.TypeVar('TA')
+    type_b = ty.TypeVar('TB')
+    gen_list_type = ty.List[type_a]
+    gen_dict_type = ty.Dict[type_a, type_b]
+    gen_tuple_type = ty.Tuple[type_a, type_b]
+    test_types = [basic_type, list_type, dict_type, tuple_type, union_type, gen_list_type, gen_dict_type, gen_tuple_type]
+
+    print("ti.get_origin:\n")
+    for t in test_types:
+        print("    ", ti.get_origin(t))
+
+
+    print("ti.get_last_origin:\n")
+    for t in test_types:
+        print("    ", ti.get_last_origin(t))
+
+    print("ti.get_parameters:\n")
+    for t in test_types:
+        print("    ", ti.get_parameters(t))
+
+    print("ti.get_args:\n")
+    for t in test_types:
+        print("    ", ti.get_args(t))
+
+    print("ti.get_last_args:\n")
+    for t in test_types:
+        print("    ", ti.get_last_args(t))
+
+    print("ti.get_generic_type:\n")
+    for t in test_types:
+        print("    ", ti.get_generic_type(t))
+
+    print("ti.get_generic_bases:\n")
+    for t in test_types:
+        print("    ", ti.get_generic_bases(t))
+
+    print("ti.typed_dict_keys:\n")
+    for t in test_types:
+        print("    ", ti.get_generic_bases(t))

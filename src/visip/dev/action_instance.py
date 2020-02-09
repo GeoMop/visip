@@ -130,7 +130,7 @@ class ActionCall:
             else:
                 return ActionArgument(param, value, is_default, ActionInputStatus.error_value)
 
-        if not dtype.is_subtype(value.output_type, check_type):
+        if not dtype.TypeInspector().is_subtype(value.output_type, check_type):
             return  ActionArgument(param, value, is_default, ActionInputStatus.error_type)
 
         return ActionArgument(param, value, is_default, ActionInputStatus.seems_ok)
