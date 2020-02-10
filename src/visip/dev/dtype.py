@@ -48,22 +48,9 @@ class Constant(typing.Generic[ConstantValueType]):
         return self._value
 
 
-    @classmethod
-    def inner_type(cls):
-        return TypeInspector().get_args(cls)[0]
-
-
-def is_constant(xtype):
-    """
-    Indicate that type is a generic Constant[...].
-    TODO: Try to define it in better way.
-    :param xtype:
-    :return:
-    """
-    try:
-        return issubclass(xtype, Constant)
-    except:
-        return False
+    # @classmethod
+    # def inner_type(cls):
+    #     return TypeInspector().get_args(cls)[0]
 
 
 
@@ -94,7 +81,7 @@ class TypeInspector_36:
     """
     Dropback solution for python < 3.7.4.
     """
-    map_origin = {typing.List: list, typing.Dict: dict, typing.Tuple: tuple, typing.Union: typing.Union}
+    map_origin = {typing.List: list, typing.Dict: dict, typing.Tuple: tuple, typing.Union: typing.Union, Constant: Constant}
     origin_typing = {list: typing.List, dict: typing.Dict, tuple: typing.Tuple, typing.Union: typing.Union}
 
     def is_any(self, xtype):
@@ -119,7 +106,7 @@ class TypeInspector_36:
         :return:
         """
         origin = typing_inspect.get_origin(xtype)
-        return self.map_origin[origin]
+        return self.map_origin.get(origin, None)
 
     def get_typing_origin(self, xtype):
         return self.origin_typing[self.get_origin(xtype)]
@@ -132,6 +119,13 @@ class TypeInspector_36:
             return issubclass(xtype, DataClassBase)
         except:
             return False
+
+
+    def is_constant(self, xtype):
+        return self.get_origin(xtype) is Constant
+
+    def constant_type(self, xtype):
+        return self.get_args(xtype)[0]
 
     def is_subtype(self, xtype, type_spec):
         """

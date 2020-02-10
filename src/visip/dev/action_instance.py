@@ -126,7 +126,7 @@ class ActionCall:
             return ActionArgument(param, value, is_default, ActionInputStatus.error_impl)
         if param.is_constant():
             if isinstance(value, Value):
-                check_type = param.type.inner_type()
+                check_type = dtype.TypeInspector().constant_type(param.type)
             else:
                 return ActionArgument(param, value, is_default, ActionInputStatus.error_value)
 

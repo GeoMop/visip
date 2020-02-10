@@ -9,20 +9,43 @@ import visip as wf
 import ruamel.yaml as yaml
 
 
+
+class Point2d(dtype.DataClassBase):
+    x:float
+    y:float
+
+class Point3d(Point2d):
+    z:float
+
+
+
 def test_type_inspection():
     """
     Test own methods that use undocumented features of the testing module.
     """
-
+    ti = dtype.TypeInspector()
     class X:
         pass
 
     # get_generic_args
-    assert dtype.get_generic_args(bool) is None
-    assert dtype.get_generic_args(X) is None
-    assert dtype.get_generic_args(dtype.List[bool]) == (bool,)
-    assert dtype.get_generic_args(dtype.Dict[int, float]) == (int, float)
-    assert dtype.get_generic_args(dtype.Constant[dtype.List[int]]) == (dtype.List[int], )
+    assert ti.get_args(bool) == ()
+    assert ti.get_args(X) == ()
+    assert ti.get_args(wf.List[bool]) == (bool,)
+    assert ti.get_args(wf.Dict[int, float]) == (int, float)
+    assert ti.get_args(wf.Constant[wf.List[int]]) == (wf.List[int], )
+
+    # is_base_type
+    assert ti.is_base_type(int)
+    assert ti.is_base_type(float)
+    assert ti.is_base_type(bool)
+    assert ti.is_base_type(str)
+    assert not ti.is_base_type(wf.List)
+    assert not ti.is_base_type(dtype.DataClassBase)
+
+    # test_is_subtype
+    #assert dtype.is_subtype(Point2d, dtype.DataType)
+    assert ti.is_subtype(Point2d, dtype.DataClassBase)
+    assert ti.is_subtype(Point3d, Point2d)
 
 
 def test_data_class_base():
@@ -40,40 +63,22 @@ def test_data_class_base():
     # assert serialized == "!my_module.my_class {x: 3, y: 7}"
 
 def test_config_generic():
+    ti = dtype.TypeInspector()
     def get_attr(
             key: dtype.Constant[str],
-            dataclass: dtype.Any) -> dtype.Any:
+            dataclass: typing.Any) -> typing.Any:
         return dataclass.__getattribute__(key)
 
     params, result_type = dev.extract_func_signature(get_attr)
     key_type = params.get_name('key').type
     dc_type = params.get_name('dataclass').type
-    assert dtype.is_constant(key_type) is True
-    assert dtype.is_constant(dc_type) is False
-    assert key_type.inner_type() is str
+    assert ti.is_constant(key_type) is True
+    assert ti.is_constant(dc_type) is False
+    assert ti.constant_type(key_type) is str
 
 
 
-def test_is_base_type():
-    assert dtype.is_base_type(int)
-    assert dtype.is_base_type(float)
-    assert dtype.is_base_type(bool)
-    assert dtype.is_base_type(str)
-    assert not dtype.is_base_type(dtype.List)
-    assert not dtype.is_base_type(dtype.DataClassBase)
 
-class Point2d(dtype.DataClassBase):
-    x:float
-    y:float
-
-class Point3d(Point2d):
-    z:float
-
-
-def test_is_subtype():
-    #assert dtype.is_subtype(Point2d, dtype.DataType)
-    assert dtype.is_subtype(Point2d, dtype.DataClassBase)
-    assert dtype.is_subtype(Point3d, Point2d)
 
 @wf.Class
 class Point:
@@ -141,11 +146,6 @@ def test_type_inspect():
     for t in test_types:
         print("    ", ti.get_origin(t))
 
-
-    print("ti.get_last_origin:\n")
-    for t in test_types:
-        print("    ", ti.get_last_origin(t))
-
     print("ti.get_parameters:\n")
     for t in test_types:
         print("    ", ti.get_parameters(t))
@@ -154,9 +154,6 @@ def test_type_inspect():
     for t in test_types:
         print("    ", ti.get_args(t))
 
-    print("ti.get_last_args:\n")
-    for t in test_types:
-        print("    ", ti.get_last_args(t))
 
     print("ti.get_generic_type:\n")
     for t in test_types:
