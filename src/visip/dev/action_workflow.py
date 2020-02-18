@@ -177,7 +177,7 @@ class _Workflow(base._ActionBase):
             #if isinstance(action, Slot):
             #    assert action is self._slots[action.rank]
             actions.add(action_call)
-            topology_sort.append(action_call.name)
+            topology_sort.append(action_call)
 
         # def edge_visit(previous, action, i_arg):
         #     return previous.output_actions.append((action, i_arg))
@@ -239,9 +239,7 @@ class _Workflow(base._ActionBase):
         # Make dict: full_instance_name -> (format, [arg full names])
         inst_order = []
         inst_exprs = {}
-        name_to_action = self.action_call_dict
-        for iname in self._sorted_calls:
-            action_call = name_to_action[iname]
+        for action_call in self._sorted_calls:
             full_name = action_call.get_code_instance_name()
             subst_prob = action_call.substitution_probability()
             code = action_call.code(representer)
@@ -416,10 +414,8 @@ class _Workflow(base._ActionBase):
         # TODO: fix connection of slots to inputs
         for slot, input in zip(self._slots, inputs):
             childs[slot.name] = input
-        name_to_action = self.action_call_dict
-        for action_instance_name in self._sorted_calls:
-            if action_instance_name not in childs:
-                action_instance = name_to_action[action_instance_name]
+        for action_instance in self._sorted_calls:
+            if action_instance.name not in childs:
                 arg_tasks = [childs[arg.value.name] for arg in action_instance.arguments]
                 childs[action_instance.name] = task_creator(action_instance.name, action_instance.action, arg_tasks)
         return childs

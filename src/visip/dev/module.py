@@ -242,7 +242,7 @@ class Module:
         :return: The action name using the alias instead of the full module path.
         """
         alias = self._full_name_dict.get(module, module)
-        if alias in {'builtins', 'typing', self.name}:
+        if alias in {'builtins', self.name}:
             return name
         full_name = "{}.{}".format(alias, name)
         alias_name = self._visip_objs.get(full_name, full_name)

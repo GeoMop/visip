@@ -1,4 +1,3 @@
-import typing_inspect as ti
 from ..dev import dtype as dtype
 from . import formating
 from ..dev import parameters
@@ -22,26 +21,27 @@ class Representer:
         :param type_hint:
         :return:
         """
-
+        ti = dtype.TypeInspector()
         if type_hint is None:
+            # TODO: represent None as no type annotation, but it should be forbidden.
             return 'None'
-        elif dtype.is_base_type(type_hint):
+        elif ti.is_any(type_hint):
+            return self.make_rel_name('typing', 'Any')
+        elif ti.is_base_type(type_hint):
             return type_hint.__name__
-        elif issubclass(type_hint, dtype.DataClassBase):
-            return type_hint.__name__
+        elif ti.is_dataclass(type_hint):
+            return self.make_rel_name(type_hint.__module__, type_hint.__name__)
         else:
-            type_name = type_hint.__name__
-            if type_name == 'List':
-                type_args = ti.get_args(type_hint)
-                assert len(type_args) == 1
-                item_type = type_args[0]
-                list_typing = self.make_rel_name('visip', 'List')
-                return '{}[{}]'.format(list_typing, self.type_code(item_type))
+            args = ti.get_args(type_hint)
+            if args:
+                args_code = ", ".join([self.type_code(arg) for arg in args])
+                (module, name) = str(ti.get_typing_origin(type_hint)).split(".")
+                origin_name = self.make_rel_name(module, name)
+                code = "{}[{}]".format(origin_name, args_code)
+                return code
             else:
-                print("No code representation for the type: {}[{}]"
-                      .format(type_name, ti.get_args(type_hint)))
-                any_typing = self.make_rel_name('visip', 'Any')
-                return any_typing
+                print("No code representation for the type: {}"
+                      .format(str(type_hint)))
 
     def value_code(self, value):
         if hasattr(value, '__code__'):
@@ -72,13 +72,12 @@ class Representer:
     def parameter(self, param: parameters.ActionParameter, indent:int = 4) -> str:
         indent_str = indent * " "
         type_code = self.type_code(param.type)
-        type_str = self.make_rel_name(param.type.__module__, type_code)
 
         if param.default == param.no_default:
             default = ""
         else:
             default = "={}".format(param.default)
-        return "{}{}:{}{}".format(indent_str, param.name, type_str, default)
+        return "{}{}:{}{}".format(indent_str, param.name, type_code, default)
 
 
 """

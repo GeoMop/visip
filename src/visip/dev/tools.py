@@ -1,4 +1,7 @@
 import os
+import sys
+from typing import *
+
 class classproperty(object):
     """
     Decorator to define a class property getter, i.e. a function that
@@ -9,6 +12,20 @@ class classproperty(object):
 
     def __get__(self, obj, owner):
         return self.f(owner)
+
+
+def fallback(fallback_class, before_version: Tuple[int, int, int]):
+    """
+    Usage:
+
+    @fallback((MyClass_36, before_version=(3.7.0))
+    class MyClass:
+        ...
+    """
+    if sys.version_info[:3] < before_version:
+        return lambda decorated_class : fallback_class
+    else:
+        return lambda decorated_class : decorated_class
 
 
 class change_cwd:
@@ -27,3 +44,4 @@ class change_cwd:
     def __exit__(self, exc_type, exc_value, traceback):
         if self.orig_cwd:
             os.chdir(self.orig_cwd)
+
