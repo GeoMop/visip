@@ -68,7 +68,7 @@ class ActionParameter:
 
 
     def is_constant(self):
-        return dtype.is_constant(self.type)
+        return dtype.TypeInspector().is_constant(self.type)
 
 class Parameters:
     no_default = ActionParameter.no_default

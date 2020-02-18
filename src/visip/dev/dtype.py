@@ -14,68 +14,44 @@ import pytypes
 import itertools
 import inspect
 from . import tools
-from typing import Any, Union, List, Dict, Tuple, Generic, TypeVar
-
-
-############################# typing - undocumented interface ##################################
-
-def get_generic_args(generic_type):
-    """
-    Returns a tuple of type arguments of the input generic type.
-    Returns None for a non-generic type.
-    :param xtype: A type hint.
-    :return: Tuple of types that are parameters of the input generic type.
-    """
-    # TODO: better check for generic types. type_inspect is used in type_unwrap function
-
-    if hasattr(generic_type, '__args__'):
-        return generic_type.__args__
-    else:
-        return None
+import typing
+import typing_inspect
+import enum
 
 
 ################################################################################################
 
 
-BasicType = Union[bool, int, float, complex, str]
-# valid_base_types = (bool, int, float, complex, str)
+BasicType = typing.Union[bool, int, float, complex, str]
+valid_base_types = (bool, int, float, complex, str)
 
-DataType = Union[BasicType, List['DataType'], Dict['DataType', 'DataType'], Tuple['DataType', ...], 'DataClassBase']
+DataType = typing.Union[BasicType, typing.List['DataType'], typing.Dict['DataType', 'DataType'], typing.Tuple['DataType', ...], 'DataClassBase']
 # All valid data types that can be passed between VISIP actions.
 # TODO: check that all type check methods work with this definition.
 # ?? Can pytypes of typing inspect work with this recursive type definition.
 # We can possibly simplify code in wrap.unwrap_type.
 
 
-ConstantValueType = TypeVar('ConstantValueType')
+ConstantValueType = typing.TypeVar('ConstantValueType')
 
-
-class Constant(Generic[ConstantValueType]):
+class Constant(typing.Generic[ConstantValueType]):
     """
     Wrapper for constant values. I.e. values that are not results of other actions.
+    TODO: Why and how to implement inner type.
     """
-
     def __init__(self, val: ConstantValueType):
         self._value: ConstantValueType = val
+
 
     @property
     def value(self):
         return self._value
 
-    @classmethod
-    def inner_type(cls):
-        return get_generic_args(cls)[0]
 
+    # @classmethod
+    # def inner_type(cls):
+    #     return TypeInspector().get_args(cls)[0]
 
-def is_constant(xtype):
-    """
-    Indicate that type is a generic Constant[...].
-    TODO: Try to define it in better way.
-    :param xtype:
-    :return:
-    """
-    # is_subtype(xtype, Constant)
-    return issubclass(xtype, Constant)
 
 
 class DataClassBase:
@@ -99,24 +75,122 @@ class DataClassBase:
     def to_yaml(self):
         pass
 
-#psáno jako rychlá oprava na konzultaci
-def is_dataclass(type_hint):
-    try:
-        return issubclass(type_hint, DataClassBase)
-    except:
-        return False
 
 
-def is_base_type(xtype):
-    """ True for basic, i.e. scalar types."""
-    return is_subtype(xtype, BasicType)
+class TypeInspector_36:
+    """
+    Dropback solution for python < 3.7.4.
+    """
+    map_origin = {typing.List: list, typing.Dict: dict, typing.Tuple: tuple, typing.Union: typing.Union, Constant: Constant}
+    origin_typing = {list: typing.List, dict: typing.Dict, tuple: typing.Tuple, typing.Union: typing.Union}
+
+    def is_any(self, xtype):
+        return xtype is typing.Any
+
+    def is_base_type(self, xtype):
+        """ True for basic, i.e. scalar types."""
+        return xtype in valid_base_types
+
+    def is_enum(self, xtype):
+        try:
+            return issubclass(xtype, enum.IntEnum)
+        except:
+            return False
+
+    def get_origin(self, xtype):
+        """
+        Returns: list, dict, tuple, typing.Union (also for typing.Optional),
+        None for: scalar types, None, and typing.Any
+        Compatible with Python 3.8.
+        :param xtype: a typehint.
+        :return:
+        """
+        origin = typing_inspect.get_origin(xtype)
+        return self.map_origin.get(origin, None)
+
+    def get_typing_origin(self, xtype):
+        return self.origin_typing[self.get_origin(xtype)]
+
+    def get_args(self, xtype):
+        return typing_inspect.get_last_args(xtype)
+
+    def is_dataclass(self, xtype):
+        try:
+            return issubclass(xtype, DataClassBase)
+        except:
+            return False
 
 
-def is_subtype(xtype, type_spec):
-    try:
-        return pytypes.is_subtype(xtype, type_spec)
-    except:
-        return False
+    def is_constant(self, xtype):
+        return self.get_origin(xtype) is Constant
+
+    def constant_type(self, xtype):
+        return self.get_args(xtype)[0]
+
+    def is_subtype(self, xtype, type_spec):
+        """
+        pytypes works only for 3.6
+        TODO!!!
+        :param xtype:
+        :param type_spec:
+        :return:
+        """
+        try:
+            return pytypes.is_subtype(xtype, type_spec)
+        except:
+            return False
+
+
+class TypeInspector_37(TypeInspector_36):
+    """
+    Solution for 3.7.4 <= python < 3.8.
+    """
+    def get_origin(self, xtype):
+        """
+        Returns: list, dict, tuple, typing.Union (also for typing.Optional),
+        None for: scalar types, None, and typing.Any
+        Compatible with Python 3.8.
+        :param xtype: a typehint.
+        :return:
+        """
+        return typing_inspect.get_origin(xtype)
+
+    def get_args(self, xtype):
+        return typing_inspect.get_args(xtype)
+
+
+@tools.fallback(TypeInspector_36, before_version=(3, 7, 4))
+@tools.fallback(TypeInspector_37, before_version=(3, 8, 0))
+class TypeInspector(TypeInspector_37):
+    """
+    Based typing inspection, which is supported for python >= 3.8
+    """
+
+    # def is_any(self, xtype):
+    #     return xtype is typing.Any
+    #
+    # def is_base_type(self, xtype):
+    #     """ True for basic, i.e. scalar types."""
+    #     return self.isinstance(xtype, valid_base_types)
+
+    def get_origin(self, xtype):
+        """
+        Returns: list, dict, tuple, typing.Union (also for typing.Optional),
+        None for: scalar types, None, and typing.Any
+        Compatible with Python 3.8.
+        :param xtype: a typehint.
+        :return:
+        """
+        return typing.get_origin(xtype)
+
+
+    def get_args(self, xtype):
+        return typing.get_last_args(xtype)
+
+
+
+
+
 
 
 def closest_common_ancestor(*cls_list):
@@ -125,6 +199,5 @@ def closest_common_ancestor(*cls_list):
     for ancestors in itertools.zip_longest(*mros):
         if len(set(ancestors)) == 1:
             ancestor = ancestors[0]
-        else:
-            break
+        else: break
     return ancestor

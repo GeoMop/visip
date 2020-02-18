@@ -3,25 +3,49 @@ from visip.dev import dtype, evaluation
 import visip.action as action
 from visip.code import wrap
 import typing
+import typing_inspect as ti
 import visip as wf
 
 import ruamel.yaml as yaml
+
+
+
+class Point2d(dtype.DataClassBase):
+    x:float
+    y:float
+
+class Point3d(Point2d):
+    z:float
+
 
 
 def test_type_inspection():
     """
     Test own methods that use undocumented features of the testing module.
     """
-
+    ti = dtype.TypeInspector()
     class X:
         pass
 
     # get_generic_args
-    assert dtype.get_generic_args(bool) is None
-    assert dtype.get_generic_args(X) is None
-    assert dtype.get_generic_args(dtype.List[bool]) == (bool,)
-    assert dtype.get_generic_args(dtype.Dict[int, float]) == (int, float)
-    assert dtype.get_generic_args(dtype.Constant[dtype.List[int]]) == (dtype.List[int], )
+    assert ti.get_args(bool) == ()
+    assert ti.get_args(X) == ()
+    assert ti.get_args(wf.List[bool]) == (bool,)
+    assert ti.get_args(wf.Dict[int, float]) == (int, float)
+    assert ti.get_args(wf.Constant[wf.List[int]]) == (wf.List[int], )
+
+    # is_base_type
+    assert ti.is_base_type(int)
+    assert ti.is_base_type(float)
+    assert ti.is_base_type(bool)
+    assert ti.is_base_type(str)
+    assert not ti.is_base_type(wf.List)
+    assert not ti.is_base_type(dtype.DataClassBase)
+
+    # test_is_subtype
+    #assert dtype.is_subtype(Point2d, dtype.DataType)
+    assert ti.is_subtype(Point2d, dtype.DataClassBase)
+    assert ti.is_subtype(Point3d, Point2d)
 
 
 def test_data_class_base():
@@ -39,40 +63,22 @@ def test_data_class_base():
     # assert serialized == "!my_module.my_class {x: 3, y: 7}"
 
 def test_config_generic():
+    ti = dtype.TypeInspector()
     def get_attr(
             key: dtype.Constant[str],
-            dataclass: dtype.Any) -> dtype.Any:
+            dataclass: typing.Any) -> typing.Any:
         return dataclass.__getattribute__(key)
 
     params, result_type = dev.extract_func_signature(get_attr)
     key_type = params.get_name('key').type
     dc_type = params.get_name('dataclass').type
-    assert dtype.is_constant(key_type) is True
-    assert dtype.is_constant(dc_type) is False
-    assert key_type.inner_type() is str
+    assert ti.is_constant(key_type) is True
+    assert ti.is_constant(dc_type) is False
+    assert ti.constant_type(key_type) is str
 
 
 
-def test_is_base_type():
-    assert dtype.is_base_type(int)
-    assert dtype.is_base_type(float)
-    assert dtype.is_base_type(bool)
-    assert dtype.is_base_type(str)
-    assert not dtype.is_base_type(dtype.List)
-    assert not dtype.is_base_type(dtype.DataClassBase)
 
-class Point2d(dtype.DataClassBase):
-    x:float
-    y:float
-
-class Point3d(Point2d):
-    z:float
-
-
-def test_is_subtype():
-    #assert dtype.is_subtype(Point2d, dtype.DataType)
-    assert dtype.is_subtype(Point2d, dtype.DataClassBase)
-    assert dtype.is_subtype(Point3d, Point2d)
 
 @wf.Class
 class Point:
@@ -120,3 +126,43 @@ def test_unwrap_type():
         attr_type = wrap.unwrap_type(ann)
         print(name, ann, attr_type)
 
+
+def test_type_inspect():
+    ty = typing
+    basic_type = int
+    list_type = ty.List[int]
+    dict_type = ty.Dict[int, str]
+    tuple_type = ty.Tuple[ ty.Dict[int, str], str, ty.List[str]]
+    union_type = ty.Union[list_type, dict_type, None]
+
+    type_a = ty.TypeVar('TA')
+    type_b = ty.TypeVar('TB')
+    gen_list_type = ty.List[type_a]
+    gen_dict_type = ty.Dict[type_a, type_b]
+    gen_tuple_type = ty.Tuple[type_a, type_b]
+    test_types = [basic_type, list_type, dict_type, tuple_type, union_type, gen_list_type, gen_dict_type, gen_tuple_type]
+
+    print("ti.get_origin:\n")
+    for t in test_types:
+        print("    ", ti.get_origin(t))
+
+    print("ti.get_parameters:\n")
+    for t in test_types:
+        print("    ", ti.get_parameters(t))
+
+    print("ti.get_args:\n")
+    for t in test_types:
+        print("    ", ti.get_args(t))
+
+
+    print("ti.get_generic_type:\n")
+    for t in test_types:
+        print("    ", ti.get_generic_type(t))
+
+    print("ti.get_generic_bases:\n")
+    for t in test_types:
+        print("    ", ti.get_generic_bases(t))
+
+    print("ti.typed_dict_keys:\n")
+    for t in test_types:
+        print("    ", ti.get_generic_bases(t))
