@@ -8,6 +8,7 @@ from bgem.gmsh import gmsh_io
 
 from ..code.decorators import action_def
 from ..code.decorators import Class
+import visip as wf
 
 
 @Class
@@ -33,7 +34,7 @@ class Element:
 class MeshGMSH:
     nodes: Dict[int, Point] = None
     elements: Dict[int, Element] = None
-    # regions: Dict[str, List[int]] = None
+    regions: Dict[str, List[int]] = None
 
 
 @action_def
@@ -54,5 +55,32 @@ def GMSH_reader(path: str) -> MeshGMSH:
             elements[idx] = Element(type_id=element[0], dim=None, region_id=element[1][0], shape_id=element[1][1],
                                     nodes=element[2])
 
-    my_Mesh = MeshGMSH(points, elements)  # , reader.physical)
+    my_Mesh = MeshGMSH(points, elements, reader.physical)
     return my_Mesh
+
+
+@action_def
+def write_fields(msh_file: str, mesh: MeshGMSH) -> int:
+    """
+    Preparing action for visip from bgem to write mesh fields
+    :param msh_file: target file
+    :param ele_ids: ??
+    :param fields: ??
+    :return: ??
+
+
+    #bgem desc
+    Creates input data msh file for Flow model.
+    :param msh_file: Target file (or None for current mesh file)
+    :param ele_ids: Element IDs in computational mesh corrsponding to order of
+    field values in element's barycenter.
+    :param fields: {'field_name' : values_array, ..}
+    """
+
+    # rozparsování mesh
+    # co přesně je ele_ids a fields?
+    writter = gmsh_io.GmshIO(msh_file)
+    ele_ids = None
+    fields = None
+    writter.write_fields(msh_file=msh_file, ele_ids=ele_ids, fields=fields)
+    return -1
