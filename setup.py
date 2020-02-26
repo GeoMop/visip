@@ -49,7 +49,7 @@ setuptools.setup(
     # include automatically all files in the template MANIFEST.in
     include_package_data=True,
     zip_safe=False,
-    install_requires=['numpy==1.12.0',
+    install_requires=['numpy',
                       'PyQt5',
                       'attrs',
                       'pytypes',

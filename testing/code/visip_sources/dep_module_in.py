@@ -11,3 +11,7 @@ class Square:
 @wf.workflow
 def xflip(square):
     return Square(tool.Point(square.botright.x, square.topleft.y), tool.Point(square.topleft.x, square.botright.y))
+
+@wf.workflow
+def dependent_action():
+    return tool.test_dict(0, 2, 1)    # result: (1. 2)

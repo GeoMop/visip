@@ -45,7 +45,7 @@ def workflow(func):
     output_action = wrap.into_action(func(*func_args))
     new_workflow = wf._Workflow(workflow_name)
     new_workflow.set_from_source(slots, output_type, output_action)
-    new_workflow._module = func.__module__
+    new_workflow.__visip_module__ = func.__module__
     return wrap.public_action(new_workflow)
 
 
@@ -85,7 +85,14 @@ def Class(data_class):
 
 def Enum(enum_cls):
     items = {key: val for key,val in inspect.getmembers(enum_cls) if not key.startswith("__") and not key.endswith("__")}
-    return enum.IntEnum(enum_cls.__name__, items)
+    int_enum_cls = enum.IntEnum(enum_cls.__name__, items)
+    def code(self, representer):
+        enum_base, key = str(self).split('.')
+        enum_base = representer.make_rel_name(enum_cls.__module__, enum_base)
+        return '.'.join([enum_base, key])
+    int_enum_cls.__code__ = code
+    int_enum_cls.__module__ = enum_cls.__module__
+    return int_enum_cls
 
 
 def action_def(func):
