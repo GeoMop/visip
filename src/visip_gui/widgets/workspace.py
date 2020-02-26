@@ -145,7 +145,7 @@ class Workspace(GBaseModelView):
 
     def save(self):
         save_location = QFileDialog.getSaveFileName(self.parent(), "Select Save Location")
-        print(save_location)
+        #print(save_location)
         with open(save_location[0],'w') as save_file:
             self.scene.save_item(save_file, self.scene.action_model.get_item())
 

@@ -44,7 +44,6 @@ class SlotParamItem(BaseWidgetParamItem):
                 #self.setSizeHint(0, QtCore.QSize(0, 20))
 
     def valueChanged(self, param, val):
-        super(SlotParamItem, self).valueChanged(param, val)
         if val != '' and\
                 self.param.arg is not None and\
                 self.param.arg.value is not None and\
@@ -63,6 +62,7 @@ class SlotParamItem(BaseWidgetParamItem):
                     else:
                         print('Changing composite type not implemented yet!')
                         return
+        super(SlotParamItem, self).valueChanged(param, val)
 
     def setFocus(self):
         pass

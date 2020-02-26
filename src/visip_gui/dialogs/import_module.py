@@ -52,8 +52,8 @@ class ImportModule(QDialog):
         return self.module_name.text()
 
     def done(self, code):
-        print(self.Accepted)
-        print(code)
+        #print(self.Accepted)
+        #print(code)
         if code != self.Accepted or os.path.exists(self.import_module_filename.text()):
             super(ImportModule, self).done(code)
         else:

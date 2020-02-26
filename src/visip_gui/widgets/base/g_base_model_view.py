@@ -62,7 +62,6 @@ class GBaseModelView(QGraphicsView):
         super(GBaseModelView, self).wheelEvent(event)
 
     def scroll(self, p_int, p_int_1, QRect=None):
-        print("scroll")
         super(GBaseModelView, self).scroll(p_int, p_int_1, QRect)
 
     def keyPressEvent(self, key_event):

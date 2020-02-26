@@ -18,6 +18,7 @@ class ModuleNavigation(QTabWidget):
         self._tab_widget = tab_widget
         self.menu = ModuleNavigationMenu()
         self.menu.new_workflow.triggered.connect(self.add_workflow)
+        self.menu.rename_worklfow.triggered.connect(self.rename_workflow)
         self.menu.remove_workflow.triggered.connect(self.remove_workflow)
         self.home_tab_name = "Home"
 
@@ -57,6 +58,17 @@ class ModuleNavigation(QTabWidget):
             self.setCurrentIndex(index)
 
             self._tab_widget.main_widget.toolbox.update_category()
+
+    def rename_workflow(self):
+        names = []
+        for wf in self._module.definitions:
+            names.append(wf.name)
+        dialog = GetText(self, "New Workflow Name:", names)
+        dialog.setWindowTitle("New Workflow")
+        if dialog.exec_():
+            index = self.tabBar().tabAt(self.menu_pos)
+            self._module.rename_definition(self.tabText(index), dialog.text)
+            self.setTabText(index, dialog.text)
 
     def remove_workflow(self):
         index = self.tabBar().tabAt(self.menu_pos)

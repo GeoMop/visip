@@ -46,6 +46,7 @@ class GBaseModelScene(QGraphicsScene):
         self.update_model = True
 
     def update_scene(self):
+        self.workflow.update(self.workflow._result_call)
         if self.update_model and self.new_connection is None:
             selected = [item.name + 'g' if isinstance(item, GAction) else 'c' for item in self.selectedItems()]
             self.update_model = False
@@ -153,6 +154,9 @@ class GBaseModelScene(QGraphicsScene):
         self.update_model = True
         self.update()
 
+    def rename_action(self,old_name, new_name):
+        self.action_model
+
     def get_distance(self, action):
         prev_actions = set(action.previous_actions())
         next_prev_actions = set()
@@ -182,6 +186,7 @@ class GBaseModelScene(QGraphicsScene):
         self.action_model.move(action, new_x, new_y)
         self.update_model = False
         self.update()
+
 
     @staticmethod
     def is_action(obj):

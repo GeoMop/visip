@@ -8,6 +8,7 @@ from visip.dev.action_instance import ActionCall
 from visip_gui.graphical_items.g_action import GAction
 from visip_gui.menu.param_menu import ParamMenu
 from visip_gui.parameter_tree_custom.root_param import RootParam
+from visip_gui.parameter_tree_custom.root_param_item import RootParamItem
 from visip_gui.parameter_tree_custom.slot_param import SlotParam
 
 
@@ -52,7 +53,7 @@ class PropertyEditor(parametertree.ParameterTree):
 
     def update_editor(self):
         i = 0
-        self.root_item = RootParam(self.g_action.name)
+        self.root_item = RootParam(self.g_action)
         for arg in self.g_action.w_data_item.arguments:
             self.insert_item(arg, arg.parameter.name or self.g_action.in_ports[i].name)
             i += 1
@@ -130,8 +131,8 @@ class PropertyEditor(parametertree.ParameterTree):
         self.lastSel = sel[0]
         if hasattr(sel[0], 'selected'):
             sel[0].selected(True)
-        # todo: attempt to show editor after creating new parameter by double click
-        if len(sel) == 1:
+        # todo: attempt to show editor after creating new parameter by double click (very nasty)
+        if len(sel) == 1 and not isinstance(sel[0], RootParamItem):
             if sel[0].param.arg is None:
                 self.on_const_val_triggered()
                 self.root_item.child()

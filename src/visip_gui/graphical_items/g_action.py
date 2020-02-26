@@ -9,6 +9,7 @@ from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtGui import QPixmap, QPainter, QBrush, QPen
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QStyleOptionGraphicsItem, QGraphicsItem
 
+from visip_gui.graphical_items.g_tooltip import GTooltip
 from visip_gui.graphical_items.g_tooltip_base import GTooltipBase
 from visip_gui.graphical_items.glow import Glow
 from .g_action_background import GActionBackground, ActionStatus
@@ -26,6 +27,10 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         :param parent: Action which holds this subaction: this GAction is inside parent GAction.
         """
         super(GAction, self).__init__(parent)
+        self._msg = "Action name has to be unique and at least one character long!"
+        self._msg_box = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,
+                                       "Duplicate object name", self._msg,
+                                       QtWidgets.QMessageBox.Ok)
         self.glow = Glow(self)
         self.glow.hide()
         self._width = g_data_item.data(GActionData.WIDTH)
@@ -122,7 +127,11 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
 
     @name.setter
     def name(self, name):
+        old_name = self._name
         self._name.setPlainText(name)
+        if not self.name_has_changed():
+            self._name = old_name
+            raise ValueError
 
     @property
     def width(self):
@@ -176,10 +185,11 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.width = self.width
 
     def name_has_changed(self):
-        if not self.scene().action_name_changed(self.g_data_item, self.name) or self.name == "":
+        if not self.scene().action_name_changed(self.g_data_item, self.name) or self.name == "" :
             return False
         self.width = self.width
-        self.w_data_item.name(self.name)
+        self.w_data_item.name = self.name
+
         self.scene().update()
         return True
 

@@ -7,13 +7,16 @@ from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsPathItem, QGraphic
 class GTooltip(QGraphicsTextItem):
     ARROW_HEIGHT = 10
     MARGIN = 3
+    LINE_WIDTH = 2
 
-    def __init__(self, g_item, color=None):
+    def __init__(self, g_item, color=Qt.red):
+
         super(GTooltip, self).__init__()
         self.g_item = g_item
         self.background = QGraphicsPathItem(self)
         self.background.setBrush(Qt.white)
         self.background.setFlag(self.ItemStacksBehindParent, True)
+        self.background.setPen(QPen(color, self.LINE_WIDTH))
         self.setAcceptHoverEvents(True)
         self.setZValue(10.0)
         self.setFlag(QGraphicsItem.ItemIgnoresTransformations, True)
@@ -30,8 +33,12 @@ class GTooltip(QGraphicsTextItem):
         font = self.font()
         font.setPointSize(9)
         self.setFont(font)
+        self.close_after = 0
+        self.close_timer = QTimer()
+        self.close_timer.setSingleShot(True)
 
-    def tooltip_request(self, tooltip_pos, color=None, delay=500):
+    def tooltip_request(self, tooltip_pos, color=None, delay=500, close_after=0):
+        self.close_after = close_after
         self.timer.setInterval(delay)
         self.timer.start()
         if color is None:
@@ -73,8 +80,12 @@ class GTooltip(QGraphicsTextItem):
     def _show_tooltip(self):
         color = self.color
 
-        self.background.setPen(QPen(color))
+        self.background.setPen(QPen(color, self.LINE_WIDTH))
         if not self.isVisible() and self.toPlainText():
+            if self.close_after > 0:
+                self.close_timer.setInterval(self.close_after)
+                self.close_timer.start()
+                self.close_timer.timeout.connect(self.close)
             self.setFocus(Qt.MouseFocusReason)
             cursor = self.textCursor()
             cursor.clearSelection()
@@ -93,9 +104,8 @@ class GTooltip(QGraphicsTextItem):
             pos = tooltip_pos + d_pos
 
             scene_rect = view.mapToScene(view.viewport().geometry()).boundingRect()
-            print(scene_rect)
+
             this_rect.moveTo(pos)
-            print(pos.y() + this_rect.height()*view.zoom + self.ARROW_HEIGHT*view.zoom)
             pos.setX(max(scene_rect.left() + self.MARGIN,
                          min(pos.x(), scene_rect.right() - this_rect.width() - self.MARGIN)))
             if scene_rect.bottom() < pos.y() + this_rect.height() + self.ARROW_HEIGHT:
@@ -138,7 +148,13 @@ class GTooltip(QGraphicsTextItem):
         super(GTooltip, self).mousePressEvent(event)
         pass
 
-    def hoverLeaveEvent(self, *args, **kwargs):
+    def hoverEnterEvent(self, event):
+        super(GTooltip, self).hoverEnterEvent(event)
+        self.close_timer.stop()
+
+
+    def hoverLeaveEvent(self, event):
+        super(GTooltip, self).hoverLeaveEvent(event)
         self.close()
 
     def close(self):
