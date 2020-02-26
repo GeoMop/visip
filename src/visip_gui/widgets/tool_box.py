@@ -20,12 +20,13 @@ from visip_gui.widgets.toolbox_view import ToolboxView
 
 
 class ToolBox(QToolBox):
+    BASE_MODULE_NAME = "visip"
     def __init__(self, main_widget, parent=None):
         super(ToolBox, self).__init__(parent)
         self.main_widget = main_widget
 
         self.system_actions_layout = ActionCategory()
-        self.action_database = {"wf": {}}
+        self.action_database = {self.BASE_MODULE_NAME: {}}
 
         self.cfg = ConfigData()
         self.module = None
@@ -81,17 +82,17 @@ class ToolBox(QToolBox):
     def on_module_change(self, module, curr_workspace):
         while self.count() > 1:
             self.removeItem(self.count()-1)
-            temp = self.action_database["wf"]
+            temp = self.action_database[self.BASE_MODULE_NAME]
             self.action_database.clear()
             self.import_modules.clear()
-            self.action_database["wf"] = temp
+            self.action_database[self.BASE_MODULE_NAME] = temp
         #self.addItem(self.system_actions_layout, "System actions")
         self.module = module
         if module is not None:
             self.on_workspace_change(module, curr_workspace)
 
             for m in module.imported_modules:
-                if m.__name__ != "visip":
+                if m.__name__ != self.BASE_MODULE_NAME:
                     module_category = ActionCategory()
                     self.action_database[m.__name__] = {}
                     #todo: load each module from file and get actions from module.definitions

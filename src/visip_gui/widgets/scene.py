@@ -207,6 +207,7 @@ class Scene(GBaseModelScene):
             else:
                 self.enable_ports(True, False)
             self.new_connection = GConnection(port)
+            self.new_connection.tool_tip.disable()
             self.new_connection.unsetCursor()
             self.addItem(self.new_connection)
             self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, False)
@@ -236,6 +237,8 @@ class Scene(GBaseModelScene):
                     port1.appending_port = False
 
                 def update_unconected(action):
+                    if action is None:
+                        return
                     self.unconnected_actions.pop(action.name, None)
                     for argument in action.arguments:
                         update_unconected(argument.value)

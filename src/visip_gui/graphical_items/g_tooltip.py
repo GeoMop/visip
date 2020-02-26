@@ -37,6 +37,12 @@ class GTooltip(QGraphicsTextItem):
         self.close_timer = QTimer()
         self.close_timer.setSingleShot(True)
 
+    def disable(self):
+        self.timer.timeout.disconnect(self._show_tooltip)
+
+    def enable(self):
+        self.timer.timeout.connect(self._show_tooltip())
+
     def tooltip_request(self, tooltip_pos, color=None, delay=500, close_after=0):
         self.close_after = close_after
         self.timer.setInterval(delay)

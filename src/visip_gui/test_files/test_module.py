@@ -31,12 +31,12 @@ def test_analysis(self):
 @wf.workflow
 def system_test_wf(self, script_name):
     Value_1 = 'python'
-    file_r_1 = wf.file_r(path=script_name, workspace='')
+    file_r_1 = wf.file_in(path=script_name, workspace='')
     Value_3 = '-m'
     Value_8 = 'msg_file.txt'
     Value_9 = ''
-    self.res = wf.system(arguments=['echo', 'Hallo world'], stdout=wf.file_w(path=Value_8, workspace=Value_9), stderr=None)
-    self.msg_file = wf.file_r(path='msg_file.txt', workspace=self.res.workdir)
+    self.res = wf.system(arguments=['echo', 'Hallo world'], stdout=wf.file_out(path=Value_8, workspace=Value_9), stderr=None)
+    self.msg_file = wf.file_in(path='msg_file.txt', workspace=self.res.workdir)
     Value_11 = 123
-    self.res_0 = wf.system(arguments=[Value_1, file_r_1, Value_3, self.msg_file, Value_11], stdout=SysFile.PIPE, stderr=SysFile.STDOUT)
-    return res_0
+    self.res_0 = wf.system(arguments=[Value_1, file_r_1, Value_3, self.msg_file, Value_11], stdout=wf.SysFile.PIPE, stderr=wf.SysFile.STDOUT)
+    return self.res_0

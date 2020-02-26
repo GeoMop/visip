@@ -49,8 +49,6 @@ class GConnection(QtWidgets.QGraphicsPathItem):
         self.setAcceptHoverEvents(True)
         self.tool_tip = GTooltip(self, color)
         self.tool_tip.set_text(self.text.get(state, "(Unknown state)"))
-        if self.tool_tip.toPlainText() == "(Unknown state)":
-            i = 0
 
     @property
     def name(self):
