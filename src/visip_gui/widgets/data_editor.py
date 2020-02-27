@@ -12,7 +12,7 @@ class DataEditor(PropertyEditor):
 
     def update_editor(self):
         i = 0
-        self.root_item = RootParam(self.g_action.name, readonly=True)
+        self.root_item = RootParam(self.g_action, readonly=True)
         for arg in self.g_action.w_data_item.arguments:
             arg_g_action = self.g_action.get_arg_action(arg)
             self.insert_item_with_data(arg_g_action, arg, arg.parameter.name or self.g_action.in_ports[i].name)
