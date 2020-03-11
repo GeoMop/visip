@@ -10,7 +10,7 @@ from visip.action.constructor import ClassActionBase
 from visip.code import decorators as wf
 from visip.code import wrap
 
-from visip.action.GMSH_action import Point, Element, MeshGMSH, GMSH_reader
+from visip.action.GMSH_action import Point, Element, MeshGMSH, GMSH_reader, write_fields
 
 # test_std imports
 # import os
@@ -95,23 +95,14 @@ def loading_mesh() -> MeshGMSH:
 
 def test_load_mesh():
     result = evaluation.run(loading_mesh)
-    assert result._action_call.arguments[0].parameter.name == 'nodes'
-    assert result._action_call.arguments[0].value.arguments[0].value.arguments[1].value.arguments[
-               0].value.action.value == 300
-    assert result._action_call.arguments[0].value.arguments[19].value.arguments[1].value.arguments[
-               0].value.action.value == 152.473677620111
+    # print(result)
+    assert result.nodes
+    assert result.elements
+    assert result.regions
 
-    assert result._action_call.arguments[1].parameter.name == 'elements'
-    assert len(result._action_call.arguments[1].value.arguments) == 11636
-    assert result._action_call.arguments[1].value.arguments[0].value.arguments[1].value.arguments[
-               0].value.action.value == 1
-    assert result._action_call.arguments[1].value.arguments[10].value.arguments[1].value.arguments[
-               2].value.action.value == 12
-
-    assert result._action_call.arguments[2].parameter.name == 'regions'
-    assert result._action_call.arguments[2].value.arguments[11].value.arguments[0].value.action.value == '"box"'
-    assert result._action_call.arguments[2].value.arguments[11].value.arguments[1].value.arguments[
-               0].value.action.value == 7
+    assert result.nodes[1].x == 300
+    assert result.elements[1].nodes == [511, 690]
+    assert result.regions['"fr"'] == (10, 2)
 
 
 import numpy as np
@@ -130,7 +121,7 @@ def prepare_np_array_none(arr: np.ndarray = None) -> np.ndarray:
 
 
 def test_np_array():
-    result = evaluation.run(prepare_np_array)
+    result = evaluation.run(prepare_np_array, [np.array([-1, 0])])
     print(type(result))
     assert issubclass(type(result), np.ndarray)
 
@@ -139,3 +130,19 @@ def test_np_array_none():
     result = evaluation.run(prepare_np_array_none)
     print(type(result))
     assert issubclass(type(result), np.ndarray)
+
+
+MY_FILE = "write_fields.gmsh"
+WORKSPACE = "_workspace"
+
+
+@wf.analysis
+def writing_fields(mesh:MeshGMSH):
+    return write_fields(mesh)
+
+
+def test_write_fields():
+    mesh = evaluation.run(loading_mesh)
+    # print(mesh)
+    write = evaluation.run(writing_fields,[mesh])
+    print(write)

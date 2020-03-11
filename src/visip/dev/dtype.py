@@ -22,11 +22,11 @@ import enum
 ################################################################################################
 
 
-BasicType = typing.Union[bool, int, float, complex, str, np.array, np.ndarray]
-valid_base_types = (bool, int, float, complex, str, np.array, np.ndarray)
+BasicType = typing.Union[bool, int, float, complex, str, np.ndarray]
+valid_base_types = (bool, int, float, complex, str, np.ndarray)
 
 DataType = typing.Union[BasicType, typing.List['DataType'], typing.Dict['DataType', 'DataType'], typing.Tuple[
-    'DataType', ...], 'DataClassBase']
+    'DataType', ...], 'DataClassBase', np.ndarray]
 # All valid data types that can be passed between VISIP actions.
 # TODO: check that all type check methods work with this definition.
 # ?? Can pytypes of typing inspect work with this recursive type definition.
