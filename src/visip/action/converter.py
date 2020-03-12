@@ -12,7 +12,7 @@ class GetAttribute(base._ActionBase):
     def __init__(self):
         super().__init__()
 
-    def format(self, representer, action_name, arg_names, arg_values):
+    def call_format(self, representer, action_name, arg_names, arg_values):
         assert len(arg_names) == 2
         assert len(arg_values) == 2
         key_action_call = arg_values[0]
@@ -33,7 +33,7 @@ class GetItem(base._ActionBase):
     def __init__(self):
         super().__init__()
 
-    def format(self, representer, action_name, arg_names, arg_values):
+    def call_format(self, representer, action_name, arg_names, arg_values):
         assert len(arg_names) == 2
         return representer.format(representer.token(arg_names[0]), "[", representer.token(arg_names[1]), "]")
 

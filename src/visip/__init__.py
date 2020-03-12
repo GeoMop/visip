@@ -10,12 +10,23 @@ wrapped actions:
 All underscored names are private
 """
 
-from .action.wrapped import *
-from .dev.action_workflow import _Slot as _Slot, _ResultCall as _Result
+# def decorators
+from .code.decorators import workflow, analysis, action_def, Class, Enum
+
+# builtin
+from .action.wrapped import list, dict, tuple
+
+# std
+from .action.std import \
+    file_in, file_out, FileIn, FileOut, Folder, system, SysFile, ExecResult, \
+    derived_file, file_from_template, format
+
+# internal (possibly remove from public API)
+from .dev.action_workflow import _Slot as _Slot, _Result as _Result
 from .action.constructor import Value as _Value
-from .code.decorators import workflow, analysis, action_def, Class
 from visip.action import converter as _converter
-from typing import List
+from typing import List, Any, Dict, Tuple, Union
+from .dev.dtype import Constant
 
 
 # TODO:
@@ -23,7 +34,7 @@ from typing import List
 # - wrapped actions, i.e. names used in workflow definitions
 #   e.g. list, dict, tuple, load_yaml
 #
-# - action instances, single instance for every base action class (used in following list and then in the frontend)
+# - action instances, single instance for every base action class (used in following list and then in the visip_gui)
 #   list.action, dict.action, tuple.action, load_yaml.action
 #
 # - action classes (internal use only)
@@ -34,13 +45,17 @@ from typing import List
 #
 # Can we treat all actions in visip module directly instead of using following special list?
 base_system_actions = [_Slot(),
-                       _Result(),
-                       _Value(None),   # can be deleted
                        list.action,
                        tuple.action,
                        dict.action,
                        _converter.GetAttribute(),
                        _converter.GetItem(), #GetKey()
+                       file_in.action,
+                       file_out.action,
+                       system.action,
+                       derived_file.action,
+                       file_from_template.action,
+                       format.action
                        ]
 
 """

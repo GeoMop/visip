@@ -1,5 +1,7 @@
 import enum
+from . import data
 from .parameters import Parameters, extract_func_signature
+
 
 
 # Name for the first parameter of the workflow definiton function that is used
@@ -40,18 +42,18 @@ class _ActionBase:
     - implement expansion to the Task DAG.
     - have _code representation
     """
-    def __init__(self, action_name = None ):
+    def __init__(self, action_name = None):
         self.task_type = TaskType.Atomic
         self.is_analysis = False
         self.name = action_name or self.__class__.__name__
-        self._module = "wf"
+        self.__visip_module__ = "visip"
         # Module where the action is defined.
-        self.parameters = Parameters()
+        self._parameters = None
         # Parameter specification list, class attribute, no parameters by default.
-        self.output_type = None
+        self._output_type = None
         # Output type of the action, class attribute.
         # Both _parameters and _outputtype can be extracted from type annotations of the evaluate method using the _extract_input_type.
-        self._extract_input_type()
+
 
     @property
     def module(self):
@@ -59,26 +61,49 @@ class _ActionBase:
         Module prefix used in code generationn.
         :return:
         """
-        assert self._module
-        return self._module
+        assert self.__visip_module__
+        return self.__visip_module__
+
+    def action_hash(self):
+        """
+        Hash of values representing the action. Hash must be different if the action
+        produce different result for the same input.
+        TODO: Make generic implementation more general. Possibly replacing nearly all specializations.
+        - hash action parameters
+        - hash values of constant parameters
+        :return:
+        """
+        return data.hash(self.name)
 
 
-    def _extract_input_type(self, func=None, skip_self=True):
+    def _extract_input_type(self, func=None, skip_self=True) -> None:
         """
         Extract input and output types of the action from its evaluate method.
         Only support fixed numbeer of parameters named or positional.
         set: cls._input_type, cls._output_type
         """
+        if self._parameters is not None:
+            return
         if func is None:
             func = self._evaluate
-        self.parameters, self.output_type = extract_func_signature(func, skip_self)
-        pass
+        self._parameters, self._output_type = extract_func_signature(func, skip_self)
+        self.check_type_annotations()
 
-    # def hash(self):
-    #     """
-    #     Hash of the atomic action. Should be unique for the particular Action instance.
-    #     """
-    #     return data.hash(self.name)
+    def check_type_annotations(self):
+        for param in self.parameters:
+            assert param.type is not None, "Missing type annotation, param: {}, action: {}".format(param.name, self.name)
+        assert self.output_type is not None, "Missing return type annotation, action: {}".format(self.name)
+
+    @property
+    def output_type(self):
+        self._extract_input_type()
+        return self._output_type
+
+
+    @property
+    def parameters(self):
+        self._extract_input_type()
+        return self._parameters
 
 
     def evaluate(self, inputs):
@@ -103,21 +128,35 @@ class _ActionBase:
         assert False, "Implementation has to be provided."
 
 
-    def format(self, representer, full_action_name, arg_names, arg_values):
+    def call_format(self, representer, full_action_name, arg_names, arg_values):
         """
-        Return a format string for the expression that constructs the action.
-        :param n_args: Number of arguments, number of placeholders. Can be None if the action is not variadic.
-        :return: str, format
-        Format contains '{N}' placeholders for the given N-th argument, the named placeholer '{VAR}'
-        is used for the variadic arguments, these are substituted as an argument list separated by comma and space.
-        E.g. "Action({0}, {1}, {})" can be expanded to :
-        "Action(arg0, arg1, arg2, arg3)"
+        Return a Format of the action call with placeholders for the actual arguments.
+        Names of placehloders are given by action_call names 'arg_names'.
+        TODO: Keyword arguments.
+        - usually it is better to use keyword arguments as it is more desriptive
+        - if there is variadic parameter, we can not use keyword arguments at all
+        - some actions are so common, that we may prefer to not use the keyword
+          or use it only for some parameter
+
+        1. don't use named arguments if there is variadic parameter
+        2. don't use named argument if value is named action_call
+        3. otherwise use named argument
+
+        :param representer ... Representer
+        :param full_action_name ... name with correct module prefix
+        :param arg_names ... action_call names within workflow
+        :param arg_values ... action_calls
+        :return: Format ... basically list of strings and placeholders (for argument values).
         """
         args = []
         for i, arg in enumerate(arg_names):
-            param = self.parameters.get_index(i)
-            assert param is not None
-            args.append( (param.name, arg) )
+            if  self.parameters.is_variadic():
+                param_name = None
+            else:
+                param = self.parameters.get_index(i)
+                assert param is not None
+                param_name = param.name
+            args.append( (param_name, arg) )
         return representer.action_call(full_action_name, *args)
 
 
@@ -126,6 +165,18 @@ class _ActionBase:
         return self.evaluate(inputs)
 
 
+    def code_of_definition(self, representer):
+        # TODO: make derived class for actions implemented in user module
+        # and move thic method there
+        type_code = representer.type_code(self.output_type)
+        type_code = representer.make_rel_name(self.output_type.__module__, type_code)
+        params_code = ", ".join([representer.parameter(p, indent = 0) for p in self.parameters])
+        lines = [
+            "@wf.action_def",
+            "def {}({}) -> {}:".format(self.name, params_code, type_code),
+            "    # User defined action cen not been represented.",
+            "    pass"]
+        return "\n".join(lines)
 
 
 

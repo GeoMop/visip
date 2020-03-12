@@ -1,9 +1,10 @@
 import enum
-from typing import Optional, Union, List
+from typing import *
 
 from . import data
 from ..action.constructor import Pass
 from . import base
+from ..eval import cache
 
 
 
@@ -20,6 +21,9 @@ class Status(enum.IntEnum):
 
 
 class _TaskBase:
+
+    no_value = cache.ResultCache.NoValue
+
     def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'] = []):
         self.action = action
         # Action (like function definition) of the task (like function call).
@@ -30,21 +34,27 @@ class _TaskBase:
             input.outputs.append(self)
         self.outputs: List['Atomic'] = []
         # List of tasks dependent on the result. (Try to not use and eliminate.)
-        result: Optional[data.DataType] = None
-        # Result of the task.
         self.id: int = 0
         # Task is identified by the hash of the hash of its parent task and its name within the parent.
         self.parent: Optional['Composed'] = None
         # parent task, filled during expand
+        self.child_id = None
+        # name of current task within parent
+
         self.status = Status.none
         # Status of the task, possibly need not to be stored explicitly.
-        self._result = None
+        self._result: Any = self.no_value
         # The task result.
+        self._result_hash = None
+        # Hash of the result
         self.resource_id = None
 
         self.start_time = -1
         self.end_time = -1
         self.eval_time = 0
+
+    def action_hash(self):
+        return self.action.action_hash()
 
     @property
     def priority(self):
@@ -54,18 +64,38 @@ class _TaskBase:
     def result(self):
         return self._result
 
-    def evaluate(self):
+    @property
+    def result_hash(self):
+        return self._result_hash
+
+    def evaluate_fn(self):
+        # Returns a function accepting the input data and computing the result.
+        # e.g. action.evaluate
         assert False, "Not implemented."
 
+    def finish(self, result, task_hash):
+        assert result is not self.no_value
+        self.status = Status.finished
+        self._result = result
+        self._result_hash = task_hash
+
     def is_finished(self):
-        return self.result is not None
+        return self.result is not self.no_value
 
     def is_ready(self):
         assert False, "Not implemented."
 
+    def get_path(self):
+        path = []
+        t = self
+        while t is not None:
+            path.append(t.child_id)
+            t = t.parent
+        return path
 
     def set_id(self, parent_task, child_id):
         self.parent = parent_task
+        self.child_id = child_id
         if parent_task is None:
             parent_hash = data.hash(None)
         else:
@@ -107,12 +137,15 @@ class Atomic(_TaskBase):
                 self.status = Status.ready
         return self.status == Status.ready
 
-    def evaluate(self):
+    def evaluate_fn(self):
+        """
+        For given data evaluate the action and store the result.
+        TODO: should handle just status and possibly store the result
+        since Resource may execute the task remotely.
+        """
         assert self.is_ready()
-        data_inputs = [i.result for i in self.inputs]
-        self._result = self.action.evaluate(data_inputs)
-        self.status = Status.finished
-        assert self.result is not None
+        return self.action.evaluate
+
 
 
 class ComposedHead(Atomic):
@@ -208,14 +241,14 @@ class Composed(Atomic):
                 head.outputs = [self]
         return self.childs
 
-    def evaluate(self):
+    def evaluate_fn(self):
+        """
+        Composed tasks use evaluate to finish expansion.
+        """
         assert self.is_ready()
         assert len(self.inputs) == 1
         assert self.inputs[0].action.name == "result"
-
-        self._result = self.inputs[0].result
-        self.status = Status.finished
-        assert self.result is not None
+        return lambda x: x[0]
 
 
 

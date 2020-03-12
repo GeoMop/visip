@@ -24,9 +24,9 @@ class Dummy:
             return Dummy(action)
 
 
-    def __init__(self, action: instance.ActionCall) -> None:
-        assert isinstance(action, instance.ActionCall)
-        self._action = action
+    def __init__(self, action_call: instance.ActionCall) -> None:
+        assert isinstance(action_call, instance.ActionCall)
+        self._action_call = action_call
         """Dummy pretend the data object of the action.output_type."""
 
 
@@ -37,13 +37,13 @@ class Dummy:
         # TODO: check that type is dataclass
         assert not is_underscored(key)
         key_wrap = ActionCall.create(Value(key))
-        action = ActionCall.create(GetAttribute(), key_wrap, self._action)
-        return Dummy.wrap(action)
+        action_call = ActionCall.create(GetAttribute(), key_wrap, self._action_call)
+        return Dummy.wrap(action_call)
 
     def __getitem__(self, idx: int):
         idx_wrap = ActionCall.create(Value(idx))
-        action = ActionCall.create(GetItem(), self._action, idx_wrap)
-        return Dummy.wrap(action)
+        action_call = ActionCall.create(GetItem(), self._action_call, idx_wrap)
+        return Dummy.wrap(action_call)
 
     # Binary
     # Operators

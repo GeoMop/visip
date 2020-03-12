@@ -1,6 +1,7 @@
 # test results
 *.round.py
 *.round2.py
+**/_workspace/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -71,6 +72,10 @@ target/
 *.e4t
 *.e4p
 *.e4m
+
+#pytest cache
+.pytest_cache/*
+**/.pytest_cache
 
 #Profiling files
 *.profile

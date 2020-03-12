@@ -1,9 +1,11 @@
-numpy==1.12.0
+numpy
 PyQt5
-indexed.py
+# indexed.py
 attrs
 pytypes
 pytest
+ruamel.yaml
+tox
 
 # pip3
 # setuptools

@@ -10,7 +10,8 @@ Evaluation of a workflow.
     relay on equality of the data if the hashes are equal.
 4. Tasks are assigned to the resources by scheduler,
 """
-from typing import List
+import os
+from typing import List, Dict, Tuple, Any, Union
 import attr
 import heapq
 import numpy as np
@@ -19,6 +20,10 @@ import time
 from . import data, task as task_mod, base, dfs,  dtype as dtype, action_instance as instance
 from .action_workflow import _Workflow
 from ..action.constructor import Value
+from ..eval.cache import ResultCache
+from ..code import wrap
+from ..code.dummy import Dummy
+from . import tools
 
 class Resource:
     """
@@ -46,6 +51,9 @@ class Resource:
         # Maximal number of MPI processes one can assign.
         self._finished = []
 
+
+        self.cache = ResultCache()
+
     # def assign_task(self, task, i_thread=None):
     #     """
     #     Just evaluate tthe task immediately.
@@ -71,23 +79,29 @@ class Resource:
         is_ready = task.is_ready()
         assert task.status >= task_mod.Status.ready
         if is_ready:
-            task.evaluate()
+            # hash of action and inputs
+            # TODO: move into task
+            task_hash = task.action_hash()
+            for input in task.inputs:
+                task_hash = data.hash(input.result_hash, previous=task_hash)
+
+            # Check result cache
+
+            res_value = self.cache.value(task_hash)
+            if res_value is self.cache.NoValue:
+                assert task.is_ready()
+                result = task.evaluate_fn()
+                data_inputs = [input.result for input in task.inputs]
+                res_value = result(data_inputs)
+                # print(task.action)
+                # print(task.inputs)
+                # print(task_hash, res_value)
+                self.cache.insert(task_hash, res_value)
+
+            task.finish(result=res_value, task_hash=task_hash)
             self._finished.append(task)
-            #self._evaluate(task)
 
-    def _evaluate(self, task):
-        """
-        Evaluate the task using the input from the input tasks.
-        :return:
-        """
 
-        input_data_hash = input_data.hash()
-        if self._last_input_hash and self._last_input_hash == input_data_hash:
-            return self._result
-        else:
-            self._result = action.evaluate(input_data)
-            self._last_input_hash = input_data_hash
-        return self._result
 
 
 
@@ -212,24 +226,7 @@ class Result:
 
 
 
-
-class ResultDB:
-    """
-    Simple result database.
-    For an input hash find result, its environment and runtime, and result hash.
-    """
-    def __init__(self):
-        self.result_dict = {}
-
-
-    def get_result(self, input_hash):
-        return self.result_dict.get(input_hash, None)
-
-
-    def store_result(self, result: Result):
-        input_hash = hash_fn(result.input)
-        self.result_dict[input_hash] = result
-
+DataOrDummy = Union[dtype.DataType, Dummy]
 
 class Evaluation:
     """/
@@ -258,7 +255,7 @@ class Evaluation:
     :return: List of all tasks.
     """
     @staticmethod
-    def make_analysis(action: base._ActionBase, inputs:List[dtype.DataType]):
+    def make_analysis(action: base._ActionBase, inputs:List[DataOrDummy]):
         """
         Bind values 'inputs' as parameters of the action using the Value action wrappers,
         returns a workflow without parameters.
@@ -266,14 +263,17 @@ class Evaluation:
         :param inputs:
         :return: a bind workflow instance
         """
-        assert action.parameters.is_variadic() or len(inputs) == action.parameters.size()
+        #assert action.parameters.is_variadic() or len(inputs) == action.parameters.size()
         bind_name = 'all_bind_' + action.name
         workflow = _Workflow(bind_name)
 
         bind_action = instance.ActionCall.create(action)
         for i, input in enumerate(inputs):
-            value_instance = instance.ActionCall.create(Value(input))
-            workflow.set_action_input(bind_action, i, value_instance)
+            if isinstance(input, Dummy):
+                input_action = input._action_call
+            else:
+                input_action = instance.ActionCall.create(Value(input))
+            workflow.set_action_input(bind_action, i, input_action)
             #assert bind_action.arguments[i].status >= instance.ActionInputStatus.seems_ok
         workflow.set_action_input(workflow.result, 0, bind_action)
         return workflow
@@ -295,7 +295,6 @@ class Evaluation:
         """
         self.resources = [ Resource() ]
         self.scheduler = Scheduler(self.resources)
-        self.result_db = ResultDB()
 
         self.final_task = task_mod._TaskBase._create_task(None, '__root__', analysis, [])
 
@@ -327,7 +326,7 @@ class Evaluation:
         :return:
         """
         if task.is_finished():
-            task.eval_time = task._end_time - task._start_time
+            task.eval_time = task.end_time - task.start_time
         else:
             task.time_estimate = 1
 
@@ -343,21 +342,26 @@ class Evaluation:
         """
         return []
 
-    def execute(self, assigned_tasks_limit = np.inf, process_tasks = np.inf):
+    def execute(self, assigned_tasks_limit = np.inf,
+                process_tasks = np.inf,
+                workspace: str = ".") -> task_mod._TaskBase:
         """
         Execute the workflow.
         :return:
         """
-        invalid_connections = self.validate_connections(self.final_task.action)
-        if invalid_connections:
-            raise Exception(invalid_connections)
-        while not self.force_finish:
-            schedule = self.expand_tasks(assigned_tasks_limit)
-            self.tasks_update(schedule)
-            self.scheduler.update()
-            self.scheduler.optimize()
-            if  self.scheduler.n_assigned_tasks == 0:
-                self.force_finish = True
+        os.makedirs(workspace, exist_ok=True)
+        with tools.change_cwd(workspace):
+            # print("CWD: ", os.getcwd())
+            invalid_connections = self.validate_connections(self.final_task.action)
+            if invalid_connections:
+                raise Exception(invalid_connections)
+            while not self.force_finish:
+                schedule = self.expand_tasks(assigned_tasks_limit)
+                self.tasks_update(schedule)
+                self.scheduler.update()
+                self.scheduler.optimize()
+                if  self.scheduler.n_assigned_tasks == 0:
+                    self.force_finish = True
         return self.final_task
 
 
@@ -389,10 +393,21 @@ class Evaluation:
             self.tasks_update([composed_task])
         return schedule
 
+    # def extract_input(self):
+    #     input_data = List(*[i._result for i in self._inputs])
 
 
-    def extract_input(self):
-        input_data = List(*[i._result for i in self._inputs])
-
-
-
+def run(action: Union[base._ActionBase, wrap.ActionWrapper],
+        inputs:List[DataOrDummy] = None,
+        **kwargs) -> dtype.DataType:
+    """
+    Run the 'action' with given arguments 'inputs'.
+    Return the data result.
+    """
+    if isinstance(action, wrap.ActionWrapper):
+        action = action.action
+    if inputs is None:
+        inputs = []
+    analysis = Evaluation.make_analysis(action, inputs)
+    eval_obj = Evaluation(analysis)
+    return eval_obj.execute(**kwargs).result

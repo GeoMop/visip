@@ -30,7 +30,7 @@ def test_workflow_modification():
     w.remove_slot(2)
     assert w.parameters.size() == 2
 
-    ## Action modifications
+    ## ActionCall modifications
     result = w.result
     slots = w.slots
     list_action =  constructor.A_list()
@@ -48,6 +48,10 @@ def test_workflow_modification():
     assert len(w._action_calls) == 4
     # w:  (slot0 (B), slot2 (A)) -> List1 -> result
 
+    ## ActionCall rename
+    list_1.name ='list_2'
+    assert list_1.name == 'list_2'
+    assert sorted(list(w.action_call_dict.keys())) == ['__result__', 'a_slot', 'b_slot', 'list_2']
 
 
     # unlink
