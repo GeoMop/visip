@@ -73,8 +73,9 @@ class MainWidget(QtWidgets.QMainWindow):
         self.properities_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.addDockWidget(Qt.RightDockWidgetArea, self.properities_dock)
 
-    def export_to_file(self):
-        filename = QtWidgets.QFileDialog.getSaveFileName(self.parent(), "Export Module", self.cfg.last_opened_directory, "Python File (*.py)")[0]
+    def export_to_file(self, filename=None):
+        if not isinstance(filename, str):
+            filename = QtWidgets.QFileDialog.getSaveFileName(self.parent(), "Export Module", self.cfg.last_opened_directory, "Python File (*.py)")[0]
         if filename != "":
             self.cfg.last_opened_directory = os.path.dirname(filename)
             code = self.tab_widget.currentWidget()._module.code()
@@ -91,3 +92,8 @@ class MainWidget(QtWidgets.QMainWindow):
             msg.setText( "This isn't analysis. Todo: make a dialog to fill empty slots!")
             msg.exec()
 
+    def disable_everything(self, b):
+        self.toolbox_dock.setDisabled(b)
+        self.property_editor.setDisabled(b)
+        self.edit_menu.setDisabled(b)
+        self.eval_menu.setDisabled(b)

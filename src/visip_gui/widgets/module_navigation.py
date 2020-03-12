@@ -39,14 +39,14 @@ class ModuleNavigation(QTabWidget):
             self.menu.exec_(event.globalPos())
 
     def add_workflow(self):
-        if type(self.widget(0)) is NoWorkflowTab:
-            self.removeTab(0)
         names = []
         for wf in self._module.definitions:
             names.append(wf.name)
         dialog = GetText(self, "New Workflow Name:", names)
         dialog.setWindowTitle("New Workflow")
         if dialog.exec_():
+            if type(self.widget(0)) is NoWorkflowTab:
+                self.removeTab(0)
             wf_name = dialog.text
 
             wf = _Workflow(wf_name)
@@ -84,5 +84,8 @@ class ModuleNavigation(QTabWidget):
 
     def current_changed(self, index):
         self._tab_widget.main_widget.toolbox.on_workspace_change(self._module, self.currentWidget())
-
+        if self.tabText(index) == "Home":
+            self._tab_widget.main_widget.disable_everything(True)
+        else:
+            self._tab_widget.main_widget.disable_everything(False)
 

@@ -1,3 +1,5 @@
+#!/usr/bin python3
+# -*- coding: utf-8 -*-
 """
 Start script that initializes main window and runs APP.
 @author: Tomáš Blažek
@@ -7,6 +9,7 @@ Start script that initializes main window and runs APP.
 
 import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+import PyQt5
 from PyQt5.QtWidgets import QApplication
 from visip_gui.widgets.main_widget import MainWidget
 

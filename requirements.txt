@@ -4,9 +4,11 @@ PyQt5
 attrs
 pytypes
 pytest
+pytest-qt
 ruamel.yaml
 tox
 pyqtgraph # used for property editor
+
 
 # pip3
 # setuptools

@@ -47,6 +47,8 @@ setuptools.setup(
     # },
 
     # include automatically all files in the template MANIFEST.in
+    #scripts=["src/visip_gui/visip.py"],
+
     include_package_data=True,
     zip_safe=False,
     install_requires=['numpy',
@@ -62,11 +64,11 @@ setuptools.setup(
     #     #   'rst': ['docutils>=0.11'],
     #     #   ':python_version=="2.6"': ['argparse'],
     # },
-    #entry_points={
-    #    'gui_scripts': [
-    #        'VISIP = frontend:VISIP',
-    #    ]
-    #},
+    entry_points={
+        'console_scripts': [
+            'visip = visip_gui:main',
+       ]
+    },
 
     # ext_modules=ext_modules,
     # cmdclass={'build_ext': BuildExt}
