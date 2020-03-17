@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 
 import numpy as np
 from bgem.gmsh import gmsh_io
@@ -8,6 +8,7 @@ from bgem.gmsh import gmsh_io
 from visip import FileOut
 from ..code.decorators import action_def
 from ..code.decorators import Class
+from ..dev import action_instance as instance
 import visip as wf
 
 
@@ -37,17 +38,14 @@ class MeshGMSH:
     elements: Dict[int, Element] = None
     regions: Dict[str, List[int]] = None
 
-    # def ExtractRegionElements(self,regions:List[str]) -> List[Tuple[int,Element]]:
-    #     region_id_dim = List[Tuple[int,int]]
-    #     for region in regions:
-    #         if region in self.regions.keys():
-    #             region_id_dim.append(self.regions.values())
-    #
-    #     return region_id_dim
-
 
 @action_def
 def GMSH_reader(path: str) -> MeshGMSH:
+    """
+    reader for .msh files
+    :param path: target file
+    :return: Mesh like variable
+    """
     reader = gmsh_io.GmshIO(path)
     reader.read()
 
@@ -57,78 +55,83 @@ def GMSH_reader(path: str) -> MeshGMSH:
 
     elements = {}
     for idx, element in reader.elements.items():
-        # print(element)
-        # print('type_id = {}'.format(element[0]))
-        # print('tags = {}'.format(element[1]))
-        # try:
-        #     print('region;shape;partition = {0};{1};{2}'.format(element[1][0],element[1][1],element[1][2]))
-        # except:
-        #     print('region;shape;partition = {0};{1}'.format(element[1][0], element[1][1]))
-        # print('nodes = {}'.format(element[2]))
-
-        # elements[idx] = Element.call(element[0], None, element[1][0], element[1][1], element[1][2], element[2])
-
         try:
             elements[idx] = Element.call(element[0], None, element[1][0], element[1][1], element[1][2], element[2])
-        # elements[idx] = Element(type_id=element[0], dim=None, region_id=element[1][0], shape_id=element[1][1],
-        #                         partition_id=element[1][2], nodes=element[2])
         except:
             elements[idx] = Element.call(element[0], None, element[1][0], element[1][1], None, element[2])
-        # elements[idx] = Element(type_id=element[0], dim=None, region_id=element[1][0], shape_id=element[1][1],
-        #                         nodes=element[2])
 
     my_Mesh = MeshGMSH.call(points, elements, reader.physical)
     return my_Mesh
 
 
+@action_def
 def ExtractRegionElements(msh: MeshGMSH, regions: List[str]) -> List[Tuple[int, Element]]:
+    """
+
+    :param msh:
+    :param regions:
+    :return:
+    """
     region_id_dim = []
     for region in regions:
         if region in msh.regions.keys():
             region_val = [val for name, val in msh.regions.items() if name == region]
             region_id_dim.append(*region_val)
 
-    idecka = []
-    elementy = []
+    element_id = []
+    elements = []
     region_dim_only = [x[0] for x in region_id_dim]
     for ele_id, ele_val in msh.elements.items():
         for region_dim in region_dim_only:
             if ele_val.region_id == region_dim:
-                idecka.append(ele_id)
-                elementy.append(ele_val)
+                element_id.append(ele_id)
+                elements.append(ele_val)
 
-    result = list(zip(idecka, elementy))
+    result = list(zip(element_id, elements))
     return result
 
 
+@action_def
 def EleIds(msh: List[Tuple[int, Element]]) -> List[int]:
     return [x[0] for x in msh]
 
 
+@action_def
 def Barycenter(mesh: MeshGMSH, msh: List[Tuple[int, Element]]) -> np.ndarray:  # output?
-    barycenter = np.array([float])
-    kvuli_insertu = -1
+    pp_bary = []
     for id, elem in msh:
-        sum_elem = 0
+        keys = ['x', 'y', 'z']
+        pom_dict = {key: [] for key in keys}
         for point_id in elem.nodes:
-            kvuli_insertu += 1
             point = mesh.nodes[point_id]
-            pp = sum(point.__dict__.values()) / len(point.__dict__.values())
-            sum_elem += pp
-        avg_elem = sum_elem / len(elem.nodes)
-        barycenter = np.append(barycenter, [avg_elem])
+            pom_dict['x'].append(point.x)
+            pom_dict['y'].append(point.y)
+            pom_dict['z'].append(point.z)
+        bary_x = np.average(pom_dict['x'])
+        bary_y = np.average(pom_dict['y'])
+        bary_z = np.average(pom_dict['z'])
 
+        pp_bary.append([bary_x, bary_y, bary_z])
+
+    barycenter = np.array(pp_bary)
     return barycenter
 
 
-def Generate_Field():  # input / output?
-    # fields: Dict[str, np.array] # vsechna np.array by mela mit velikost
-    # jako pocet elementu v siti == len(ele_ids)
-    pass
+@action_def
+def field_mesh_sampler(all_fields: List[str], outer_field_names: List[str],
+                       barycenters: np.ndarray) -> Any:  # all_fields:List[Field] -> function
+    return -1  # function
 
 
 @action_def
-def write_fields(mesh: MeshGMSH) -> int:
+def Generate_Field():
+    # fields: Dict[str, np.array] # vsechna np.array by mela mit velikost
+    # jako pocet elementu v siti == len(ele_ids)
+    return -1
+
+
+@action_def
+def write_fields(mesh: MeshGMSH) -> int: # (ele_ids:List[int],sampler:Action) -> ??: ???
     """
     Preparing action for visip from bgem to write mesh fields
     :param msh_file: target file
@@ -142,16 +145,17 @@ def write_fields(mesh: MeshGMSH) -> int:
     #bgem desc
     Creates input data msh file for Flow model.
     :param msh_file: Target file (or None for current mesh file)
-    :param ele_ids: Element IDs in computational mesh corrsponding to order of
+    :param ele_ids: Element IDs in computational mesh corresponding to order of
     field values in element's barycenter.
     :param fields: {'field_name' : values_array, ..}
     """
 
-    RegionElements = ExtractRegionElements(mesh, ['".side_y0"'])#, '".side_y1"', '"fr"'])  # , list(mesh.regions.keys()))
-    Element_ids = EleIds(RegionElements)
-    Bary = Barycenter(mesh, RegionElements)
+    RegionElements = ExtractRegionElements.call(mesh,
+                                                list(mesh.regions.keys()))
+    Element_ids = EleIds.call(RegionElements)
+    Bary = Barycenter.call(mesh, RegionElements)
 
-    return RegionElements
+    return Bary
     # rozparsování mesh
     # co přesně je ele_ids a fields?
     # writter = gmsh_io.GmshIO(msh_file)

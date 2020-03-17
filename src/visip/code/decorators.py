@@ -55,7 +55,7 @@ def analysis(func):
     """
     w: wrap.ActionWrapper = workflow(func)
     assert isinstance(w.action, wf._Workflow)
-    # assert len(w.action._slots) == 0
+    assert len(w.action._slots) == 0
     w.action.is_analysis = True
     return w
 

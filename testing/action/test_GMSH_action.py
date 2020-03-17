@@ -136,13 +136,13 @@ MY_FILE = "write_fields.gmsh"
 WORKSPACE = "_workspace"
 
 
-@wf.analysis
-def writing_fields(mesh:MeshGMSH):
+@wf.workflow
+def writing_fields(mesh: MeshGMSH):
     return write_fields(mesh)
 
 
 def test_write_fields():
     mesh = evaluation.run(loading_mesh)
-    # print(mesh)
-    write = evaluation.run(writing_fields,[mesh])
-    print(write)
+    print('!')
+    write = evaluation.run(writing_fields, [mesh])
+    print('_')
