@@ -1,1 +1,1 @@
-from .visip import main
+from visip_gui.VISIP import main

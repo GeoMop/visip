@@ -47,7 +47,6 @@ setuptools.setup(
     # },
 
     # include automatically all files in the template MANIFEST.in
-    #scripts=["src/visip_gui/visip.py"],
 
     include_package_data=True,
     zip_safe=False,
