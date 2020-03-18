@@ -6,11 +6,11 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QApplication
 import pytest
 
-from visip_gui.widgets.main_widget import MainWidget
+from visip_gui.widgets.main_window import MainWindow
 
 @pytest.fixture
 def test_widget(qapp):
-    MainWidget(qapp)
+    MainWindow(qapp)
     return
 
 def test_after_program_start(qtbot, test_widget):

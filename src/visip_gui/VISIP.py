@@ -11,12 +11,12 @@ import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 import PyQt5
 from PyQt5.QtWidgets import QApplication
-from visip_gui.widgets.main_widget import MainWidget
+from visip_gui.widgets.main_window import MainWindow
 
 
 def main():
     app = QApplication(sys.argv)
-    w = MainWidget(app)
+    w = MainWindow(app)
     w.resize(1000, 720)
     w.move(300, 50)
     w.setWindowTitle('VISIP')

@@ -24,9 +24,9 @@ from PyQt5 import QtWidgets
 from visip_gui.menu.edit_menu import EditMenu
 
 
-class MainWidget(QtWidgets.QMainWindow):
+class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, app, parent=None):
-        super(MainWidget, self).__init__(parent)
+        super(MainWindow, self).__init__(parent)
         self._init_menu()
         self._init_docks()
 
