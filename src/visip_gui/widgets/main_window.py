@@ -65,12 +65,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _init_docks(self):
         """Initializes docks"""
+        self.setCorner(Qt.BottomRightCorner, Qt.RightDockWidgetArea)
         self.toolbox_dock = QtWidgets.QDockWidget("Toolbox", self)
         self.toolbox_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.toolbox_dock)
+        self.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
 
         self.properities_dock = QtWidgets.QDockWidget("Parameters Editor", self)
-        self.properities_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.properities_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea)
         self.addDockWidget(Qt.RightDockWidgetArea, self.properities_dock)
 
     def export_to_file(self, filename=None):

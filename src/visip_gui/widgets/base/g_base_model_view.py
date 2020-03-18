@@ -4,8 +4,8 @@ Base class for view of graphics scene containing DAG.
 @contact: tomas.blazek@tul.cz
 """
 from PyQt5 import QtGui, QtCore
-from PyQt5.QtCore import Qt, QPoint, pyqtSignal
-from PyQt5.QtGui import QWheelEvent
+from PyQt5.QtCore import Qt, QPoint, pyqtSignal, QPointF, QRect, QEvent
+from PyQt5.QtGui import QWheelEvent, QMouseEvent, QCursor
 from PyQt5.QtWidgets import QGraphicsView, QApplication
 
 
