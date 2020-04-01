@@ -213,7 +213,7 @@ class Composed(Atomic):
         are used in order to minimize modification of the task links.
 
         :return:
-            None if the expansion can not be performed.
+            None if the expansion can not be performed, yet.
             Dictionary of child tasks (action_instance_name -> task)
             Empty dict is valid result, used to indicate end of a loop e.g. in the case of ForEach and While actions.
         """
@@ -226,7 +226,7 @@ class Composed(Atomic):
             head.outputs = []
         # Generate and connect body tasks.
         self.childs = self.action.expand(self.inputs, self.create_child_task)
-        if self.childs:
+        if self.childs is not None:
             result_task = self.childs['__result__']
             assert len(result_task.outputs) == 0
             result_task.outputs.append(self)
@@ -247,7 +247,6 @@ class Composed(Atomic):
         """
         assert self.is_ready()
         assert len(self.inputs) == 1
-        assert self.inputs[0].action.name == "result"
         return lambda x: x[0]
 
 

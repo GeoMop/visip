@@ -107,10 +107,10 @@ class ActionWrapper:
         kwargs = { key: into_action(val) for key, val in kwargs.items() }
         regular_inputs, private_args = separate_underscored_keys(kwargs)
         # print("Instance: ", self.action.name, args, regular_inputs)
-        action_instance = instance.ActionCall.create(self.action, *args, **regular_inputs)
+        result_call = instance.ActionCall.create(self.action, *args, **regular_inputs)
         # TODO: check that inputs are connected.
-        # action_instance.set_metadata(private_args)
-        return dummy.Dummy.wrap(action_instance)
+        # result_call.set_metadata(private_args)
+        return dummy.Dummy.wrap(result_call)
 
     def call(self,  *args):
         """

@@ -3,6 +3,7 @@ from typing import Any
 
 from . import base
 from . import dfs
+from . import meta
 from .action_instance import ActionCall
 from ..action.constructor import _ListBase
 from . parameters import Parameters, ActionParameter
@@ -77,7 +78,7 @@ class _ResultCall(ActionCall):
 
 
 
-class _Workflow(meta.ActionBase):
+class _Workflow(meta.MetaAction):
     """
     Represents a composed action.
     - Allows composition of the actions into a DAG
@@ -399,10 +400,7 @@ class _Workflow(meta.ActionBase):
             task_creator(instance_name, action, input_tasks)
         :return:
             None if can not be expanded yet.
-            Dict action_instance_name -> (TaskType, task_spec)
-                task_spec:
-                    - existing task from 'inputs', in the case of task type 'Slot'
-                    - (action, arguments) where arguments are the action_instance_names
+            Dict action_instance_name -> task_created_by_the_creator
 
             In particular slots are named by corresponding parameter name and result task have name '__result__'
         """

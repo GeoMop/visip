@@ -5,6 +5,7 @@ from . import base
 from .parameters import ActionParameter
 from ..action.constructor import Value
 from . import dtype as dtype
+from ..code import representer
 
 class ActionInputStatus(enum.IntEnum):
     error_impl  = -4     # Missing type hint or other error in the action implementation.
@@ -50,6 +51,13 @@ class ActionCall:
         self.output_actions = []
         """ Actions connected to the output. Set during the workflow construction."""
 
+    def __str__(self):
+        if self.name is None:
+            return "{}(...)".format(self.action_name)
+        else:
+            return self.name
+        #code = self.code(representer.Representer())
+        #return code.final_string()
 
     def _fill_args(self):
         """
@@ -124,7 +132,7 @@ class ActionCall:
         check_type = param.type
         if param.type is None:
             return ActionArgument(param, value, is_default, ActionInputStatus.error_impl)
-        if param.is_constant():
+        if dtype.TypeInspector().is_constant(param.type):
             if isinstance(value, Value):
                 check_type = dtype.TypeInspector().constant_type(param.type)
             else:
@@ -141,6 +149,8 @@ class ActionCall:
         Set inputs of an explicit action with fixed number of named parameters.
         input_list: [ input ]  positional arguments.
         input_dict: { parameter_name: input } named arguments
+
+        All arguments must be actions, i.e. constant values must already be wrapped into Value action.
         """
         params = self.parameters
         old_args = self.arguments

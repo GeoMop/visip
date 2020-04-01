@@ -375,22 +375,31 @@ class Evaluation:
     def expand_tasks(self, assigned_tasks_limit):
         """
         Expand composed tasks until number of planed tasks in the scheduler is under the given limit.
-        :return:
+        :return: schedule
+        # List of new atomic tasks to schedule for execution.
         """
         # Force end of evaluation before all tasks are finished, e.g. due to an error.
         schedule = []
+        postpone_expand = []
+        # List of composed tasks with postponed expansion, have to be re-enqueued.
 
         while self.queue and not self.force_finish and self.scheduler.n_assigned_tasks < assigned_tasks_limit:
             composed_id, time, composed_task = heapq.heappop(self.queue)
-            # TODO: fix expand, it connects Slots not to heads, but to an _ActionBase instance.
             task_dict = composed_task.expand()
-            # print("Expanded: ", task_dict)
-            for task in task_dict.values():
-                if isinstance(task, task_mod.Composed):
-                    self.enqueue(task)
-                else:
-                    schedule.append(task)
-            self.tasks_update([composed_task])
+
+            if task_dict is None:
+                # Can not expand yet, return back into queue
+                postpone_expand.append(composed_task)
+            else:
+                # print("Expanded: ", task_dict)
+                for task in task_dict.values():
+                    if isinstance(task, task_mod.Composed):
+                        self.enqueue(task)
+                    else:
+                        schedule.append(task)
+                self.tasks_update([composed_task])
+        for task in postpone_expand:
+            self.enqueue(task)
         return schedule
 
     # def extract_input(self):
