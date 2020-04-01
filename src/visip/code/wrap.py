@@ -20,10 +20,14 @@ def into_action(value):
     :return: ActionInstance that can be used as the input to other action instance.
     """
     ti = dtype.TypeInspector()
+
     if value is None:
         return None
-    elif isinstance(value, instance.ActionCall):
+
+    if isinstance(value, instance.ActionCall):
         return value
+    elif isinstance(value, ActionWrapper):
+        return instance.ActionCall.create(constructor.Value(value.action))
     elif ti.is_base_type(type(value)) or ti.is_enum(type(value)):
         return instance.ActionCall.create(constructor.Value(value))
     elif type(value) is list:

@@ -28,8 +28,38 @@ def test_action_returning_action():
     assert result == 3
 
 
-def test_partial():
+# @wf.action_def
+# def add(a: float, b: float):
+#     return a + b
+#
+# @wf.analysis
+# def tst_partial_adder() -> float:
+#     adder_val = wf.partial(add, 7)
+#     return adder_val(2)
+#
+#
+# def test_partial():
+#     result = evaluation.run(tst_partial_adder)
+#     assert result == 9
 
+@wf.workflow
+def true_body():
+    return 101
+
+@wf.workflow
+def false_body():
+    return 100
+
+
+@wf.workflow
+def wf_condition(cond: int) -> int:
+    return wf.If(cond, true_body, false_body)
+
+def test_if_action():
+    result = evaluation.run(wf_condition, [True])
+    assert result == 101
+    result = evaluation.run(wf_condition, [False])
+    assert result == 100
 
 # @wf.action_def
 # def condition(lst:wf.List[float], num:float, end:float) -> bool:

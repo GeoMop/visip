@@ -20,9 +20,14 @@ from ..dev.parameters import Parameters, ActionParameter
 from . import dtype
 from ..code import wrap
 
+
 class MetaAction(base._ActionBase):
     """
     Common ancestor of the meta actions.
+
+    A meta action is an action producing other action or an action accepting other action as a parameter.
+    As the meta actions are expanded out of the scheduler we are able to do all expansions locally.
+    (Can be problematic in future, e.g. evaluation of a complex workflow inside a MC.
     """
     def __init__(self, name):
         super().__init__(name)
@@ -46,9 +51,54 @@ class MetaAction(base._ActionBase):
         """
         assert False, "Missing definition."
 
+    def dynamic_action(self, input_task):
+        action = input_task.result
+        if isinstance(action, wrap.ActionWrapper):
+            action = action.action
+        if not isinstance(action, base._ActionBase):
+            raise exceptions.ExcInvalidCall(action)
+        return action
 
-class Partial(MetaAction):
-    pass
+# class _PartialResultAction(base._ActionBase):
+#     def __init__(self, function, partial_args):
+#
+#     def evaluate(self, inputs):
+#         #TODO: merge new inputs to partial_args
+#
+#
+#
+# class Partial(MetaAction):
+#     def __init__(self):
+#         """
+#         Constructed by the Dummy.__call__.
+#         TODO: support kwargs in visip, necessary for perferct forwarding
+#         """
+#         super().__init__("DynamicCall")
+#         self._parameters = Parameters()
+#         ReturnType = dtype.TypeVar('ReturnType')
+#         self._parameters.append(
+#             ActionParameter(name="function", type=dtype.Callable[..., ReturnType]))
+#         self._parameters.append(
+#             ActionParameter(name=None, type=dtype.Any, default=ActionParameter.no_default))
+#         # TODO: Support for kwargs forwarding.
+#         # TODO: Match 'function' parameters and given arguments.
+#         #self._parameters.append(
+#         #    ActionParameter(name=None, type=typing.Any, default=ActionParameter.no_default))
+#         self._output_type = ReturnType
+#
+#     def expand(self, inputs, task_creator):
+#         # TODO: need either support for partial substitution in Action Wrapper or must do it here.
+#         # Parameters of the resulting action must be determined dynamicaly.
+#         # TODO: Here is significant problem with parameter types since all are
+#         # optional
+#         if inputs[0].is_finished():
+#
+#             # Create a workflow for the partial.
+#             return _PartialResultAction(dynamic_action, inputs[1:])
+#
+#             return {'__result__': task_creator('__result__', dynamic_action, inputs[1:])}
+#         else:
+#             return None
 
 class DynamicCall(MetaAction):
     def __init__(self):
@@ -70,25 +120,46 @@ class DynamicCall(MetaAction):
         self._output_type = ReturnType
 
     def expand(self, inputs, task_creator):
-
         if inputs[0].is_finished():
-            dynamic_action = inputs[0].result
-            assert isinstance(dynamic_action, wrap.ActionWrapper)
-            dynamic_action = dynamic_action.action
-            if not isinstance(dynamic_action, base._ActionBase):
-                raise exceptions.ExcInvalidCall(dynamic_action)
-            return {'__result__': task_creator('__result__', dynamic_action, inputs[1:])}
+            return {'__result__': task_creator('__result__',
+                                self.dynamic_action(inputs[0]), inputs[1:])}
         else:
             return None
 
 
-class If(MetaAction):
+class _If(MetaAction):
     """
-    This possibly should not be meta action, since scheduler should
     How to inform scheduler, that evaluaation of the condition hve higher priority
     then the true and false inputs?
     """
-    pass
+    def __init__(self):
+        """
+        Constructed by the Dummy.__call__.
+        TODO: support kwargs in visip, necessary for perferct forwarding
+        """
+        super().__init__("DynamicCall")
+        self._parameters = Parameters()
+        ReturnType = dtype.TypeVar('ReturnType')
+        self._parameters.append(
+            ActionParameter(name="condition", type=bool))
+        self._parameters.append(
+            ActionParameter(name="true_body", type=dtype.Callable[..., ReturnType]))
+        self._parameters.append(
+            ActionParameter(name="false_body", type=dtype.Callable[..., ReturnType]))
+        self._output_type = ReturnType
+
+    def expand(self, inputs, task_creator):
+        if all([ i_task.is_finished() for i_task in inputs]):
+            condition = inputs[0].result
+            if condition:
+                return {'__result__': task_creator('__result__',
+                        self.dynamic_action(inputs[1]), [])}
+            else:
+                return {'__result__': task_creator('__result__',
+                        self.dynamic_action(inputs[2]), [])}
+        else:
+            return None
+
 
 class While(MetaAction):
     def __init__(self):
