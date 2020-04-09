@@ -24,22 +24,23 @@ class _TaskBase:
 
     no_value = cache.ResultCache.NoValue
 
-    def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'] = []):
+    def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'],
+                 parent: '_TaskBase', task_name: str):
         self.action = action
         # Action (like function definition) of the task (like function call).
-        self.inputs = inputs
+        self.inputs = []
         # Input tasks for the action's arguments.
-        for input in inputs:
-            assert isinstance(input, _TaskBase)
-            input.outputs.append(self)
         self.outputs: List['Atomic'] = []
         # List of tasks dependent on the result. (Try to not use and eliminate.)
         self.id: int = 0
         # Task is identified by the hash of the hash of its parent task and its name within the parent.
-        self.parent: Optional['Composed'] = None
-        # parent task, filled during expand
+        self.parent: Optional['Composed'] = parent
+        # parent task
         self.child_id = None
         # name of current task within parent
+        self.id = int
+        # unique task hash
+        self._set_id(parent, task_name)
 
         self.status = Status.none
         # Status of the task, possibly need not to be stored explicitly.
@@ -52,6 +53,14 @@ class _TaskBase:
         self.start_time = -1
         self.end_time = -1
         self.eval_time = 0
+
+        # Connect to inputs.
+        for input in inputs:
+            assert isinstance(input, _TaskBase)
+            self.inputs.append(input)
+            input.outputs.append(self)
+
+
 
     def action_hash(self):
         return self.action.action_hash()
@@ -93,8 +102,7 @@ class _TaskBase:
             t = t.parent
         return path
 
-    def set_id(self, parent_task, child_id):
-        self.parent = parent_task
+    def _set_id(self, parent_task, child_id):
         self.child_id = child_id
         if parent_task is None:
             parent_hash = data.hash(None)
@@ -106,24 +114,21 @@ class _TaskBase:
         return self.priority < other.priority
 
     @staticmethod
-    def _create_task(parent_task, child_name, action, input_tasks):
+    def _create_task(action, input_tasks, parent_task, child_name):
         """
         Create task from the given action and its input tasks.
         """
         task_type = action.task_type
         if task_type == base.TaskType.Atomic:
-            child = Atomic(action, input_tasks)
+            child = Atomic(action, input_tasks, parent_task, child_name)
         elif task_type == base.TaskType.Composed:
-            child = Composed(action, input_tasks)
+            child = Composed(action, input_tasks, parent_task, child_name)
         else:
             assert False
-        child.set_id(parent_task, child_name)
         return child
 
 
 class Atomic(_TaskBase):
-    pass
-
 
 
     def is_ready(self):
@@ -165,9 +170,10 @@ class Composed(Atomic):
     preferences assigned by the Scheduler. It also keeps a map from
     """
 
-    def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'] = []):
-        heads = [ComposedHead(Pass(), [input]) for input in inputs]
-        super().__init__(action, heads)
+    def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'],
+                 parent: '_TaskBase', task_name: str):
+        heads = [ComposedHead(Pass(), [input], parent, "__head_{}".format(i)) for i, input in enumerate(inputs)]
+        super().__init__(action, heads, parent, task_name)
         self.time_estimate = 0
         # estimate of the start time, used as expansion priority
         self.childs: Atomic = None
@@ -202,7 +208,7 @@ class Composed(Atomic):
 
 
     def create_child_task(self, name, action, inputs):
-        return _TaskBase._create_task(self, name, action, inputs)
+        return _TaskBase._create_task(action, inputs, self, name)
 
     def expand(self):
         """

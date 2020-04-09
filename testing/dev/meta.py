@@ -1,10 +1,10 @@
 import os
-#import shutil
-import visip.dev.tools as tools
 import visip as wf
 from visip.dev import evaluation
-script_dir = os.path.dirname(os.path.realpath(__file__))
+# script_dir = os.path.dirname(os.path.realpath(__file__))
 
+
+#######################
 # Test definition of an action that returns an action.
 
 @wf.action_def
@@ -27,9 +27,10 @@ def test_action_returning_action():
     result = evaluation.run(tst_adder)
     assert result == 3
 
+#######################
 
 # @wf.action_def
-# def add(a: float, b: float):
+# def add(a: float, b: float) -> float:
 #     return a + b
 #
 # @wf.analysis
@@ -41,6 +42,8 @@ def test_action_returning_action():
 # def test_partial():
 #     result = evaluation.run(tst_partial_adder)
 #     assert result == 9
+
+#############################
 
 @wf.workflow
 def true_body():

@@ -12,5 +12,4 @@ from ..dev import meta
 dict = wrap.public_action(constructor.A_dict())
 list = wrap.public_action(constructor.A_list())
 tuple = wrap.public_action(constructor.A_tuple())
-
 If = wrap.public_action(meta._If())

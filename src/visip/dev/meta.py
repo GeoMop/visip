@@ -25,9 +25,13 @@ class MetaAction(base._ActionBase):
     """
     Common ancestor of the meta actions.
 
+    Not a good definition of meta action:
     A meta action is an action producing other action or an action accepting other action as a parameter.
     As the meta actions are expanded out of the scheduler we are able to do all expansions locally.
     (Can be problematic in future, e.g. evaluation of a complex workflow inside a MC.
+
+    ... producing an action can not be always implemented as an expansion. We need a separate mechanism to process
+    actions operating with actions locally or we have to simplify the core ( possibly in truly functional manner).
     """
     def __init__(self, name):
         super().__init__(name)
@@ -59,19 +63,40 @@ class MetaAction(base._ActionBase):
             raise exceptions.ExcInvalidCall(action)
         return action
 
-# class _PartialResultAction(base._ActionBase):
+
+"""
+Partial TODO:
+
+1. finish task graph plotting
+2. modify expand API in order to allow modification of the task itself.
+   In particular we want to allow preliminary task evaluation even if the inputs are not completed
+   Not clear how current expansion make actual task dependent on its childs.
+3. Review if the dependency of If and Call after expansion is OK. 
+4. Implement Partial expanding to preliminary evaluation returning the closure complex action containing the captured input tasks X.
+5. Implement the closure complex action:
+   - have dynamically determined parameters Y
+   - expand to the task of closure action conected to both X and Y tasks  
+"""
+
+
+# class _PartialClosure(base._ActionBase):
+#
 #     def __init__(self, function, partial_args):
+#         super().__init__()
+#         self._function = function
+#         self._args = args
 #
 #     def evaluate(self, inputs):
 #         #TODO: merge new inputs to partial_args
-#
-#
+
+
+
 #
 # class Partial(MetaAction):
 #     def __init__(self):
 #         """
 #         Constructed by the Dummy.__call__.
-#         TODO: support kwargs in visip, necessary for perferct forwarding
+#         TODO: support kwargs in visip, necessary for perfect forwarding
 #         """
 #         super().__init__("DynamicCall")
 #         self._parameters = Parameters()
@@ -86,6 +111,7 @@ class MetaAction(base._ActionBase):
 #         #    ActionParameter(name=None, type=typing.Any, default=ActionParameter.no_default))
 #         self._output_type = ReturnType
 #
+#
 #     def expand(self, inputs, task_creator):
 #         # TODO: need either support for partial substitution in Action Wrapper or must do it here.
 #         # Parameters of the resulting action must be determined dynamicaly.
@@ -94,11 +120,33 @@ class MetaAction(base._ActionBase):
 #         if inputs[0].is_finished():
 #
 #             # Create a workflow for the partial.
-#             return _PartialResultAction(dynamic_action, inputs[1:])
+#             closure = _PartialClosure(dynamic_action, inputs[1:])
 #
 #             return {'__result__': task_creator('__result__', dynamic_action, inputs[1:])}
 #         else:
 #             return None
+#
+# PartialReturnType = dtype.TypeVar('PartialReturnType')
+# @decorators.action_def
+# def partial(function:dtype.Callable[..., PartialReturnType], *args:dtype.List[dtype.Any]) -> dtype.Callable[..., PartialReturnType]:
+#     # TODO: kwargs support
+#     assert isinstance(function, base._ActionBase)
+#     partial_fn_evaluate = functools.partial(function.evaluate, *args)
+#     partial_fn_evaluate.__name__ = "partial_" + function.name
+#     #partial_fn_evaluate.__annotations__
+#     return decorators.action_def(_PartialResult(function, *args))
+#
+#
+# class _PartialResult(base._ActionBase):
+#     def __init__(self, function, *args):
+#         super().__init__(action_name="partial_" + function.name)
+#         self._function = function
+#         self._args = args
+#         all_parameters = function._parameters
+#         self._parameters = parameters.Parameters()
+#         self._parameters
+#
+#     def evaluate(self, inputs):
 
 class DynamicCall(MetaAction):
     def __init__(self):
