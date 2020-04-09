@@ -4,8 +4,10 @@ from typing import Any
 from . import base
 from . import dfs
 from . import meta
+
+
 from .action_instance import ActionCall
-from ..action.constructor import _ListBase
+from ..action.constructor import _ListBase, Pass
 from . parameters import Parameters, ActionParameter
 
 
@@ -84,7 +86,7 @@ class _Workflow(meta.MetaAction):
     - Allows composition of the actions into a DAG
     - Is a child of _ActionBase, encapsulates its internal structure.
     - All actions are kept in the self._action_calls set.
-    - action cals connected to the result are are topologicaly sorted in the 'update' method
+    - action calls connected to the result are are topologicaly sorted in the 'update' method
       and stored in correct order in self._sorted_calls.
     - action_calls can be freely renamed as workflow makes name -> action_call dict only temporally
       (the. name_to_action_call property)
@@ -103,7 +105,7 @@ class _Workflow(meta.MetaAction):
         self.__visip_module__ = None
         # Name of the module were the workflow is defined.
         self._result_call = _ResultCall()
-        # Result action instance.
+        # Result ActionCall
         self._slots = []
         # Definition of the workspace parameters ?
         self._action_calls = set()
@@ -133,12 +135,12 @@ class _Workflow(meta.MetaAction):
         self._result_call.set_single_input(0, output_action)
         self._result_call.action._output_type = output_type
 
-        is_dfs = self.update(self._result_call)
+        is_dfs = self.update()
         assert is_dfs
         self.update_parameters()
 
 
-    def update(self, result_instance):
+    def update(self):
         """
         DFS through the workflow DAG given be the result action:
         - set unique action call names
@@ -148,6 +150,7 @@ class _Workflow(meta.MetaAction):
         :param result_instance: the result action
         :return: True in the case of sucessfull update, False - detected cycle
         """
+        result_instance = self._result_call
         actions = set()
         topology_sort = []
         instance_names = {}
@@ -356,7 +359,7 @@ class _Workflow(meta.MetaAction):
         else:
             orig_input = None
         action.set_single_input(i_arg, input_action)
-        is_dfs = self.update(self._result_call)
+        is_dfs = self.update()
         if not is_dfs:
             action.set_single_input(i_arg, orig_input)
             return False
@@ -392,7 +395,7 @@ class _Workflow(meta.MetaAction):
             self._parameters.append(p)
 
 
-    def expand(self, inputs, task_creator):
+    def expand(self, task, task_creator):
         """
         Expansion of the composed task with given data inputs (possibly None if not evaluated yet).
         :param inputs: List[Task]
@@ -400,20 +403,25 @@ class _Workflow(meta.MetaAction):
             task_creator(instance_name, action, input_tasks)
         :return:
             None if can not be expanded yet.
-            Dict action_instance_name -> task_created_by_the_creator
+            List of created actions.
 
             In particular slots are named by corresponding parameter name and result task have name '__result__'
         """
+        self.update()
         childs = {}
-        assert len(self._slots) == len(inputs)
-        # TODO: fix connection of slots to inputs
-        for slot, input in zip(self._slots, inputs):
-            childs[slot.name] = input
-        for action_instance in self._sorted_calls:
-            if action_instance.name not in childs:
-                arg_tasks = [childs[arg.value.name] for arg in action_instance.arguments]
-                childs[action_instance.name] = task_creator(action_instance.name, action_instance.action, arg_tasks)
-        return childs
+        assert len(self._slots) == len(task.inputs)
+        for slot, input in zip(self._slots, task.inputs):
+            task = task_creator(slot.name, Pass(), [input])
+            childs[slot.name] = task
+        for action_call in self._sorted_calls:
+            if isinstance(action_call, _SlotCall):
+                continue
+            # TODO: eliminate dict usage, assign a call rank to the action calls
+            # TODO: use it to index tasks in the resulting task list 'childs'
+            arg_tasks = [childs[arg.value.name] for arg in action_call.arguments]
+            task = task_creator(action_call.name, action_call.action, arg_tasks)
+            childs[action_call.name] = task
+        return childs.values()
 
 
 

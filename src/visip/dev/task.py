@@ -2,7 +2,6 @@ import enum
 from typing import *
 
 from . import data
-from ..action.constructor import Pass
 from . import base
 from ..eval import cache
 
@@ -172,8 +171,8 @@ class Composed(Atomic):
 
     def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'],
                  parent: '_TaskBase', task_name: str):
-        heads = [ComposedHead(Pass(), [input], parent, "__head_{}".format(i)) for i, input in enumerate(inputs)]
-        super().__init__(action, heads, parent, task_name)
+        #heads = [ComposedHead(Pass(), [input], parent, "__head_{}".format(i)) for i, input in enumerate(inputs)]
+        super().__init__(action, inputs, parent, task_name)
         self.time_estimate = 0
         # estimate of the start time, used as expansion priority
         self.childs: Atomic = None
@@ -231,8 +230,9 @@ class Composed(Atomic):
         for head in heads:
             head.outputs = []
         # Generate and connect body tasks.
-        self.childs = self.action.expand(self.inputs, self.create_child_task)
-        if self.childs is not None:
+        childs = self.action.expand(self, self.create_child_task)
+        if childs is not None:
+            self.childs = {task.child_id: task for task in childs}
             result_task = self.childs['__result__']
             assert len(result_task.outputs) == 0
             result_task.outputs.append(self)

@@ -39,7 +39,9 @@ class ActionCall:
     """
     def __init__(self, action : base._ActionBase, name : str = None) -> None:
         self.name = name
-        """ The instance name. (i.e. name of variable containing this instance.)"""
+        """ The instance name. (i.e. name of variable containing this instance.)
+            This also seerves as a unique id within the workflow.
+        """
         self._proper_instance_name = False
         """ Indicates the instance name provided by user. Not generic name."""
 
