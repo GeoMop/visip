@@ -1,5 +1,7 @@
+import typing
 from typing import Dict, List, Tuple, Optional, Any
 
+import mlmc.correlated_field as cf
 import numpy as np
 from bgem.gmsh import gmsh_io
 
@@ -30,6 +32,9 @@ class Element:
 
     # gmsh_io.elements:(type,tags,nodes)
     # tags: [region_id, shape_id, partition_id]
+
+
+SubMesh = typing.NewType('SubMesh', List[Tuple[int, Element]])
 
 
 @Class
@@ -65,12 +70,12 @@ def GMSH_reader(path: str) -> MeshGMSH:
 
 
 @action_def
-def ExtractRegionElements(msh: MeshGMSH, regions: List[str]) -> List[Tuple[int, Element]]:
+def ExtractRegionElements(msh: MeshGMSH, regions: List[str]) -> SubMesh:
     """
-
-    :param msh:
-    :param regions:
-    :return:
+    Extracts chosen regions from mesh and creates SubMesh from those regions.
+    :param msh: whole mesh
+    :param regions: regions to extract
+    :return: extracted regions as SubMesh  - List[Tuple[int, Element]]
     """
     region_id_dim = []
     for region in regions:
@@ -92,12 +97,20 @@ def ExtractRegionElements(msh: MeshGMSH, regions: List[str]) -> List[Tuple[int, 
 
 
 @action_def
-def EleIds(msh: List[Tuple[int, Element]]) -> List[int]:
+def ExtractRegionIds(submsh: SubMesh) -> List[int]:
+    RegionIds = []
+    for Element_id, Element in submsh:
+        RegionIds.append(Element.region_id)
+    return RegionIds
+
+
+@action_def
+def EleIds(msh: SubMesh) -> List[int]:
     return [x[0] for x in msh]
 
 
 @action_def
-def Barycenter(mesh: MeshGMSH, msh: List[Tuple[int, Element]]) -> np.ndarray:  # output?
+def Barycenter(mesh: MeshGMSH, msh: SubMesh) -> np.ndarray:  # output?
     pp_bary = []
     for id, elem in msh:
         keys = ['x', 'y', 'z']
@@ -117,21 +130,39 @@ def Barycenter(mesh: MeshGMSH, msh: List[Tuple[int, Element]]) -> np.ndarray:  #
     return barycenter
 
 
-@action_def
-def field_mesh_sampler(all_fields: List[str], outer_field_names: List[str],
-                       barycenters: np.ndarray) -> Any:  # all_fields:List[Field] -> function
-    return -1  # function
+# @action_def
+# def sampler_fn(seed: int) -> Any:
+#     return np.random.seed(seed)
 
 
 @action_def
-def Generate_Field():
-    # fields: Dict[str, np.array] # vsechna np.array by mela mit velikost
-    # jako pocet elementu v siti == len(ele_ids)
-    return -1
+def field_mesh_sampler(all_fields: cf.Fields, outer_field_names: List[str],
+                       barycenters: np.ndarray, region_ids: List[int]) -> Any:  # should return @action
+
+    # fields = cf.Fields(all_fields)
+    all_fields.set_outer_fields(outer_field_names)
+    all_fields.set_points(barycenters, region_ids=region_ids)
+
+    def sampler_fn(seed: int) -> Any:
+        np.random.seed(seed)
+        return all_fields.sample()
+
+    return wf.action_def(sampler_fn)
 
 
 @action_def
-def write_fields(mesh: MeshGMSH) -> int: # (ele_ids:List[int],sampler:Action) -> ??: ???
+def make_fields() -> cf.Fields:
+    return cf.Fields([
+        cf.Field('conductivity', cf.FourierSpatialCorrelatedField('gauss', dim=3, corr_length=0.125, log=True)),
+    ]) # Field s dim=3 není implementován. Moje chyba?
+    # return cf.Fields([
+    #     cf.Field(name='conductivity', field=1),
+    #     cf.Field(name='conductivity1', field=2)
+    # ])
+
+
+@action_def
+def write_fields(mesh: MeshGMSH, ele_ids: List[int], sampler: wf.Any) -> Any:
     """
     Preparing action for visip from bgem to write mesh fields
     :param msh_file: target file
@@ -149,17 +180,6 @@ def write_fields(mesh: MeshGMSH) -> int: # (ele_ids:List[int],sampler:Action) ->
     field values in element's barycenter.
     :param fields: {'field_name' : values_array, ..}
     """
+    gmsh_io.GmshIO.write_fields(mesh, 'Mesh_write_file.txt', ele_ids=ele_ids, fields=sampler)
 
-    RegionElements = ExtractRegionElements.call(mesh,
-                                                list(mesh.regions.keys()))
-    Element_ids = EleIds.call(RegionElements)
-    Bary = Barycenter.call(mesh, RegionElements)
-
-    return Bary
-    # rozparsování mesh
-    # co přesně je ele_ids a fields?
-    # writter = gmsh_io.GmshIO(msh_file)
-    # ele_ids = None
-    # fields = None
-    # writter.write_fields(msh_file=msh_file, ele_ids=ele_ids, fields=fields)
-    # return -1
+    return -1

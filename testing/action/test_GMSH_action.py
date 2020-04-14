@@ -2,15 +2,18 @@ import typing
 
 from typing import List
 
+import mlmc.correlated_field as cf
 import pytest
 
 from visip import Class
+from visip.code.wrap import ActionWrapper
 from visip.dev.parameters import ActionParameter
 from visip.action.constructor import ClassActionBase
 from visip.code import decorators as wf
 from visip.code import wrap
 
-from visip.action.GMSH_action import Point, Element, MeshGMSH, GMSH_reader, write_fields
+from visip.action.GMSH_action import Point, Element, MeshGMSH, GMSH_reader, write_fields, \
+    ExtractRegionElements, EleIds, Barycenter, field_mesh_sampler, make_fields, ExtractRegionIds
 
 # test_std imports
 # import os
@@ -137,12 +140,32 @@ WORKSPACE = "_workspace"
 
 
 @wf.workflow
-def writing_fields(mesh: MeshGMSH):
-    return write_fields(mesh)
+def writing_fields(mesh: MeshGMSH, ele_ids: List[int], fields: ActionWrapper):
+    return write_fields(mesh, ele_ids, fields)
+
+
+def test_workflow_schema():
+    mesh = evaluation.run(loading_mesh)  # načtení meshe random_fractures_01.msh
+
+    RegionElements = ExtractRegionElements.call(mesh, ['"fr"'])  # vybrání elementů z regionu "fr"
+
+    RegionIds = ExtractRegionIds.call(RegionElements)  # vybrání Ids z regionu "fr"
+
+    Element_ids = EleIds.call(RegionElements)  # získání Ids z elementů ze SubMeshe
+
+    Bary = Barycenter.call(mesh, RegionElements)  # výpočet Barycenter ze SubMeshe
+
+    Fields = make_fields.call()  # vytvoření Fields
+
+    fms = field_mesh_sampler.call(Fields, Element_ids, Bary,
+                                  RegionIds)  # volání filed_mesh_sampleru, který by měl vracet sampler_fn.
+                                              # Tedy akci pro generování fieldů pomocí seedu.
+    sampler = fms(2112)
+    write = evaluation.run(writing_fields, [mesh, Element_ids, fms]) # pokus o zápis fieldů
 
 
 def test_write_fields():
     mesh = evaluation.run(loading_mesh)
-    print('!')
+
     write = evaluation.run(writing_fields, [mesh])
     print('_')
