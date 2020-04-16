@@ -1,6 +1,6 @@
 import enum
 from typing import *
-
+from ..action import constructor
 from . import data
 from . import base
 from ..eval import cache
@@ -81,7 +81,19 @@ class _TaskBase:
         # e.g. action.evaluate
         assert False, "Not implemented."
 
+    def lazy_hash(self):
+        task_hash = self.action_hash()
+        for input in self.inputs:
+            task_hash = data.hash(input.result_hash, previous=task_hash)
+        return task_hash
+
     def finish(self, result, task_hash):
+        """
+        Store the result of the action.
+        :param result: The result value.
+        :param task_hash: The hash of lazy evaluation of the value (hash of the action chain)
+        :return:
+        """
         assert result is not self.no_value
         self.status = Status.finished
         self._result = result
@@ -157,6 +169,13 @@ class ComposedHead(Atomic):
     Auxiliary task for the inputs of the composed task. Simplifies
     expansion as we need not to change input and output links of outer tasks, just link between head and tail.
     """
+
+    @classmethod
+    def create(cls, i, input_task, parent, name):
+        if name is None:
+            name = "__head_{}".format(i)
+        return cls(constructor.Pass(), [input_task], parent, name)
+
     @property
     def result(self):
         return self.inputs[0].result
@@ -171,8 +190,11 @@ class Composed(Atomic):
 
     def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'],
                  parent: '_TaskBase', task_name: str):
-        #heads = [ComposedHead(Pass(), [input], parent, "__head_{}".format(i)) for i, input in enumerate(inputs)]
-        super().__init__(action, inputs, parent, task_name)
+        params = action.parameters
+        assert params.size() == len(inputs)
+        heads = [ComposedHead.create(i, input, parent, param.name)
+                                        for (i, input), param in zip(enumerate(inputs), params)]
+        super().__init__(action, heads, parent, task_name)
         self.time_estimate = 0
         # estimate of the start time, used as expansion priority
         self.childs: Atomic = None

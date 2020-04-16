@@ -82,10 +82,7 @@ class Resource:
         if is_ready:
             # hash of action and inputs
             # TODO: move into task
-            task_hash = task.action_hash()
-            for input in task.inputs:
-                task_hash = data.hash(input.result_hash, previous=task_hash)
-
+            task_hash = task.lazy_hash()
             # Check result cache
 
             res_value = self.cache.value(task_hash)
