@@ -23,6 +23,8 @@ class _Slot(base._ActionBase):
         self._parameters = Parameters()
         self._output_type = Any
 
+
+
 class _SlotCall(ActionCall):
     def __init__(self, slot_name):
         """
@@ -412,8 +414,8 @@ class _Workflow(meta.MetaAction):
         assert len(self._slots) == len(task.inputs)
         for slot, input in zip(self._slots, task.inputs):
             # shortcut the slots
-            #task = task_creator(slot.name, Pass(), [input])
-            childs[slot.name] = input
+            task = task_creator(slot.name, Pass(), [input])
+            childs[slot.name] = task
         for action_call in self._sorted_calls:
             if isinstance(action_call, _SlotCall):
                 continue

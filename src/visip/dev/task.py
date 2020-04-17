@@ -164,21 +164,21 @@ class Atomic(_TaskBase):
 
 
 
-class ComposedHead(Atomic):
-    """
-    Auxiliary task for the inputs of the composed task. Simplifies
-    expansion as we need not to change input and output links of outer tasks, just link between head and tail.
-    """
-
-    @classmethod
-    def create(cls, i, input_task, parent, name):
-        if name is None:
-            name = "__head_{}".format(i)
-        return cls(constructor.Pass(), [input_task], parent, name)
-
-    @property
-    def result(self):
-        return self.inputs[0].result
+# class ComposedHead(Atomic):
+#     """
+#     Auxiliary task for the inputs of the composed task. Simplifies
+#     expansion as we need not to change input and output links of outer tasks, just link between head and tail.
+#     """
+#
+#     @classmethod
+#     def create(cls, i, input_task, parent, name):
+#         if name is None:
+#             name = "__head_{}".format(i)
+#         return cls(constructor.Pass(), [input_task], parent, name)
+#
+#     @property
+#     def result(self):
+#         return self.inputs[0].result
 
 
 class Composed(Atomic):
@@ -192,9 +192,10 @@ class Composed(Atomic):
                  parent: '_TaskBase', task_name: str):
         params = action.parameters
         assert params.size() == len(inputs)
-        heads = [ComposedHead.create(i, input, parent, param.name)
-                                        for (i, input), param in zip(enumerate(inputs), params)]
-        super().__init__(action, heads, parent, task_name)
+        # heads = [ComposedHead.create(i, input, parent, param.name)
+        #                                 for (i, input), param in zip(enumerate(inputs), params)]
+        # super().__init__(action, heads, parent, task_name)
+        super().__init__(action, inputs, parent, task_name)
         self.time_estimate = 0
         # estimate of the start time, used as expansion priority
         self.childs: Atomic = None
@@ -248,9 +249,9 @@ class Composed(Atomic):
         assert hasattr(self.action, 'expand')
 
         # Disconnect composed task heads.
-        heads = self.inputs.copy()
-        for head in heads:
-            head.outputs = []
+        # heads = self.inputs.copy()
+        # for head in heads:
+        #     head.outputs = []
         # Generate and connect body tasks.
         childs = self.action.expand(self, self.create_child_task)
         if childs is not None:
@@ -263,10 +264,10 @@ class Composed(Atomic):
             # This works with Workflow, see how it will work with other composed actions:
             # if, reduce (for, while)
 
-        else:
-            # No expansion: reconnect heads
-            for head in heads:
-                head.outputs = [self]
+        # else:
+        #     # No expansion: reconnect heads
+        #     for head in heads:
+        #         head.outputs = [self]
         return self.childs
 
     def evaluate_fn(self):

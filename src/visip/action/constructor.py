@@ -27,7 +27,7 @@ class Pass(_ActionBase):
     Do nothing action. Meant for internal usage in particular.
     """
     def __init__(self):
-        super().__init__()
+        super().__init__('Pass')
 
     def _evaluate(self, input: dtype.DataType):
         return input
