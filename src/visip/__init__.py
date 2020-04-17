@@ -14,8 +14,8 @@ All underscored names are private
 from .code.decorators import workflow, analysis, action_def, Class, Enum
 
 # builtin
-from .action.wrapped import list, dict, tuple, If
-#from .action.partial import partial
+from .action.wrapped import list, dict, tuple, If #, partial
+
 
 # std
 from .action.std import \

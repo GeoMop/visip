@@ -22,7 +22,7 @@ class ActionInputStatus(enum.IntEnum):
 @attr.s(auto_attribs=True)
 class ActionArgument:
     parameter: ActionParameter
-    value: Optional['base._ActionBase'] = None
+    value: Optional['ActionCall'] = None
     is_default: bool = False
     status: ActionInputStatus = ActionInputStatus.missing
 

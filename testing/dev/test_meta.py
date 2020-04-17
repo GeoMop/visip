@@ -42,7 +42,7 @@ def test_action_returning_action():
 # def test_partial():
 #     result = evaluation.run(tst_partial_adder)
 #     assert result == 9
-
+#
 #############################
 
 @wf.workflow
