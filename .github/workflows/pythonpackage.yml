@@ -5,11 +5,11 @@ on: [push]
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04  # ubuntu-latest
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.6, 3.7]
+        python-version: [3.6, 3.7, 3.8]
 
     steps:
     - uses: actions/checkout@v1
@@ -30,6 +30,5 @@ jobs:
 #         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
 #         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with tox
-      if: always()
       run: tox
 
