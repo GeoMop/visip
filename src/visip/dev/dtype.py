@@ -205,7 +205,7 @@ class TypeInspector(TypeInspector_37):
 
 
     def get_args(self, xtype):
-        return typing.get_last_args(xtype)
+        return typing.get_args(xtype)
 
 
 

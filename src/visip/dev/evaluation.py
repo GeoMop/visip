@@ -123,7 +123,7 @@ class Scheduler:
         # Priority queue of the 'ready' tasks.  Used to submit the ready tasks without
         # whole DAG optimization. Priority is the
 
-        self._start_time = time.clock()
+        self._start_time = time.perf_counter()
         # Start time of the DAG evaluation.
 
         self._topology_sort = []
@@ -136,7 +136,7 @@ class Scheduler:
         return len(self.tasks)
 
     def get_time(self):
-        return time.clock() - self._start_time
+        return time.perf_counter() - self._start_time
 
     def append(self, tasks):
         """
