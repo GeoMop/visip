@@ -91,8 +91,8 @@ class _ActionBase:
 
     def check_type_annotations(self):
         for param in self.parameters:
-            assert param.type is not None, "Missing type annotation, param: {}, action: {}".format(param.name, self.name)
-        assert self.output_type is not None, "Missing return type annotation, action: {}".format(self.name)
+            assert param.type is not None, "Missing type annotation of parameter: {}  of action: {}".format(param.name, self.name)
+        assert self.output_type is not None, "Missing return type annotation of action: {}".format(self.name)
 
     @property
     def output_type(self):

@@ -2,7 +2,6 @@ import attr
 from typing import *
 import inspect
 
-from . import dtype
 from . import data
 
 class NoDefault:
@@ -65,10 +64,6 @@ class ActionParameter:
         p_hash = data.hash(self._idx, previous=p_hash)
         p_hash = data.hash(self.config_param, previous=p_hash)
         return p_hash
-
-
-    def is_constant(self):
-        return dtype.TypeInspector().is_constant(self.type)
 
 class Parameters:
     no_default = ActionParameter.no_default

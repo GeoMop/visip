@@ -20,10 +20,14 @@ def into_action(value):
     :return: ActionInstance that can be used as the input to other action instance.
     """
     ti = dtype.TypeInspector()
+
     if value is None:
         return None
-    elif isinstance(value, instance.ActionCall):
+
+    if isinstance(value, instance.ActionCall):
         return value
+    elif isinstance(value, ActionWrapper):
+        return instance.ActionCall.create(constructor.Value(value.action))
     elif ti.is_base_type(type(value)) or ti.is_enum(type(value)):
         return instance.ActionCall.create(constructor.Value(value))
     elif type(value) is list:
@@ -107,10 +111,10 @@ class ActionWrapper:
         kwargs = { key: into_action(val) for key, val in kwargs.items() }
         regular_inputs, private_args = separate_underscored_keys(kwargs)
         # print("Instance: ", self.action.name, args, regular_inputs)
-        action_instance = instance.ActionCall.create(self.action, *args, **regular_inputs)
+        result_call = instance.ActionCall.create(self.action, *args, **regular_inputs)
         # TODO: check that inputs are connected.
-        # action_instance.set_metadata(private_args)
-        return dummy.Dummy.wrap(action_instance)
+        # result_call.set_metadata(private_args)
+        return dummy.Dummy.wrap(result_call)
 
     def call(self,  *args):
         """
