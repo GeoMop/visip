@@ -147,21 +147,21 @@ def writing_fields(mesh: MeshGMSH, ele_ids: List[int], fields: ActionWrapper):
 def test_workflow_schema():
     mesh = evaluation.run(loading_mesh)  # načtení meshe random_fractures_01.msh
 
-    RegionElements = ExtractRegionElements.call(mesh, ['"fr"'])  # vybrání elementů z regionu "fr"
+    RegionElements = ExtractRegionElements(mesh, ['"fr"'])  # vybrání elementů z regionu "fr"
 
-    RegionIds = ExtractRegionIds.call(RegionElements)  # vybrání Ids z regionu "fr"
-
-    Element_ids = EleIds.call(RegionElements)  # získání Ids z elementů ze SubMeshe
-
-    Bary = Barycenter.call(mesh, RegionElements)  # výpočet Barycenter ze SubMeshe
-
-    Fields = make_fields.call()  # vytvoření Fields
-
-    fms = field_mesh_sampler.call(Fields, Element_ids, Bary,
-                                  RegionIds)  # volání filed_mesh_sampleru, který by měl vracet sampler_fn.
-                                              # Tedy akci pro generování fieldů pomocí seedu.
-    sampler = fms(2112)
-    write = evaluation.run(writing_fields, [mesh, Element_ids, fms]) # pokus o zápis fieldů
+    # RegionIds = ExtractRegionIds(RegionElements)  # vybrání Ids z regionu "fr"
+    #
+    # Element_ids = EleIds(RegionElements)  # získání Ids z elementů ze SubMeshe
+    #
+    # Bary = Barycenter(mesh, RegionElements)  # výpočet Barycenter ze SubMeshe
+    #
+    # Fields = make_fields()  # vytvoření Fields
+    #
+    # fms = field_mesh_sampler(Fields, Element_ids, Bary,
+    #                               RegionIds)  # volání filed_mesh_sampleru, který by měl vracet sampler_fn.
+    #                                           # Tedy akci pro generování fieldů pomocí seedu.
+    # sampler = fms(2112)
+    # write = evaluation.run(writing_fields, [mesh, Element_ids, fms]) # pokus o zápis fieldů
 
 
 def test_write_fields():

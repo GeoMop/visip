@@ -162,7 +162,7 @@ def make_fields() -> cf.Fields:
 
 
 @action_def
-def write_fields(mesh: MeshGMSH, ele_ids: List[int], sampler: wf.Any) -> Any:
+def write_fields(mesh: MeshGMSH, ele_ids: List[int], sample: wf.Any) -> Any:
     """
     Preparing action for visip from bgem to write mesh fields
     :param msh_file: target file
@@ -180,6 +180,6 @@ def write_fields(mesh: MeshGMSH, ele_ids: List[int], sampler: wf.Any) -> Any:
     field values in element's barycenter.
     :param fields: {'field_name' : values_array, ..}
     """
-    gmsh_io.GmshIO.write_fields(mesh, 'Mesh_write_file.txt', ele_ids=ele_ids, fields=sampler)
+    gmsh_io.GmshIO.write_fields(mesh, 'Mesh_write_file.txt', ele_ids=ele_ids, fields=sample)
 
     return -1

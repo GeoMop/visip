@@ -33,7 +33,7 @@ def test_file():
 def system_test_wf(self, script_name: str)  -> wf.ExecResult:
     script = wf.file_in(script_name)
     self.res = wf.system(
-        ['echo', "Hallo world"],
+        ['python', '-c', 'print("Hallo world")'],
         stdout=wf.file_out('msg_file.txt'))
     self.msg_file = wf.file_in('msg_file.txt', self.res.workdir)
     self.res = wf.system(['python', script, "-m", self.msg_file, 123], stdout=wf.SysFile.PIPE, stderr=wf.SysFile.STDOUT)
@@ -52,7 +52,7 @@ def test_system():
     print("Root workspace: ", os.getcwd())
     script_name = "_mock_script_test_system.py"
     result = evaluation.run(system_test_wf, [script_name], workspace=script_dir)
-    assert result.stdout == b"I'm here.\n"
+    assert (result.stdout).decode('utf-8').strip() == "I'm here."
 
 
 def prepare_workspace_template():
