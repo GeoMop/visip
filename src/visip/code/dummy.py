@@ -3,7 +3,10 @@ from ..dev import base as base, action_instance as instance
 from ..action.converter import GetAttribute, GetItem
 from ..action.constructor import Value
 from ..dev.action_instance import ActionCall
-
+from ..dev import dtype
+from ..dev import exceptions
+from ..dev import meta
+from ..code import wrap
 
 def is_underscored(s:Any) -> bool:
     return type(s) is str and s[0] == '_'
@@ -24,11 +27,11 @@ class Dummy:
             return Dummy(action)
 
 
+
     def __init__(self, action_call: instance.ActionCall) -> None:
         assert isinstance(action_call, instance.ActionCall)
         self._action_call = action_call
         """Dummy pretend the data object of the action.output_type."""
-
 
     def __getattr__(self, key: str):
         # if key == '__action':
@@ -45,6 +48,23 @@ class Dummy:
         action_call = ActionCall.create(GetItem(), self._action_call, idx_wrap)
         return Dummy.wrap(action_call)
 
+    def __call__(self, *args, **kwargs):
+        """
+        Catch call of the function values.
+        Check that the value is function/action.
+        Perform its call
+        """
+        print("Dummy called.")
+        dynamic_action = self._action_call
+        ti = dtype.TypeInspector()
+        #TODO: we should consistently check the types of a workflow connections
+        #So this is probably not a right place to do the check
+
+        if True: #ti.is_callable(self._action_call.output_type):
+            dynamic_call = wrap.ActionWrapper(meta.DynamicCall())
+            return dynamic_call(dynamic_action, *args, **kwargs)
+        else:
+            raise exceptions.ExcInvalidCall(str(self._action_call))
     # Binary
     # Operators
     #

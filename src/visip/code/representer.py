@@ -10,7 +10,13 @@ class Representer:
     methods as parameter.
     """
 
-    def __init__(self, make_rel_name):
+    @staticmethod
+    def make_rel_name(module, name):
+        return module + name
+
+    def __init__(self, make_rel_name=None):
+        if make_rel_name is None:
+            make_rel_name = Representer.make_rel_name
         self.make_rel_name = make_rel_name
         # function to make full name of the action (using correct name of module)
 
