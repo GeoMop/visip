@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QGraphicsScene
 
 from visip import _Value
 from visip.dev.action_instance import ActionInputStatus
-from visip.dev.dtype import Constant
+from visip.dev.dtype import Constant, ConstantValueType
 from visip_gui.data.g_action_data_model import GActionDataModel
 from visip_gui.graphical_items.g_action import GAction
 from visip_gui.graphical_items.g_connection import GConnection
@@ -46,7 +46,8 @@ class GBaseModelScene(QGraphicsScene):
         self.update_model = True
 
     def update_scene(self):
-        self.workflow.update(self.workflow._result_call)
+        # When you start optimizing start in this function (shame on me!!!)
+        self.workflow.update()
         unconnected = self.unconnected_actions.values()
         self.unconnected_actions = {item.name:item for item in unconnected}
         if self.update_model and self.new_connection is None:
@@ -69,6 +70,12 @@ class GBaseModelScene(QGraphicsScene):
                 i = 0
                 for action_argument in action.arguments:
                     status = action_argument.status
+                    if action_argument.parameter.type is not None:
+                        if hasattr(action_argument.parameter.type, '__name__'):
+                            if action_argument.parameter.type.__name__ == "Constant":  # hacky way, but the only one that I found
+                                g_action = self.get_action(action_name)
+                                port = g_action.in_ports[i]
+                                port.set_constant(True)
                     if status != ActionInputStatus.missing:
                         if not isinstance(action_argument.value.action, _Value):
                             action_argument = action_argument.value
@@ -84,9 +91,6 @@ class GBaseModelScene(QGraphicsScene):
                             g_action = self.get_action(action_name)
                             port = g_action.in_ports[i]
                             port.set_default(True)
-                            if action_argument.parameter.type is not None:
-                                if action_argument.parameter.is_constant():
-                                    port.set_constant(True)
 
                     i += 1
             actions = {item.name + 'g' if isinstance(item, GAction) else 'c': item for item in self.items() if hasattr(item, 'name')}

@@ -42,11 +42,11 @@ class _ActionBase:
     - implement expansion to the Task DAG.
     - have _code representation
     """
-    def __init__(self, action_name = None):
+    def __init__(self, action_name = None, action_module="visip"):
         self.task_type = TaskType.Atomic
         self.is_analysis = False
         self.name = action_name or self.__class__.__name__
-        self.__visip_module__ = "visip"
+        self.__visip_module__ = action_module
         # Module where the action is defined.
         self._parameters = None
         # Parameter specification list, class attribute, no parameters by default.

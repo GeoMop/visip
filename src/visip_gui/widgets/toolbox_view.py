@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QMimeData, QPoint
+from PyQt5.QtCore import QMimeData, QPoint, QByteArray
 from PyQt5.QtGui import QDrag
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtCore import Qt
@@ -25,7 +25,7 @@ class ToolboxView(QLabel):
         drag = QDrag(self)
         mime = QMimeData()
         #print(self.item.w_data_item.action.module + "." + self.item.w_data_item.action_name)
-        mime.setText(parent.name + "." + self.item.w_data_item.action_name)
+        mime.setData("ActionDrag", QByteArray((self.item.w_data_item.action.module + "." + self.item.w_data_item.action_name).encode("utf-8")))
         drag.setMimeData(mime)
         drag.setPixmap(self.pixmap)
         drag.setHotSpot(QPoint( drag.pixmap().width()/2,

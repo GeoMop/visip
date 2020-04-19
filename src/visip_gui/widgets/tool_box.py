@@ -44,6 +44,8 @@ class ToolBox(QToolBox):
                 g_action.hide_name(True)
                 ToolboxView(g_action, self.system_actions_layout)
 
+            if action.module not in self.action_database:
+                self.action_database[action.module] = {}
             self.action_database[action.module][action.name] = action
 
         # ToolboxView(GAction(TreeItem(["List", 0, 0, 50, 50]), instance.ActionInstance.create( dev.List())), toolbox_layout2)
@@ -93,7 +95,7 @@ class ToolBox(QToolBox):
 
             for m in module.imported_modules:
                 if m.__name__ != self.BASE_MODULE_NAME:
-                    module_category = ActionCategory()
+                    module_category = ActionCategory(m.__name__)
                     self.action_database[m.__name__] = {}
                     #todo: load each module from file and get actions from module.definitions
                     for name, obj in m.__dict__.items():
@@ -103,7 +105,7 @@ class ToolBox(QToolBox):
                                                 ActionCall.create(item))
                             g_action.hide_name(True)
                             ToolboxView(g_action, module_category)
-                            self.action_database[item.module][item.name] = item
+                            self.action_database[m.__name__][item.name] = item
 
                     self.import_modules[m.__name__] = module_category
                     self.addItem(module_category, module._full_name_dict[m.__name__])
@@ -112,9 +114,8 @@ class ToolBox(QToolBox):
         dialog = ImportModule(self.parent())
         if dialog.exec():
             import os
-            relpath = os.path.relpath(dialog.filename(), self.cfg.module_root_directory)
-            namespace = os.path.dirname(relpath).replace(os.sep, ".")
-            spec = importlib.util.spec_from_file_location(namespace, dialog.filename())
+            relpath = os.path.relpath(dialog.filename(), os.path.dirname(self.module.module_file))
+            spec = importlib.util.spec_from_file_location(dialog.name(), dialog.filename())
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
             self.module.insert_imported_module(module, dialog.name())

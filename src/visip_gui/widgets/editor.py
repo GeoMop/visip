@@ -55,23 +55,22 @@ class Editor(GBaseModelView):
 
     def dragEnterEvent(self, drag_enter):
         """Accept drag event if it carries action."""
-        if drag_enter.mimeData().hasText():
-            identifier = drag_enter.mimeData().text()
+        if drag_enter.mimeData().hasFormat("ActionDrag"):
+            identifier = drag_enter.mimeData().data("ActionDrag").data().decode("utf-8")
             index = identifier.rfind(".")
             module = identifier[:index]
             action_name = identifier[index + 1:]
-            if module == "wf" and (action_name == "Slot"):
-                drag_enter.acceptProposedAction()
             try:
-                if action_name in self.available_actions[module]:
-                    drag_enter.acceptProposedAction()
-            except:
-                pass
+                self.available_actions[module][action_name]
+            except KeyError as e:
+                print("Unknown action " + identifier)
+            else:
+                drag_enter.acceptProposedAction()
 
     def dropEvent(self, drop_event):
         """Create new action from dropped information"""
         self.scene.add_action(self.mapToScene(drop_event.pos()) - drop_event.source().get_pos_correction(),
-                              drop_event.mimeData().text())
+                              drop_event.mimeData().data("ActionDrag").data().decode("utf-8"))
         drop_event.acceptProposedAction()
 
     def dragMoveEvent(self, move_event):
