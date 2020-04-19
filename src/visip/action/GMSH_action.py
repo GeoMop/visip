@@ -56,21 +56,21 @@ def GMSH_reader(path: str) -> MeshGMSH:
 
     points = {}
     for idx, point in reader.nodes.items():
-        points[idx] = Point.call(point[0], point[1], point[2])
+        points[idx] = Point(point[0], point[1], point[2])
 
     elements = {}
     for idx, element in reader.elements.items():
         try:
-            elements[idx] = Element.call(element[0], None, element[1][0], element[1][1], element[1][2], element[2])
+            elements[idx] = Element(element[0], None, element[1][0], element[1][1], element[1][2], element[2])
         except:
-            elements[idx] = Element.call(element[0], None, element[1][0], element[1][1], None, element[2])
+            elements[idx] = Element(element[0], None, element[1][0], element[1][1], None, element[2])
 
-    my_Mesh = MeshGMSH.call(points, elements, reader.physical)
+    my_Mesh = MeshGMSH(points, elements, reader.physical)
     return my_Mesh
 
 
 @action_def
-def ExtractRegionElements(msh: MeshGMSH, regions: List[str]) -> SubMesh:
+def extract_region_elements(msh: MeshGMSH, regions: List[str]) -> SubMesh:
     """
     Extracts chosen regions from mesh and creates SubMesh from those regions.
     :param msh: whole mesh
@@ -97,7 +97,7 @@ def ExtractRegionElements(msh: MeshGMSH, regions: List[str]) -> SubMesh:
 
 
 @action_def
-def ExtractRegionIds(submsh: SubMesh) -> List[int]:
+def extract_region_ids(submsh: SubMesh) -> List[int]:
     RegionIds = []
     for Element_id, Element in submsh:
         RegionIds.append(Element.region_id)
@@ -105,12 +105,12 @@ def ExtractRegionIds(submsh: SubMesh) -> List[int]:
 
 
 @action_def
-def EleIds(msh: SubMesh) -> List[int]:
+def ele_ids(msh: SubMesh) -> List[int]:
     return [x[0] for x in msh]
 
 
 @action_def
-def Barycenter(mesh: MeshGMSH, msh: SubMesh) -> np.ndarray:  # output?
+def barycenters(mesh: MeshGMSH, msh: SubMesh) -> np.ndarray:  # output?
     pp_bary = []
     for id, elem in msh:
         keys = ['x', 'y', 'z']
@@ -130,31 +130,30 @@ def Barycenter(mesh: MeshGMSH, msh: SubMesh) -> np.ndarray:  # output?
     return barycenter
 
 
-# @action_def
-# def sampler_fn(seed: int) -> Any:
-#     return np.random.seed(seed)
-
-
 @action_def
-def field_mesh_sampler(all_fields: cf.Fields, outer_field_names: List[str],
+def field_mesh_sampler(all_fields: cf.Field, outer_field_names: List[str],
                        barycenters: np.ndarray, region_ids: List[int]) -> Any:  # should return @action
 
-    # fields = cf.Fields(all_fields)
-    all_fields.set_outer_fields(outer_field_names)
-    all_fields.set_points(barycenters, region_ids=region_ids)
+    fields = cf.Fields([all_fields])
+    fields.set_outer_fields(outer_field_names)
+    non = np.delete(barycenters, 2, 1) # oříznutí 3D na 2D ???
+    fields.set_points(non, region_ids=region_ids)
 
+    @action_def
     def sampler_fn(seed: int) -> Any:
         np.random.seed(seed)
-        return all_fields.sample()
+        return fields.sample()
 
-    return wf.action_def(sampler_fn)
+    return sampler_fn  # wf.action_def(sampler_fn)
 
 
 @action_def
-def make_fields() -> cf.Fields:
-    return cf.Fields([
-        cf.Field('conductivity', cf.FourierSpatialCorrelatedField('gauss', dim=3, corr_length=0.125, log=True)),
-    ]) # Field s dim=3 není implementován. Moje chyba?
+def make_fields() -> cf.Field:
+    return cf.Field('conductivity', cf.FourierSpatialCorrelatedField('gauss', dim=2, corr_length=0.125, log=True))
+    # return cf.Fields([
+    #     cf.Field('conductivity', cf.FourierSpatialCorrelatedField('gauss', dim=2, corr_length=0.125, log=True)),
+    # ])  # Field s dim=3 není implementován.
+
     # return cf.Fields([
     #     cf.Field(name='conductivity', field=1),
     #     cf.Field(name='conductivity1', field=2)
@@ -180,6 +179,6 @@ def write_fields(mesh: MeshGMSH, ele_ids: List[int], sample: wf.Any) -> Any:
     field values in element's barycenter.
     :param fields: {'field_name' : values_array, ..}
     """
-    gmsh_io.GmshIO.write_fields(mesh, 'Mesh_write_file.txt', ele_ids=ele_ids, fields=sample)
+    info = gmsh_io.GmshIO.write_fields(mesh, 'Mesh_write_file.txt', ele_ids=ele_ids, fields=sample)
 
-    return -1
+    return info

@@ -13,7 +13,7 @@ from visip.code import decorators as wf
 from visip.code import wrap
 
 from visip.action.GMSH_action import Point, Element, MeshGMSH, GMSH_reader, write_fields, \
-    ExtractRegionElements, EleIds, Barycenter, field_mesh_sampler, make_fields, ExtractRegionIds
+    extract_region_elements, ele_ids, barycenters, field_mesh_sampler, make_fields, extract_region_ids
 
 # test_std imports
 # import os
@@ -103,36 +103,36 @@ def test_load_mesh():
     assert result.elements
     assert result.regions
 
-    assert result.nodes[1].x == 300
-    assert result.elements[1].nodes == [511, 690]
-    assert result.regions['"fr"'] == (10, 2)
+    # assert result.nodes[1].x == 300
+    # assert result.elements[1].nodes == [511, 690]
+    # assert result.regions['"fr"'] == (10, 2)
 
 
-import numpy as np
+# import numpy as np
 
 
-@wf.action_def
-def prepare_np_array(arr: np.ndarray) -> np.ndarray:
-    fin = np.append(arr, [1, 2, 3])
-    return fin
+# @wf.action_def
+# def prepare_np_array(arr: np.ndarray) -> np.ndarray:
+#     fin = np.append(arr, [1, 2, 3])
+#     return fin
 
 
-@wf.action_def
-def prepare_np_array_none(arr: np.ndarray = None) -> np.ndarray:
-    fin = np.append(arr, [1, 2, 3])
-    return fin
-
-
-def test_np_array():
-    result = evaluation.run(prepare_np_array, [np.array([-1, 0])])
-    print(type(result))
-    assert issubclass(type(result), np.ndarray)
-
-
-def test_np_array_none():
-    result = evaluation.run(prepare_np_array_none)
-    print(type(result))
-    assert issubclass(type(result), np.ndarray)
+# @wf.action_def
+# def prepare_np_array_none(arr: np.ndarray = None) -> np.ndarray:
+#     fin = np.append(arr, [1, 2, 3])
+#     return fin
+#
+#
+# def test_np_array():
+#     result = evaluation.run(prepare_np_array, [np.array([-1, 0])])
+#     print(type(result))
+#     assert issubclass(type(result), np.ndarray)
+#
+#
+# def test_np_array_none():
+#     result = evaluation.run(prepare_np_array_none)
+#     print(type(result))
+#     assert issubclass(type(result), np.ndarray)
 
 
 MY_FILE = "write_fields.gmsh"
@@ -140,32 +140,62 @@ WORKSPACE = "_workspace"
 
 
 @wf.workflow
-def writing_fields(mesh: MeshGMSH, ele_ids: List[int], fields: ActionWrapper):
-    return write_fields(mesh, ele_ids, fields)
+def mesh_square_1x1() -> MeshGMSH:
+    return GMSH_reader('inputs/square_1x1_xy.msh')
 
 
-def test_workflow_schema():
-    mesh = evaluation.run(loading_mesh)  # načtení meshe random_fractures_01.msh
+@wf.workflow
+def workflow_schema(seed: int):
+    mesh = evaluation.run(mesh_square_1x1)
 
-    RegionElements = ExtractRegionElements(mesh, ['"fr"'])  # vybrání elementů z regionu "fr"
+    # all_mesh_regions = list(mesh.regions.keys())
 
-    # RegionIds = ExtractRegionIds(RegionElements)  # vybrání Ids z regionu "fr"
-    #
-    # Element_ids = EleIds(RegionElements)  # získání Ids z elementů ze SubMeshe
-    #
-    # Bary = Barycenter(mesh, RegionElements)  # výpočet Barycenter ze SubMeshe
-    #
-    # Fields = make_fields()  # vytvoření Fields
-    #
-    # fms = field_mesh_sampler(Fields, Element_ids, Bary,
-    #                               RegionIds)  # volání filed_mesh_sampleru, který by měl vracet sampler_fn.
-    #                                           # Tedy akci pro generování fieldů pomocí seedu.
-    # sampler = fms(2112)
-    # write = evaluation.run(writing_fields, [mesh, Element_ids, fms]) # pokus o zápis fieldů
+    RegionElements = extract_region_elements(mesh, ['"bulk"', '".left_x"'])  # vybrání elementů z regionu "fr"
+
+    RegionIds = extract_region_ids(RegionElements)
+
+    Element_ids = ele_ids(RegionElements)  # získání Ids z elementů ze SubMeshe
+
+    Bary = barycenters(mesh, RegionElements)  # výpočet barycenters ze SubMeshe
+
+    Field = make_fields()  # vytvoření Fields
+
+    fms = field_mesh_sampler(Field, Element_ids, Bary,
+                             RegionIds)  # volání filed_mesh_sampleru, který by měl vracet sampler_fn.
+    # Tedy akci pro generování fieldů pomocí seedu.
+    sample = fms(seed)
+    write = write_fields(mesh, Element_ids, sample)
+    return write
 
 
-def test_write_fields():
-    mesh = evaluation.run(loading_mesh)
 
-    write = evaluation.run(writing_fields, [mesh])
-    print('_')
+def test_workflow_schema_1x1():
+    res = evaluation.run(workflow_schema, [123])
+
+    assert res
+
+# def test_workflow_schema():
+#     mesh = evaluation.run(loading_mesh)  # načtení meshe random_fractures_01.msh
+#
+#     RegionElements = extract_region_elements(mesh, ['"fr"'])  # vybrání elementů z regionu "fr"
+#
+#     # RegionIds = extract_region_ids(RegionElements)  # vybrání Ids z regionu "fr"
+#     #
+#     # Element_ids = ele_ids(RegionElements)  # získání Ids z elementů ze SubMeshe
+#     #
+#     # Bary = barycenters(mesh, RegionElements)  # výpočet barycenters ze SubMeshe
+#     #
+#     # Fields = make_fields()  # vytvoření Fields
+#     #
+#     # fms = field_mesh_sampler(Fields, Element_ids, Bary,
+#     #                               RegionIds)  # volání filed_mesh_sampleru, který by měl vracet sampler_fn.
+#     #                                           # Tedy akci pro generování fieldů pomocí seedu.
+#     # sampler = fms(2112)
+#     # write = evaluation.run(writing_fields, [mesh, Element_ids, fms]) # pokus o zápis fieldů
+#
+#
+# def test_write_fields():
+#     mesh = evaluation.run(loading_mesh)
+#
+#     write = evaluation.run(writing_fields, [mesh])
+#     print('_')
