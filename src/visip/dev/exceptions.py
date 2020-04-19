@@ -13,3 +13,7 @@ class ExcVCommandFailed(Exception):
 
     def __str__(self):
         return "Command: {}\n Failed with output: {}".format(self.command, str(self.res))
+
+
+class ExcInvalidCall(Exception):
+    pass

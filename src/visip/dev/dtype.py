@@ -19,6 +19,9 @@ import typing
 import typing_inspect
 import enum
 
+from . import base
+from typing import *
+
 ################################################################################################
 
 
@@ -52,6 +55,23 @@ class Constant(typing.Generic[ConstantValueType]):
     # @classmethod
     # def inner_type(cls):
     #     return TypeInspector().get_args(cls)[0]
+
+
+
+Function = typing.Any
+# class Fn(typing.Generic[ConstantValueType]):
+#     """
+#     Wrapper for constant values. I.e. values that are not results of other actions.
+#     TODO: Why and how to implement inner type.
+#     """
+#     def __init__(self, val: ConstantValueType):
+#         self._value: ConstantValueType = val
+#
+#
+#     @property
+#     def value(self):
+#         return self._value
+
 
 
 class DataClassBase:
@@ -111,6 +131,12 @@ class TypeInspector_36:
     def constant_type(self, xtype):
         return self.get_args(xtype)[0]
 
+    def is_callable(self, xtype):
+        try:
+            return issubclass(xtype, base._ActionBase)
+        except:
+            return False
+
     def is_subtype(self, xtype, type_spec):
         """
         pytypes works only for 3.6
@@ -169,7 +195,7 @@ class TypeInspector(TypeInspector_37):
         return typing.get_origin(xtype)
 
     def get_args(self, xtype):
-        return typing.get_last_args(xtype)
+        return typing.get_args(xtype)
 
 
 def closest_common_ancestor(*cls_list):

@@ -56,7 +56,7 @@ setuptools.setup(
                       'typing-inspect',
                       'pyqtgraph'],
     setup_requires=['wheel'],
-    python_requires='>=3, <3.8',
+    python_requires='>=3.6',
     # extras_require={
     #     # eg:
     #     #   'rst': ['docutils>=0.11'],
