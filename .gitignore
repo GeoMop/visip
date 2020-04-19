@@ -1,6 +1,7 @@
 # test results
 *.round.py
 *.round2.py
+**/_workspace/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

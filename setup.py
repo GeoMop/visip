@@ -49,14 +49,14 @@ setuptools.setup(
     # include automatically all files in the template MANIFEST.in
     include_package_data=True,
     zip_safe=False,
-    install_requires=['numpy==1.12.0',
+    install_requires=['numpy',
                       'PyQt5',
                       'attrs',
                       'pytypes',
                       'typing-inspect',
                       'pyqtgraph'],
     setup_requires=['wheel'],
-    python_requires='>=3, <3.8',
+    python_requires='>=3.6',
     # extras_require={
     #     # eg:
     #     #   'rst': ['docutils>=0.11'],

@@ -25,8 +25,8 @@ def test_evaluation(src_file):
     # Then make_analysis (which binds all parameters) can be replaced this more general feature.
     analysis = evaluation.Evaluation.make_analysis(wf_test_class, [pa, pb])
     assert sorted(list(analysis.action_call_dict.keys())) == ['Value_1', 'Value_2', '__result__', 'test_class_1']
-    eval = evaluation.Evaluation(analysis)
-    result = eval.execute()
+    eval = evaluation.Evaluation()
+    result = eval.execute(analysis)
 
     assert isinstance(result, task.Composed)
     assert isinstance(result.result, Point._data_class)
@@ -48,7 +48,7 @@ def test_evaluation(src_file):
 global_n_calls = 0
 
 @decorators.action_def
-def count_calls(a: int):
+def count_calls(a: int) -> int:
     global global_n_calls
     global_n_calls += 1
     return 2 * a
@@ -69,5 +69,5 @@ def test_action_skipping():
     :return:
     """
     result = evaluation.run(make_calls)
-    assert len(result.result) == 3
+    assert len(result) == 3
     assert global_n_calls == 2

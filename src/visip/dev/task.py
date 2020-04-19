@@ -1,8 +1,7 @@
 import enum
 from typing import *
-
+from ..action import constructor
 from . import data
-from ..action.constructor import Pass
 from . import base
 from ..eval import cache
 
@@ -24,20 +23,24 @@ class _TaskBase:
 
     no_value = cache.ResultCache.NoValue
 
-    def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'] = []):
+    def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'],
+                 parent: '_TaskBase', task_name: str):
         self.action = action
         # Action (like function definition) of the task (like function call).
-        self.inputs = inputs
+        self.inputs = []
         # Input tasks for the action's arguments.
-        for input in inputs:
-            assert isinstance(input, _TaskBase)
-            input.outputs.append(self)
         self.outputs: List['Atomic'] = []
         # List of tasks dependent on the result. (Try to not use and eliminate.)
         self.id: int = 0
         # Task is identified by the hash of the hash of its parent task and its name within the parent.
-        self.parent: Optional['Composed'] = None
-        # parent task, filled during expand
+        self.parent: Optional['Composed'] = parent
+        # parent task
+        self.child_id = None
+        # name of current task within parent
+        self.id = int
+        # unique task hash
+        self._set_id(parent, task_name)
+
         self.status = Status.none
         # Status of the task, possibly need not to be stored explicitly.
         self._result: Any = self.no_value
@@ -49,6 +52,14 @@ class _TaskBase:
         self.start_time = -1
         self.end_time = -1
         self.eval_time = 0
+
+        # Connect to inputs.
+        for input in inputs:
+            assert isinstance(input, _TaskBase)
+            self.inputs.append(input)
+            input.outputs.append(self)
+
+
 
     def action_hash(self):
         return self.action.action_hash()
@@ -70,7 +81,19 @@ class _TaskBase:
         # e.g. action.evaluate
         assert False, "Not implemented."
 
+    def lazy_hash(self):
+        task_hash = self.action_hash()
+        for input in self.inputs:
+            task_hash = data.hash(input.result_hash, previous=task_hash)
+        return task_hash
+
     def finish(self, result, task_hash):
+        """
+        Store the result of the action.
+        :param result: The result value.
+        :param task_hash: The hash of lazy evaluation of the value (hash of the action chain)
+        :return:
+        """
         assert result is not self.no_value
         self.status = Status.finished
         self._result = result
@@ -82,9 +105,16 @@ class _TaskBase:
     def is_ready(self):
         assert False, "Not implemented."
 
+    def get_path(self):
+        path = []
+        t = self
+        while t is not None:
+            path.append(t.child_id)
+            t = t.parent
+        return path
 
-    def set_id(self, parent_task, child_id):
-        self.parent = parent_task
+    def _set_id(self, parent_task, child_id):
+        self.child_id = child_id
         if parent_task is None:
             parent_hash = data.hash(None)
         else:
@@ -95,24 +125,21 @@ class _TaskBase:
         return self.priority < other.priority
 
     @staticmethod
-    def _create_task(parent_task, child_name, action, input_tasks):
+    def _create_task(action, input_tasks, parent_task, child_name):
         """
         Create task from the given action and its input tasks.
         """
         task_type = action.task_type
         if task_type == base.TaskType.Atomic:
-            child = Atomic(action, input_tasks)
+            child = Atomic(action, input_tasks, parent_task, child_name)
         elif task_type == base.TaskType.Composed:
-            child = Composed(action, input_tasks)
+            child = Composed(action, input_tasks, parent_task, child_name)
         else:
             assert False
-        child.set_id(parent_task, child_name)
         return child
 
 
 class Atomic(_TaskBase):
-    pass
-
 
 
     def is_ready(self):
@@ -142,6 +169,13 @@ class ComposedHead(Atomic):
     Auxiliary task for the inputs of the composed task. Simplifies
     expansion as we need not to change input and output links of outer tasks, just link between head and tail.
     """
+
+    @classmethod
+    def create(cls, i, input_task, parent, name):
+        if name is None:
+            name = "__head_{}".format(i)
+        return cls(constructor.Pass(), [input_task], parent, name)
+
     @property
     def result(self):
         return self.inputs[0].result
@@ -154,9 +188,13 @@ class Composed(Atomic):
     preferences assigned by the Scheduler. It also keeps a map from
     """
 
-    def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'] = []):
-        heads = [ComposedHead(Pass(), [input]) for input in inputs]
-        super().__init__(action, heads)
+    def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'],
+                 parent: '_TaskBase', task_name: str):
+        params = action.parameters
+        assert params.size() == len(inputs)
+        heads = [ComposedHead.create(i, input, parent, param.name)
+                                        for (i, input), param in zip(enumerate(inputs), params)]
+        super().__init__(action, heads, parent, task_name)
         self.time_estimate = 0
         # estimate of the start time, used as expansion priority
         self.childs: Atomic = None
@@ -191,7 +229,7 @@ class Composed(Atomic):
 
 
     def create_child_task(self, name, action, inputs):
-        return _TaskBase._create_task(self, name, action, inputs)
+        return _TaskBase._create_task(action, inputs, self, name)
 
     def expand(self):
         """
@@ -202,7 +240,7 @@ class Composed(Atomic):
         are used in order to minimize modification of the task links.
 
         :return:
-            None if the expansion can not be performed.
+            None if the expansion can not be performed, yet.
             Dictionary of child tasks (action_instance_name -> task)
             Empty dict is valid result, used to indicate end of a loop e.g. in the case of ForEach and While actions.
         """
@@ -214,8 +252,9 @@ class Composed(Atomic):
         for head in heads:
             head.outputs = []
         # Generate and connect body tasks.
-        self.childs = self.action.expand(self.inputs, self.create_child_task)
-        if self.childs:
+        childs = self.action.expand(self, self.create_child_task)
+        if childs is not None:
+            self.childs = {task.child_id: task for task in childs}
             result_task = self.childs['__result__']
             assert len(result_task.outputs) == 0
             result_task.outputs.append(self)
@@ -236,7 +275,6 @@ class Composed(Atomic):
         """
         assert self.is_ready()
         assert len(self.inputs) == 1
-        assert self.inputs[0].action.name == "result"
         return lambda x: x[0]
 
 

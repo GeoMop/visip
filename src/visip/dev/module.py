@@ -98,7 +98,7 @@ class Module:
         self.module_file = module_path
         # File with the module source code.
         self.module = self.load_module(module_path)
-        # Ref to wrapped python module object.
+        # The python module object.
 
         self.definitions = []
         # Actions defined in the module. Includes:
@@ -113,6 +113,10 @@ class Module:
         # List of imported modules.
         self._full_name_dict = {}
         #  Map the full module name to the alias and the module object (e.g. numpy.linalg to np)
+        self._visip_objs = {}
+        # Map of full names to the names with alias for the visip module.
+        # TODO: generalize for other 'rebranding' packages.
+
         self.ignored_definitions = []
         # Objects of the module, that can not by sourced.
         # If there are any we can not reproduce the source.
@@ -138,6 +142,8 @@ class Module:
             new_module = imp.new_module(module_name)
             my_exec(source, new_module.__dict__, locals=None, description=module_name)
         return new_module
+
+
 
     def extract_definitions(self):
         """
@@ -173,6 +179,29 @@ class Module:
         full_name = obj.__name__
         self.imported_modules.append(obj)
         self._full_name_dict[full_name] = name
+
+        if full_name == 'visip':
+            """
+            Temporary hack only for the visip package.
+            TODO: consistent approach to the objects imported through an intermediary package/module.
+            Either change __module__ when exporting (dangerous) or have a map for the whole object names
+            from the full name to the aliased name.
+            """
+            self.make_visip_objs(obj, name)
+
+
+    def make_visip_objs(self, visip_module, alias):
+        for name, obj in visip_module.__dict__.items():
+            #print("OBJ: ", name, obj)
+            try:
+                if isinstance(obj, wrap.ActionWrapper):
+                    obj = obj.action
+                full_name = ".".join([obj.__module__, name])
+                alias_name = ".".join([alias, name])
+                #print("ALIAS: ", full_name, alias_name)
+                self._visip_objs[full_name] = alias_name
+            except:
+                pass
 
     def insert_definition(self, action: base._ActionBase, pos:int=None):
         """
@@ -213,9 +242,12 @@ class Module:
         :return: The action name using the alias instead of the full module path.
         """
         alias = self._full_name_dict.get(module, module)
-        if alias in {'builtins', 'typing', self.name}:
+        if alias in {'builtins', self.name}:
             return name
-        return "{}.{}".format(alias, name)
+        full_name = "{}.{}".format(alias, name)
+        alias_name = self._visip_objs.get(full_name, full_name)
+        #print(full_name, alias_name, module)
+        return alias_name
 
 
 
@@ -231,7 +263,7 @@ class Module:
         Generate the source code of the whole module.
         :return:
         """
-        representer = Representer()
+        representer = Representer(self.relative_name)
         source = []
         # make imports
         for impr in self.imported_modules:
@@ -247,12 +279,12 @@ class Module:
         for v in self.definitions:
             # TODO:
             # Definitions are not arbitrary actions, currently only Workflow and DataClass
-            # currently these provides the cond_of_definition method.
+            # currently these provides the code_of_definition method.
             # We should move the code definition routines into Representer as the representation
-            # should not specialized for user defined actions since the representation is given by the Python syntax.
+            # should not be specialized for user defined actions since the representation is given by the Python syntax.
             action = v
             source.extend(["", ""])     # two empty lines as separator
-            def_code = action.code_of_definition(representer, self.relative_name)
+            def_code = action.code_of_definition(representer)
             source.append(def_code)
         return "\n".join(source)
 

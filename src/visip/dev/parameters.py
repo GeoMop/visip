@@ -2,7 +2,6 @@ import attr
 from typing import *
 import inspect
 
-from . import dtype
 from . import data
 
 class NoDefault:
@@ -66,10 +65,6 @@ class ActionParameter:
         p_hash = data.hash(self.config_param, previous=p_hash)
         return p_hash
 
-
-    def is_constant(self):
-        return dtype.is_constant(self.type)
-
 class Parameters:
     no_default = ActionParameter.no_default
     # For convenience when operating on the Parameters instance.
@@ -130,22 +125,28 @@ def extract_func_signature(func, skip_self=True):
     :return:
     """
     signature = inspect.signature(func)
+    no_value = inspect.Parameter.empty
     parameters = Parameters()
 
     for param in signature.parameters.values():
-        if skip_self and parameters.size() == 0 and param.name == 'self':
-            continue
+        if parameters.size() == 0 and param.name == 'self':
+            if skip_self:
+                continue
+            else:
+                annotation = None
+                default = ActionParameter.no_default
+        else:
 
-        annotation = param.annotation if param.annotation != param.empty else None
-        default = param.default if param.default != param.empty else None
+            annotation = param.annotation if param.annotation != no_value else None
+            default = param.default if param.default != no_value else ActionParameter.no_default
 
         if param.kind == param.VAR_POSITIONAL:
-            assert default == None
+            assert default == ActionParameter.no_default
             param = ActionParameter(None, annotation, default)
         else:
             assert param.kind == param.POSITIONAL_ONLY or param.kind == param.POSITIONAL_OR_KEYWORD, str(param.kind)
             param = ActionParameter(param.name, annotation, default)
         parameters.append(param)
-    return_type = signature.return_annotation
-    return_type = return_type if return_type != signature.empty else None
+    return_type = signature.return_annotation if signature.return_annotation != no_value else None
+
     return parameters, return_type

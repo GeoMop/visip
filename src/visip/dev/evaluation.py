@@ -22,6 +22,9 @@ from .action_workflow import _Workflow
 from ..action.constructor import Value
 from ..eval.cache import ResultCache
 from ..code import wrap
+from ..code.dummy import Dummy
+from . import tools
+
 
 class Resource:
     """
@@ -79,10 +82,7 @@ class Resource:
         if is_ready:
             # hash of action and inputs
             # TODO: move into task
-            task_hash = task.action_hash()
-            for input in task.inputs:
-                task_hash = data.hash(input.result_hash, previous=task_hash)
-
+            task_hash = task.lazy_hash()
             # Check result cache
 
             res_value = self.cache.value(task_hash)
@@ -105,12 +105,15 @@ class Resource:
 
 
 class Scheduler:
-    def __init__(self, resources:Resource):
+    def __init__(self, resources:Resource, n_tasks_limit:int = 1024):
         """
         :param tasks_dag: Tasks to be evaluated.
         """
         self.resources = resources
         # Dict of available resources
+        self.n_tasks_limit = n_tasks_limit
+        # When number of assigned (and unprocessed) tasks is over the limit we do not accept
+        # further DAG expansion.
 
         self.tasks = {}
         # all not yet sumitted tasks, vertices of the DAG that is optimized by the scheduler
@@ -120,18 +123,20 @@ class Scheduler:
         # Priority queue of the 'ready' tasks.  Used to submit the ready tasks without
         # whole DAG optimization. Priority is the
 
-        self._start_time = time.clock()
+        self._start_time = time.perf_counter()
         # Start time of the DAG evaluation.
 
         self._topology_sort = []
         # Topological sort of the tasks.
 
+    def can_expand(self):
+        return self.n_assigned_tasks < self.n_tasks_limit
     @property
     def n_assigned_tasks(self):
         return len(self.tasks)
 
     def get_time(self):
-        return time.clock() - self._start_time
+        return time.perf_counter() - self._start_time
 
     def append(self, tasks):
         """
@@ -224,23 +229,7 @@ class Result:
 
 
 
-class change_cwd:
-    """
-    Context manager that change CWD, to given relative or absolute path.
-    """
-    def __init__(self, path: str):
-        self.path = path
-        self.orig_cwd = ""
-
-    def __enter__(self):
-        if self.path:
-            self.orig_cwd = os.getcwd()
-            os.chdir(self.path)
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        if self.orig_cwd:
-            os.chdir(self.orig_cwd)
-
+DataOrDummy = Union[dtype.DataType, Dummy]
 
 class Evaluation:
     """/
@@ -269,7 +258,7 @@ class Evaluation:
     :return: List of all tasks.
     """
     @staticmethod
-    def make_analysis(action: base._ActionBase, inputs:List[dtype.DataType]):
+    def make_analysis(action: base._ActionBase, inputs:List[DataOrDummy]):
         """
         Bind values 'inputs' as parameters of the action using the Value action wrappers,
         returns a workflow without parameters.
@@ -277,14 +266,17 @@ class Evaluation:
         :param inputs:
         :return: a bind workflow instance
         """
-        assert action.parameters.is_variadic() or len(inputs) == action.parameters.size()
+        #assert action.parameters.is_variadic() or len(inputs) == action.parameters.size()
         bind_name = 'all_bind_' + action.name
         workflow = _Workflow(bind_name)
 
         bind_action = instance.ActionCall.create(action)
         for i, input in enumerate(inputs):
-            value_instance = instance.ActionCall.create(Value(input))
-            workflow.set_action_input(bind_action, i, value_instance)
+            if isinstance(input, Dummy):
+                input_action = input._action_call
+            else:
+                input_action = instance.ActionCall.create(Value(input))
+            workflow.set_action_input(bind_action, i, input_action)
             #assert bind_action.arguments[i].status >= instance.ActionInputStatus.seems_ok
         workflow.set_action_input(workflow.result, 0, bind_action)
         return workflow
@@ -293,28 +285,31 @@ class Evaluation:
 
 
 
-
-
-
-
-    def __init__(self, analysis: base._ActionBase):
+    def __init__(self,
+                 scheduler: Scheduler = None,
+                 workspace: str = ".",
+                 plot_expansion: bool = False
+                 ):
         """
         Create object for evaluation of the workflow 'analysis' with no parameters.
         Use 'make_analysis' to substitute arguments to arbitrary action.
 
         :param analysis: an action without inputs
         """
-        self.resources = [ Resource() ]
-        self.scheduler = Scheduler(self.resources)
+        if scheduler is None:
+            scheduler = Scheduler([ Resource() ])
+        self.scheduler = scheduler
+        self.workspace = workspace
+        self.plot_expansion = plot_expansion
 
-        self.final_task = task_mod._TaskBase._create_task(None, '__root__', analysis, [])
+        self.final_task = None
 
         self.composed_id = 0
         # Auxiliary ID of composed tasks to break ties
         self.queue = []
         # Priority queue of the composed tasks to expand. Tasks are expanded until the task DAG is not
         # complete or number of unresolved tasks is smaller then given limit.
-        self.enqueue(self.final_task)
+        os.makedirs(workspace, exist_ok=True)
 
         self.force_finish = False
         # Used to force end of evaluation after an error.
@@ -322,8 +317,7 @@ class Evaluation:
         # List of tasks finished with error.
 
 
-        # init scheduler
-        self.tasks_update([self.final_task])
+
 
     def tasks_update(self, tasks):
         for t in tasks:
@@ -353,20 +347,31 @@ class Evaluation:
         """
         return []
 
-    def execute(self, assigned_tasks_limit = np.inf,
-                process_tasks = np.inf,
-                workspace: str = ".") -> task_mod._TaskBase:
+    def execute(self, analysis) -> task_mod._TaskBase:
         """
         Execute the workflow.
+        assigned_tasks_limit -  maximum number of tasks processed by the Scheduler
+                                TODO: should be part of the Scheduler config
+        workspace -
+
         :return:
         """
-        os.makedirs(workspace, exist_ok=True)
-        with change_cwd(workspace):
+        #TODO: Reinit scheduler and own structures to allow reuse of the Evaluation object.
+
+        self.final_task = task_mod._TaskBase._create_task(analysis, [], None, '__root__')
+        self.enqueue(self.final_task)
+        # init scheduler
+        self.tasks_update([self.final_task])
+
+        with tools.change_cwd(self.workspace):
+            # print("CWD: ", os.getcwd())
             invalid_connections = self.validate_connections(self.final_task.action)
             if invalid_connections:
                 raise Exception(invalid_connections)
             while not self.force_finish:
-                schedule = self.expand_tasks(assigned_tasks_limit)
+                schedule = self.expand_tasks()
+                if self.plot_expansion and len(schedule) > 0:
+                    self._plot_task_graph()
                 self.tasks_update(schedule)
                 self.scheduler.update()
                 self.scheduler.optimize()
@@ -382,44 +387,96 @@ class Evaluation:
         self.composed_id += 1
 
 
-    def expand_tasks(self, assigned_tasks_limit):
+    def expand_tasks(self):
         """
         Expand composed tasks until number of planed tasks in the scheduler is under the given limit.
-        :return:
+        :return: schedule
+        # List of new atomic tasks to schedule for execution.
         """
         # Force end of evaluation before all tasks are finished, e.g. due to an error.
         schedule = []
+        postpone_expand = []
+        # List of composed tasks with postponed expansion, have to be re-enqueued.
 
-        while self.queue and not self.force_finish and self.scheduler.n_assigned_tasks < assigned_tasks_limit:
+        while self.queue and not self.force_finish and self.scheduler.can_expand():
             composed_id, time, composed_task = heapq.heappop(self.queue)
-            # TODO: fix expand, it connects Slots not to heads, but to an _ActionBase instance.
             task_dict = composed_task.expand()
-            # print("Expanded: ", task_dict)
-            for task in task_dict.values():
-                if isinstance(task, task_mod.Composed):
-                    self.enqueue(task)
-                else:
-                    schedule.append(task)
-            self.tasks_update([composed_task])
+
+            if task_dict is None:
+                # Can not expand yet, return back into queue
+                postpone_expand.append(composed_task)
+            else:
+                # print("Expanded: ", task_dict)
+                for task in task_dict.values():
+                    if isinstance(task, task_mod.Composed):
+                        self.enqueue(task)
+                    else:
+                        schedule.append(task)
+                self.tasks_update([composed_task])
+        for task in postpone_expand:
+            self.enqueue(task)
         return schedule
-
-
 
     # def extract_input(self):
     #     input_data = List(*[i._result for i in self._inputs])
 
 
+
+    def make_graphviz_digraph(self):
+        from graphviz import Digraph
+        g = Digraph("Task DAG")
+        g.attr('graph', rankdir="BT")
+
+        def predecessors(task: 'Task'):
+            for in_task in task.inputs:
+                g.edge(str(task.id), str(in_task.id))
+            return task.inputs
+
+        def previsit(task: 'Task'):
+            if task.is_finished():
+                color='green'
+            else:
+                color='gray'
+            if isinstance(task, task_mod.Composed):
+                style='rounded'
+            else:
+                style = 'solid'
+            node_label = "{}:#{}".format(task.action.name, hex(task.id)[2:6]) # 4 hex digits, hex returns 0x7d29d9f
+            g.node(str(task.id), label=node_label, color=color, shape='box', style=style)
+
+        dfs.DFS(neighbours=predecessors,
+                previsit=previsit).run([self.final_task])
+        return g
+
+    i_plot = 0
+    def _plot_task_graph(self):
+        filename = "{}_{:02d}".format(self.final_task.action.name, self.i_plot)
+        print("\nPlot ", self.i_plot)
+        self.i_plot += 1
+        g = self.make_graphviz_digraph()
+        output_path = g.render(filename=filename, format='pdf', cleanup=True)
+        print("Out: ", os.path.abspath(output_path))
+
+
+
+    def plot_task_graph(self):
+        try:
+            self._plot_task_graph()
+        except Exception as e:
+            print(e)
+
+
 def run(action: Union[base._ActionBase, wrap.ActionWrapper],
-        inputs:List[dtype.DataType] = None,
-        **kwargs) -> task_mod._TaskBase:
+        inputs:List[DataOrDummy] = None,
+        **kwargs) -> dtype.DataType:
     """
     Run the 'action' with given arguments 'inputs'.
-    Return resulting task.
+    Return the data result.
     """
     if isinstance(action, wrap.ActionWrapper):
         action = action.action
     if inputs is None:
         inputs = []
     analysis = Evaluation.make_analysis(action, inputs)
-    eval_obj = Evaluation(analysis)
-    return eval_obj.execute(**kwargs)
+    eval_obj = Evaluation(**kwargs)
+    return eval_obj.execute(analysis).result

@@ -3,8 +3,11 @@ from typing import Any
 
 from . import base
 from . import dfs
+from . import meta
+
+
 from .action_instance import ActionCall
-from ..action.constructor import _ListBase
+from ..action.constructor import _ListBase, Pass
 from . parameters import Parameters, ActionParameter
 
 
@@ -15,7 +18,10 @@ Implementation of the Workflow composed action.
 
 
 class _Slot(base._ActionBase):
-    pass
+    def __init__(self):
+        super().__init__("_Slot")
+        self._parameters = Parameters()
+        self._output_type = Any
 
 class _SlotCall(ActionCall):
     def __init__(self, slot_name):
@@ -37,7 +43,7 @@ class _SlotCall(ActionCall):
     def substitution_probability(self):
         return 1.0
 
-    def code(self, representer, module_dict):
+    def code(self, representer):
         return None
 
 class _Result(_ListBase):
@@ -52,17 +58,17 @@ class _Result(_ListBase):
     """
     def __init__(self):
         super().__init__(action_name='result')
-        self.parameters = Parameters()
-        self.parameters.append(ActionParameter(name="result", type=Any, default=ActionParameter.no_default))
+        self._parameters = Parameters()
+        self._parameters.append(ActionParameter(name="result", type=Any, default=ActionParameter.no_default))
         # The return value, there should be always some return value, as we want to use "functional style".
-        self.parameters.append(ActionParameter(name=None, type=Any, default=ActionParameter.no_default))
+        self._parameters.append(ActionParameter(name=None, type=Any, default=ActionParameter.no_default))
         # The "side effects" of the workflow.
 
 
     def evaluate(self, inputs):
         return inputs[0]
 
-    def format(self, representer, action_name, arg_names, arg_values):
+    def call_format(self, representer, action_name, arg_names, arg_values):
         return representer.format("return", representer.token(arg_names[0]))
 
 class _ResultCall(ActionCall):
@@ -74,13 +80,13 @@ class _ResultCall(ActionCall):
 
 
 
-class _Workflow(base._ActionBase):
+class _Workflow(meta.MetaAction):
     """
     Represents a composed action.
     - Allows composition of the actions into a DAG
     - Is a child of _ActionBase, encapsulates its internal structure.
     - All actions are kept in the self._action_calls set.
-    - action cals connected to the result are are topologicaly sorted in the 'update' method
+    - action calls connected to the result are are topologicaly sorted in the 'update' method
       and stored in correct order in self._sorted_calls.
     - action_calls can be freely renamed as workflow makes name -> action_call dict only temporally
       (the. name_to_action_call property)
@@ -96,13 +102,10 @@ class _Workflow(base._ActionBase):
         :param output_type:
         """
         super().__init__(name)
-        self._module = None
+        self.__visip_module__ = None
         # Name of the module were the workflow is defined.
-        self.task_type = base.TaskType.Composed
-        # Task type determines how the actions are converted to the tasks.
-        # Composed tasks are expanded.
         self._result_call = _ResultCall()
-        # Result action instance.
+        # Result ActionCall
         self._slots = []
         # Definition of the workspace parameters ?
         self._action_calls = set()
@@ -130,14 +133,14 @@ class _Workflow(base._ActionBase):
         """
         self._slots = slots
         self._result_call.set_single_input(0, output_action)
-        self._result_call.action.output_type = output_type
+        self._result_call.action._output_type = output_type
 
-        is_dfs = self.update(self._result_call)
+        is_dfs = self.update()
         assert is_dfs
         self.update_parameters()
 
 
-    def update(self, result_instance):
+    def update(self):
         """
         DFS through the workflow DAG given be the result action:
         - set unique action call names
@@ -147,6 +150,7 @@ class _Workflow(base._ActionBase):
         :param result_instance: the result action
         :return: True in the case of sucessfull update, False - detected cycle
         """
+        result_instance = self._result_call
         actions = set()
         topology_sort = []
         instance_names = {}
@@ -174,7 +178,7 @@ class _Workflow(base._ActionBase):
             #if isinstance(action, Slot):
             #    assert action is self._slots[action.rank]
             actions.add(action_call)
-            topology_sort.append(action_call.name)
+            topology_sort.append(action_call)
 
         # def edge_visit(previous, action, i_arg):
         #     return previous.output_actions.append((action, i_arg))
@@ -218,7 +222,7 @@ class _Workflow(base._ActionBase):
             else:
                 return self.subst_prob
     
-    def code_of_definition(self, representer, make_rel_name):
+    def code_of_definition(self, representer):
         """
         Represent workflow by its source.
         :return: list of lines containing representation of the workflow as a decorated function.
@@ -236,12 +240,10 @@ class _Workflow(base._ActionBase):
         # Make dict: full_instance_name -> (format, [arg full names])
         inst_order = []
         inst_exprs = {}
-        name_to_action = self.action_call_dict
-        for iname in self._sorted_calls:
-            action_call = name_to_action[iname]
+        for action_call in self._sorted_calls:
             full_name = action_call.get_code_instance_name()
             subst_prob = action_call.substitution_probability()
-            code = action_call.code(representer, make_rel_name)
+            code = action_call.code(representer)
             if code:
                 inst_repr = self.InstanceRepr(code, subst_prob)
                 for name in code.placeholders:
@@ -301,10 +303,8 @@ class _Workflow(base._ActionBase):
                     body.append(line)
 
         assert len(self._result_call.arguments) > 0
-
-
-        result_action = self._result_call.arguments[0].value
-        body.append("    return {}".format(result_action.name))
+        result_action_call = self._result_call.arguments[0].value
+        body.append("{}return {}".format(indent, result_action_call.get_code_instance_name()))
         return "\n".join(body)
 
 
@@ -359,7 +359,7 @@ class _Workflow(base._ActionBase):
         else:
             orig_input = None
         action.set_single_input(i_arg, input_action)
-        is_dfs = self.update(self._result_call)
+        is_dfs = self.update()
         if not is_dfs:
             action.set_single_input(i_arg, orig_input)
             return False
@@ -387,15 +387,15 @@ class _Workflow(base._ActionBase):
         Update outer interface: parameters and result_type according to slots and result actions.
         TODO: Check and set types.
         """
-        self.parameters = Parameters()
+        self._parameters = Parameters()
         for i_param, slot in enumerate(self._slots):
             slot_expected_types = [a.arguments[i_arg].parameter.type  for a, i_arg in slot.output_actions]
             common_type = None #types.closest_common_ancestor(slot_expected_types)
             p = ActionParameter(slot.name, common_type)
-            self.parameters.append(p)
+            self._parameters.append(p)
 
 
-    def expand(self, inputs, task_creator):
+    def expand(self, task, task_creator):
         """
         Expansion of the composed task with given data inputs (possibly None if not evaluated yet).
         :param inputs: List[Task]
@@ -403,25 +403,26 @@ class _Workflow(base._ActionBase):
             task_creator(instance_name, action, input_tasks)
         :return:
             None if can not be expanded yet.
-            Dict action_instance_name -> (TaskType, task_spec)
-                task_spec:
-                    - existing task from 'inputs', in the case of task type 'Slot'
-                    - (action, arguments) where arguments are the action_instance_names
+            List of created actions.
 
             In particular slots are named by corresponding parameter name and result task have name '__result__'
         """
+        self.update()
         childs = {}
-        assert len(self._slots) == len(inputs)
-        # TODO: fix connection of slots to inputs
-        for slot, input in zip(self._slots, inputs):
+        assert len(self._slots) == len(task.inputs)
+        for slot, input in zip(self._slots, task.inputs):
+            # shortcut the slots
+            #task = task_creator(slot.name, Pass(), [input])
             childs[slot.name] = input
-        name_to_action = self.action_call_dict
-        for action_instance_name in self._sorted_calls:
-            if action_instance_name not in childs:
-                action_instance = name_to_action[action_instance_name]
-                arg_tasks = [childs[arg.value.name] for arg in action_instance.arguments]
-                childs[action_instance.name] = task_creator(action_instance.name, action_instance.action, arg_tasks)
-        return childs
+        for action_call in self._sorted_calls:
+            if isinstance(action_call, _SlotCall):
+                continue
+            # TODO: eliminate dict usage, assign a call rank to the action calls
+            # TODO: use it to index tasks in the resulting task list 'childs'
+            arg_tasks = [childs[arg.value.name] for arg in action_call.arguments]
+            task = task_creator(action_call.name, action_call.action, arg_tasks)
+            childs[action_call.name] = task
+        return childs.values()
 
 
 
