@@ -44,18 +44,11 @@ from .dev.dtype import Constant
 # Consider what should be in the visip namespace in particular which actions.
 #
 # Can we treat all actions in visip module directly instead of using following special list?
+# TB: If all available action are in ActionWrapper than its no problem.
+# TB: Currently present actions in this list aren't ActionWrapper.
 base_system_actions = [_Slot(),
-                       list.action,
-                       tuple.action,
-                       dict.action,
                        _converter.GetAttribute(),
                        _converter.GetItem(), #GetKey()
-                       file_in.action,
-                       file_out.action,
-                       system.action,
-                       derived_file.action,
-                       file_from_template.action,
-                       format.action
                        ]
 
 """

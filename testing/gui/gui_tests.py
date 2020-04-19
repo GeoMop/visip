@@ -19,7 +19,7 @@ def main_window(qapp, qtbot):
 
 def test_open_module(qtbot, main_window):
 
-    test_file = "test_module.py"
+    test_file = "gui_module.py"
     main_window.tab_widget.open_module("test_files\\" + test_file)
 
     assert main_window.tab_widget.tabText(main_window.tab_widget.currentIndex()) == test_file

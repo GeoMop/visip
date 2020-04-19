@@ -102,8 +102,8 @@ def action_def(func):
     Input types are given by the type hints of the function params.
     """
     action_name = func.__name__
-    action_module = func.__module__
-    action = base._ActionBase(action_name, action_module)
+    #action_module = func.__module__  # attempt to fix imported modules, but it brakes chained (successive) imports
+    action = base._ActionBase(action_name) #, action_module)
     action._evaluate = func
     action._extract_input_type()
     return wrap.public_action(action)

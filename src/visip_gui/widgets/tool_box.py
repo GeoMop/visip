@@ -32,21 +32,21 @@ class ToolBox(QToolBox):
         self.module = None
         self.workspace = None
         temp = visip.base_system_actions
-        for action in visip.base_system_actions:
-            if isinstance(action, _Slot):
-                inst = _SlotCall("Slot")
-                g_action = GInputAction(TreeItem(["Input", 0, 0, 50, 50]), inst)
-                g_action.hide_name(True)
-                ToolboxView(g_action, self.system_actions_layout)
-            elif not isinstance(action, Dummy):
-                inst = ActionCall.create(action)
-                g_action = GAction(TreeItem([action.name, 0, 0, 50, 50]), inst)
-                g_action.hide_name(True)
-                ToolboxView(g_action, self.system_actions_layout)
+        #for action in visip.base_system_actions:
+        #    if isinstance(action, _Slot):
+        #        inst = _SlotCall("Slot")
+        #        g_action = GInputAction(TreeItem(["Input", 0, 0, 50, 50]), inst)
+        #        g_action.hide_name(True)
+        #        ToolboxView(g_action, self.system_actions_layout)
+        #    elif not isinstance(action, Dummy):
+        #        inst = ActionCall.create(action)
+        #        g_action = GAction(TreeItem([action.name, 0, 0, 50, 50]), inst)
+        #        g_action.hide_name(True)
+        #        ToolboxView(g_action, self.system_actions_layout)
 
-            if action.module not in self.action_database:
-                self.action_database[action.module] = {}
-            self.action_database[action.module][action.name] = action
+        #    if action.module not in self.action_database:
+        #        self.action_database[action.module] = {}
+        #    self.action_database[action.module][action.name] = action
 
         # ToolboxView(GAction(TreeItem(["List", 0, 0, 50, 50]), instance.ActionInstance.create( dev.List())), toolbox_layout2)
         self.setMinimumWidth(180)
@@ -94,21 +94,39 @@ class ToolBox(QToolBox):
             self.on_workspace_change(module, curr_workspace)
 
             for m in module.imported_modules:
+                module_category = ActionCategory(m.__name__)
+                self.action_database[m.__name__] = {}
+                #todo: load each module from file and get actions from module.definitions
+                for name, obj in m.__dict__.items():
+                    if issubclass(type(obj), ActionWrapper):
+                        item = obj.action
+                        g_action = GAction(TreeItem([item.name, 0, 0, 50, 50]),
+                                            ActionCall.create(item))
+                        g_action.hide_name(True)
+                        ToolboxView(g_action, module_category)
+                        self.action_database[m.__name__][item.name] = item
+
+                self.import_modules[m.__name__] = module_category
                 if m.__name__ != self.BASE_MODULE_NAME:
-                    module_category = ActionCategory(m.__name__)
-                    self.action_database[m.__name__] = {}
-                    #todo: load each module from file and get actions from module.definitions
-                    for name, obj in m.__dict__.items():
-                        if issubclass(type(obj), ActionWrapper):
-                            item = obj.action
-                            g_action = GAction(TreeItem([item.name, 0, 0, 50, 50]),
-                                                ActionCall.create(item))
+                    self.addItem(module_category, module._full_name_dict[m.__name__])
+                else:
+                    for action in visip.base_system_actions:
+                        if isinstance(action, _Slot):
+                            inst = _SlotCall("Slot")
+                            g_action = GInputAction(TreeItem(["Input", 0, 0, 50, 50]), inst)
                             g_action.hide_name(True)
                             ToolboxView(g_action, module_category)
-                            self.action_database[m.__name__][item.name] = item
+                        elif not isinstance(action, Dummy):
+                            inst = ActionCall.create(action)
+                            g_action = GAction(TreeItem([action.name, 0, 0, 50, 50]), inst)
+                            g_action.hide_name(True)
+                            ToolboxView(g_action, module_category)
 
-                    self.import_modules[m.__name__] = module_category
-                    self.addItem(module_category, module._full_name_dict[m.__name__])
+                        if action.module not in self.action_database:
+                            self.action_database[action.module] = {}
+                        self.action_database[action.module][action.name] = action
+                    self.insertItem(0, module_category, module._full_name_dict[m.__name__])
+
 
     def contextMenuEvent(self, event):
         dialog = ImportModule(self.parent())
