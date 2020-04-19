@@ -25,7 +25,7 @@ class ToolboxView(QLabel):
         drag = QDrag(self)
         mime = QMimeData()
         #print(self.item.w_data_item.action.module + "." + self.item.w_data_item.action_name)
-        mime.setText(self.item.w_data_item.action.module + "." + self.item.w_data_item.action_name)
+        mime.setText(parent.name + "." + self.item.w_data_item.action_name)
         drag.setMimeData(mime)
         drag.setPixmap(self.pixmap)
         drag.setHotSpot(QPoint( drag.pixmap().width()/2,

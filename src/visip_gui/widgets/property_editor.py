@@ -135,9 +135,10 @@ class PropertyEditor(parametertree.ParameterTree):
         if len(sel) == 1 and not isinstance(sel[0], RootParamItem):
             if sel[0].param.arg is None:
                 self.on_const_val_triggered()
-                self.root_item.child()
+                #self.root_item.child()
             elif sel[0].param.arg.value is None:
                 self.on_const_val_triggered()
+
 
     def selectionChanged(self, *args):
         sel = self.selectedItems()

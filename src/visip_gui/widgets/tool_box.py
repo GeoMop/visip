@@ -25,7 +25,7 @@ class ToolBox(QToolBox):
         super(ToolBox, self).__init__(parent)
         self.main_widget = main_widget
 
-        self.system_actions_layout = ActionCategory()
+        self.system_actions_layout = ActionCategory(self.BASE_MODULE_NAME)
         self.action_database = {self.BASE_MODULE_NAME: {}}
 
         self.cfg = ConfigData()
@@ -64,7 +64,7 @@ class ToolBox(QToolBox):
             self.action_database.pop(module.name)
         else:
             category_index = self.count()
-        module_category = ActionCategory()
+        module_category = ActionCategory(module.name)
         if module.definitions:
             self.action_database[module.name] = {}
             for item in module.definitions:
@@ -72,7 +72,7 @@ class ToolBox(QToolBox):
                     g_action = GAction(TreeItem([item.name, 0, 0, 50, 50]), ActionCall.create(item))
                     g_action.hide_name(True)
                     ToolboxView(g_action, module_category)
-                    self.action_database[item.module][item.name] = item
+                    self.action_database[module.name][item.name] = item
 
             self.import_modules[module.name] = module_category
             self.insertItem(category_index, module_category, module.name)
@@ -105,7 +105,7 @@ class ToolBox(QToolBox):
                             ToolboxView(g_action, module_category)
                             self.action_database[item.module][item.name] = item
 
-                    self.import_modules[item.module] = module_category
+                    self.import_modules[m.__name__] = module_category
                     self.addItem(module_category, module._full_name_dict[m.__name__])
 
     def contextMenuEvent(self, event):

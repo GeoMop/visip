@@ -19,8 +19,7 @@ class GUIEvaluation(QWidget):
 
         self.analysis = analysis
         self.evaluation = Evaluation(self.analysis)
-        thread = threading.Thread(target=self.evaluation.execute, args=())
-        thread.start()
+
         self.layout = QVBoxLayout(self)
         self.layout.setSizeConstraint(QLayout.SetNoConstraint)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -28,13 +27,14 @@ class GUIEvaluation(QWidget):
         self.view = EvaluationView(self, parent=self)
         self.layout.addWidget(self.view)
 
-        self.view.scene.update_states()
-
         self.navigation = EvaluationNavigation(self)
         self.navigation.add_item(self.evaluation.final_task, self.analysis.name)
 
         self.navigation_dock = eval_window.navigation_dock
 
+    def run(self):
+        thread = threading.Thread(target=self.evaluation.execute, args=())
+        thread.start()
         timer = QTimer()
         timer.start(0.25)
         timer.timeout.connect(self.view.scene.update_states)
@@ -42,10 +42,6 @@ class GUIEvaluation(QWidget):
         self.view.scene.update_states()
         while thread.is_alive():
             QApplication.processEvents()
-
-    def run(self):
-        self.eval = Evaluation(self.analysis)
-        self.result = self.evaluation.execute()
 
 
     def double_click(self, g_action):

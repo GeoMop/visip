@@ -47,6 +47,8 @@ class GBaseModelScene(QGraphicsScene):
 
     def update_scene(self):
         self.workflow.update(self.workflow._result_call)
+        unconnected = self.unconnected_actions.values()
+        self.unconnected_actions = {item.name:item for item in unconnected}
         if self.update_model and self.new_connection is None:
             selected = [item.name + 'g' if isinstance(item, GAction) else 'c' for item in self.selectedItems()]
             self.update_model = False
@@ -54,6 +56,7 @@ class GBaseModelScene(QGraphicsScene):
             self.actions.clear()
             self.root_item = RootAction()
             self.addItem(self.root_item)
+            self.workflow.is_analysis = True
 
             for child in self.action_model.get_item().children():
                 self.draw_action(child)

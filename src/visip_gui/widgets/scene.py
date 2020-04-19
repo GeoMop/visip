@@ -7,7 +7,7 @@ from visip_gui.graphical_items.g_output_action import GOutputAction
 from visip import _Value
 from visip.action import Value
 from visip.dev.action_instance import ActionCall
-from visip.dev.action_workflow import _SlotCall, _ResultCall
+from visip.dev.action_workflow import _SlotCall, _ResultCall, _Slot
 from visip_gui.graphical_items.g_input_action import GInputAction
 from visip_gui.graphical_items.g_action import GAction
 from visip_gui.graphical_items.g_connection import GConnection
@@ -58,16 +58,15 @@ class Scene(GBaseModelScene):
         self.parent().center_on_content = True
 
     def draw_action(self, item):
-        action = {**self.workflow.action_call_dict, "__result__":self.workflow._result_call}.get(item.data(GActionData.NAME))
+        action = {**self.workflow.action_call_dict, "__result__": self.workflow._result_call}.get(item.data(GActionData.NAME))
 
         if action is None:
             action = self.unconnected_actions.get(item.data(GActionData.NAME))
 
         if action is None:
             i=0
-
         if not isinstance(action.action, _Value):
-            if isinstance(action, _SlotCall):
+            if isinstance(action.action, _Slot):
                 self.actions.append(GInputAction(item, action, self.root_item))
                 self.workflow.is_analysis = False
             elif isinstance(action, _ResultCall):
@@ -156,7 +155,9 @@ class Scene(GBaseModelScene):
         module = action_type[:index]
         action_name = action_type[index + 1:]
 
-        if action_type == "wf._Slot":
+        action = self.available_actions[module][action_name]
+
+        if isinstance(action, _Slot):
             action = _SlotCall("slot")
             name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.name)
             action.name = name

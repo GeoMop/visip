@@ -3,8 +3,9 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout
 
 
 class ActionCategory(QWidget):
-    def __init__(self):
+    def __init__(self, name):
         super(ActionCategory, self).__init__()
+        self.name = name
         self.inner_layout = QVBoxLayout()
         self.setLayout(self.inner_layout)
         self.items = []

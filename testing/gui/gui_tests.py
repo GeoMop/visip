@@ -10,44 +10,68 @@ import pytest
 
 from visip_gui.widgets.main_window import MainWindow
 
+
 @pytest.fixture
-def test_widget(qapp, qtbot):
+def main_window(qapp, qtbot):
     widget = MainWindow(qapp)
     qtbot.addWidget(widget)
     return widget
 
-def test_open_module(qtbot, test_widget):
+def test_open_module(qtbot, main_window):
 
     test_file = "test_module.py"
-    test_widget.tab_widget.open_module("test_files\\" + test_file)
+    main_window.tab_widget.open_module("test_files\\" + test_file)
 
-    assert test_widget.tab_widget.tabText(test_widget.tab_widget.currentIndex()) == test_file
-    navigation = test_widget.tab_widget.currentWidget()
+    assert main_window.tab_widget.tabText(main_window.tab_widget.currentIndex()) == test_file
+    navigation = main_window.tab_widget.currentWidget()
     assert navigation.tabText(navigation.currentIndex()) == "test_class1"
 
-    assert test_widget.toolbox.isEnabled()
+    assert main_window.toolbox.isEnabled()
 
-    assert test_widget.property_editor.isEnabled()
+    assert main_window.property_editor.isEnabled()
 
-def test_new_module(qtbot, test_widget, tmp_path):
+def test_new_module(qtbot, main_window, tmp_path):
 
     test_file = "new_test_module.py"
-    test_widget.tab_widget.create_new_module(str(tmp_path / test_file))
+    main_window.tab_widget.create_new_module(str(tmp_path / test_file))
 
-    assert test_widget.tab_widget.tabText(test_widget.tab_widget.currentIndex()) == test_file
+    assert main_window.tab_widget.tabText(main_window.tab_widget.currentIndex()) == test_file
 
-    navigation = test_widget.tab_widget.currentWidget()
+    navigation = main_window.tab_widget.currentWidget()
     assert navigation.tabText(navigation.currentIndex()) == "Home"
 
-    assert not test_widget.toolbox.isEnabled()
+    assert not main_window.toolbox.isEnabled()
 
-    assert not test_widget.property_editor.isEnabled()
+    assert not main_window.property_editor.isEnabled()
 
     export_filename = str(tmp_path / "export.py")
-    test_widget.export_to_file(export_filename)
+    main_window.export_to_file(export_filename)
 
     with open(export_filename, 'r') as file:
         assert file.read() == "import visip as wf"
+
+def test_all(main_window, tmp_path):
+    test_file = "new_test_module.py"
+    main_window.tab_widget.create_new_module(str(tmp_path / test_file))
+
+    navigation = main_window.tab_widget.currentWidget()
+    toolbox = main_window.toolbox
+
+
+    navigation.add_workflow("test")
+    assert toolbox.import_modules.get(test_file[:-3])
+    workspace = navigation.currentWidget()
+
+    navigation.add_workflow("test2")
+
+
+
+
+
+    #export_filename = str(tmp_path / "export.py")
+    #main_window.export_to_file(export_filename)
+
+        
 
 
 

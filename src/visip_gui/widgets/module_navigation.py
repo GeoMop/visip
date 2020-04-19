@@ -5,7 +5,7 @@ from visip.dev.action_workflow import _Workflow
 from visip_gui.dialogs.get_text import GetText
 from visip_gui.menu.module_navigation_menu import ModuleNavigationMenu
 from visip_gui.widgets.no_workflow_tab import NoWorkflowTab
-from visip_gui.widgets.workspace import Workspace
+from visip_gui.widgets.editor import Editor
 
 
 class ModuleNavigation(QTabWidget):
@@ -26,8 +26,8 @@ class ModuleNavigation(QTabWidget):
 
         for wf in self._module.definitions:
             if issubclass(type(wf), _Workflow):
-                self.addTab(Workspace(wf, self._tab_widget.main_widget,
-                                      self._tab_widget.main_widget.toolbox.action_database), wf.name)
+                self.addTab(Editor(wf, self._tab_widget.main_widget,
+                                   self._tab_widget.main_widget.toolbox.action_database), wf.name)
 
         if self.count() == 0:
             self.addTab(NoWorkflowTab(self.add_workflow), self.home_tab_name)
@@ -38,26 +38,30 @@ class ModuleNavigation(QTabWidget):
             self.menu_pos = event.pos()
             self.menu.exec_(event.globalPos())
 
-    def add_workflow(self):
+    def add_workflow(self, wf_name=None):
         names = []
         for wf in self._module.definitions:
             names.append(wf.name)
-        dialog = GetText(self, "New Workflow Name:", names)
-        dialog.setWindowTitle("New Workflow")
-        if dialog.exec_():
-            if type(self.widget(0)) is NoWorkflowTab:
-                self.removeTab(0)
-            wf_name = dialog.text
+        if type(wf_name) is not str:
+            dialog = GetText(self, "New Workflow Name:", names)
+            dialog.setWindowTitle("New Workflow")
+            if dialog.exec_():
+                wf_name = dialog.text
+            else:
+                return
 
-            wf = _Workflow(wf_name)
-            self._module.insert_definition(wf)
-            ws = Workspace(wf, self._tab_widget.main_widget,
-                           self._tab_widget.main_widget.toolbox.action_database)
-            index = self.addTab(ws, wf.name)
+        if type(self.widget(0)) is NoWorkflowTab:
+            self.removeTab(0)
 
-            self.setCurrentIndex(index)
+        wf = _Workflow(wf_name)
+        self._module.insert_definition(wf)
+        ws = Editor(wf, self._tab_widget.main_widget,
+                    self._tab_widget.main_widget.toolbox.action_database)
+        index = self.addTab(ws, wf.name)
 
-            self._tab_widget.main_widget.toolbox.update_category()
+        self.setCurrentIndex(index)
+
+        self._tab_widget.main_widget.toolbox.update_category()
 
     def rename_workflow(self):
         names = []
@@ -82,10 +86,15 @@ class ModuleNavigation(QTabWidget):
         if self.count() == 0:
             self.addTab(NoWorkflowTab(self.add_workflow), self.home_tab_name)
 
-    def current_changed(self, index):
+    def current_changed(self, index=None):
+        if index is None:
+            index = self.currentIndex()
+
         self._tab_widget.main_widget.toolbox.on_workspace_change(self._module, self.currentWidget())
-        if self.tabText(index) == "Home":
-            self._tab_widget.main_widget.disable_everything(True)
-        else:
+        if isinstance(self.widget(index), Editor):
             self._tab_widget.main_widget.disable_everything(False)
+            self.currentWidget().scene.on_selection_changed()
+        else:
+            self._tab_widget.main_widget.disable_everything(True)
+
 

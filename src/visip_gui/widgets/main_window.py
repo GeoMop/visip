@@ -77,7 +77,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def export_to_file(self, filename=None):
         if not isinstance(filename, str):
-            filename = QtWidgets.QFileDialog.getSaveFileName(self.parent(), "Export Module", self.cfg.last_opened_directory, "Python File (*.py)")[0]
+            filename = QtWidgets.QFileDialog.getSaveFileName(self, "Export Module", self.cfg.last_opened_directory, "Python File (*.py))")[0]
         if filename != "":
             self.cfg.last_opened_directory = os.path.dirname(filename)
             code = self.tab_widget.currentWidget()._module.code()

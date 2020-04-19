@@ -68,11 +68,12 @@ class EvaluationScene(GBaseModelScene):
             self.update()
 
     def update_states(self):
-        for instance_name, instance in self.task.childs.items():
-            if not isinstance(instance.action, _Value):
-                action = self.get_action(instance_name)
-                action.status = StatusMaping[instance.status]
-                action.widget.set_data(instance._result)
+        if self.task.childs is not None:
+            for instance_name, instance in self.task.childs.items():
+                if not isinstance(instance.action, _Value):
+                    action = self.get_action(instance_name)
+                    action.status = StatusMaping[instance.status]
+                    action.widget.set_data(instance._result)
 
     def on_selection_changed(self):
         data_editor = self.eval_gui.eval_window.data_editor

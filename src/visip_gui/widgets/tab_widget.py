@@ -33,21 +33,11 @@ class TabWidget(QTabWidget):
         self.addTab(self.home_tab, self.initial_tab_name)
 
     def before_curr_index_change(self, index):
-        if isinstance(self.currentWidget(), Tab):
+        if not isinstance(self.currentWidget(), HomeTabWidget):
             self.currentWidget().last_category = self.main_widget.toolbox.currentIndex()
 
     def _add_tab(self, module_filename, module):
         self.setCurrentIndex(self.addTab(ModuleNavigation(module, self), module_filename))
-        '''
-        self.module_views[module_filename] = ModuleView(self, module,self.edit_menu)
-        w = Tab(self.module_views[module_filename])
-        #self.main_widget.toolbox.on_workspace_change(self.module_views[module_filename].module,
-        #                                             self.module_views[module_filename]._current_workspace)
-        for name, workspace in self.module_views[module_filename].workspaces.items():
-            w.addWidget(workspace)
-
-        self.setCurrentIndex(self.addTab(w, module_filename))
-        '''
 
     def change_workspace(self, workspace):
         self.currentWidget().setCurrentWidget(workspace)
@@ -56,11 +46,10 @@ class TabWidget(QTabWidget):
 
     def create_new_module(self, filename=None):
         if not isinstance(filename, str):
-            filename = QtWidgets.QFileDialog.getSaveFileName(self.parent(), "New Module", self.cfg.last_opened_directory)[0]
+            filename = QtWidgets.QFileDialog.getSaveFileName(self.parent(), "New Module",
+                                                             self.cfg.last_opened_directory, "Python File (*.py)")[0]
         if filename != "":
             self.cfg.last_opened_directory = os.path.dirname(filename)
-            if not filename.endswith(".py"):
-                filename = filename + ".py"
             with open(filename, "w") as file:
                 file.write("import visip as wf")
             module = Module(filename)
@@ -83,6 +72,8 @@ class TabWidget(QTabWidget):
             self.main_widget.toolbox.on_module_change(curr_module_view._module,
                                                       curr_module_view.currentWidget())
             self.main_widget.toolbox.setCurrentIndex(curr_module_view.last_category)
+            curr_module_view.current_changed()
+
             return
         self.main_widget.file_menu.export.setDisabled(True)
         #self.disable_everything(True)
