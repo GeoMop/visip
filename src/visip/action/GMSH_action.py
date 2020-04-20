@@ -136,6 +136,7 @@ def field_mesh_sampler(all_fields: cf.Field, outer_field_names: List[str],
 
     fields = cf.Fields([all_fields])
     fields.set_outer_fields(outer_field_names)
+    # TODO vyřešení 3D -> 2D
     non = np.delete(barycenters, 2, 1)  # oříznutí 3D na 2D ???
     fields.set_points(non, region_ids=region_ids)
 
@@ -144,41 +145,16 @@ def field_mesh_sampler(all_fields: cf.Field, outer_field_names: List[str],
         np.random.seed(seed)
         return fields.sample()
 
-    return sampler_fn  # wf.action_def(sampler_fn)
+    return sampler_fn
 
 
 @action_def
 def make_fields() -> cf.Field:
     return cf.Field('conductivity', cf.FourierSpatialCorrelatedField('gauss', dim=2, corr_length=0.125, log=True))
-    # return cf.Fields([
-    #     cf.Field('conductivity', cf.FourierSpatialCorrelatedField('gauss', dim=2, corr_length=0.125, log=True)),
-    # ])  # Field s dim=3 není implementován.
-
-    # return cf.Fields([
-    #     cf.Field(name='conductivity', field=1),
-    #     cf.Field(name='conductivity1', field=2)
-    # ])
 
 
 @action_def
 def write_fields(mesh: MeshGMSH, ele_ids: List[int], sample: wf.Any) -> Any:
-    """
-    Preparing action for visip from bgem to write mesh fields
-    :param msh_file: target file
-    :param ele_ids: List[int] ; pro kazdou hodnotu v np.array cislo
-    prislusneho elementu
-    :param fields: Dict[str, np.array] ; vsechna np.array by mela mit
-    velikost jako pocet elementu v siti == len(ele_ids)
-    :return: ??
-
-
-    #bgem desc
-    Creates input data msh file for Flow model.
-    :param msh_file: Target file (or None for current mesh file)
-    :param ele_ids: Element IDs in computational mesh corresponding to order of
-    field values in element's barycenter.
-    :param fields: {'field_name' : values_array, ..}
-    """
     struct = gmsh_io.GmshIO()
     struct.nodes = mesh.nodes
     struct.elements = mesh.elements
@@ -188,9 +164,9 @@ def write_fields(mesh: MeshGMSH, ele_ids: List[int], sample: wf.Any) -> Any:
     transpose = vals.T
     reshaped = np.reshape(transpose, (-1, 2))
 
-    fields_data = {k:reshaped for k,v in sample.items()}
+    fields_data = {k: reshaped for k, v in sample.items()}
 
     print(struct)
     gmsh_io.GmshIO.write_fields(struct, 'Mesh_write_file.txt', ele_ids=ele_ids, fields=fields_data)
 
-    return -1
+    return -1  # return??

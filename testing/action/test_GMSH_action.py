@@ -153,9 +153,10 @@ def mesh_square_1x1() -> MeshGMSH:
 def workflow_schema(seed: int):
     mesh = evaluation.run(mesh_square_1x1)
 
-    # all_mesh_regions = list(mesh.regions.keys())
+    # all_mesh_regions pro square_1x1_xy.msh
+    all__mesh_regions = ['".bottom_y"', '".right_x"', '".top_y"', '".left_x"', '"bulk"']
 
-    RegionElements = extract_region_elements(mesh, ['"bulk"', '".left_x"'])  # vybrání elementů z regionu "fr"
+    RegionElements = extract_region_elements(mesh, all__mesh_regions)
 
     RegionIds = extract_region_ids(RegionElements)
 
@@ -165,10 +166,10 @@ def workflow_schema(seed: int):
 
     Field = make_fields()
 
-    fms = field_mesh_sampler(Field, ['conductivity'], Bary,
-                             RegionIds)
+    fms = field_mesh_sampler(Field, ['conductivity'], Bary, RegionIds)
 
     sample = fms(seed)
+
     write = write_fields(mesh, Element_ids, sample)
     return write
 
