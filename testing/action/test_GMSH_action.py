@@ -1,4 +1,5 @@
 import typing
+from os import path
 
 from typing import List
 
@@ -158,15 +159,15 @@ def workflow_schema(seed: int):
 
     RegionIds = extract_region_ids(RegionElements)
 
-    Element_ids = ele_ids(RegionElements)  # získání Ids z elementů ze SubMeshe
+    Element_ids = ele_ids(RegionElements)
 
-    Bary = barycenters(mesh, RegionElements)  # výpočet barycenters ze SubMeshe
+    Bary = barycenters(mesh, RegionElements)
 
-    Field = make_fields()  # vytvoření Fields
+    Field = make_fields()
 
-    fms = field_mesh_sampler(Field, Element_ids, Bary,
-                             RegionIds)  # volání filed_mesh_sampleru, který by měl vracet sampler_fn.
-    # Tedy akci pro generování fieldů pomocí seedu.
+    fms = field_mesh_sampler(Field, ['conductivity'], Bary,
+                             RegionIds)
+
     sample = fms(seed)
     write = write_fields(mesh, Element_ids, sample)
     return write
@@ -176,7 +177,14 @@ def workflow_schema(seed: int):
 def test_workflow_schema_1x1():
     res = evaluation.run(workflow_schema, [123])
 
-    assert res
+    assert res == -1
+    assert path.exists("Mesh_write_file.txt")
+
+    with open('Mesh_write_file.txt', 'r') as f:
+        data = f.readlines()
+
+    assert data[0].strip() == '$MeshFormat'
+    assert data[5].strip() == '"conductivity"'
 
 
 @wf.workflow
@@ -188,6 +196,7 @@ def fms_only(seed: int):
     Region_ids = [1, 1]
 
     return field_mesh_sampler(Fields, ['conductivity'], Bary, Region_ids)(seed)
+
 
 @pytest.mark.skip
 def test_fms_only():

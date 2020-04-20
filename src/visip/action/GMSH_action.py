@@ -136,8 +136,8 @@ def field_mesh_sampler(all_fields: cf.Field, outer_field_names: List[str],
 
     fields = cf.Fields([all_fields])
     fields.set_outer_fields(outer_field_names)
-    # non = np.delete(barycenters, 2, 1) # oříznutí 3D na 2D ???
-    fields.set_points(barycenters, region_ids=region_ids)
+    non = np.delete(barycenters, 2, 1)  # oříznutí 3D na 2D ???
+    fields.set_points(non, region_ids=region_ids)
 
     @action_def
     def sampler_fn(seed: int) -> Any:
@@ -179,6 +179,18 @@ def write_fields(mesh: MeshGMSH, ele_ids: List[int], sample: wf.Any) -> Any:
     field values in element's barycenter.
     :param fields: {'field_name' : values_array, ..}
     """
-    info = gmsh_io.GmshIO.write_fields(mesh, 'Mesh_write_file.txt', ele_ids=ele_ids, fields=sample)
+    struct = gmsh_io.GmshIO()
+    struct.nodes = mesh.nodes
+    struct.elements = mesh.elements
+    struct.physical = mesh.regions
 
-    return info
+    vals = np.array(list(sample.values()), dtype=float)
+    transpose = vals.T
+    reshaped = np.reshape(transpose, (-1, 2))
+
+    fields_data = {k:reshaped for k,v in sample.items()}
+
+    print(struct)
+    gmsh_io.GmshIO.write_fields(struct, 'Mesh_write_file.txt', ele_ids=ele_ids, fields=fields_data)
+
+    return -1
