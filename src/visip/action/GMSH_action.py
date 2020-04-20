@@ -166,7 +166,7 @@ def write_fields(mesh: MeshGMSH, ele_ids: List[int], sample: wf.Any) -> Any:
 
     fields_data = {k: reshaped for k, v in sample.items()}
 
-    print(struct)
+    # print(struct)
     gmsh_io.GmshIO.write_fields(struct, 'Mesh_write_file.txt', ele_ids=ele_ids, fields=fields_data)
 
     return -1  # return??
