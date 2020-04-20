@@ -136,8 +136,8 @@ def field_mesh_sampler(all_fields: cf.Field, outer_field_names: List[str],
 
     fields = cf.Fields([all_fields])
     fields.set_outer_fields(outer_field_names)
-    non = np.delete(barycenters, 2, 1) # oříznutí 3D na 2D ???
-    fields.set_points(non, region_ids=region_ids)
+    # non = np.delete(barycenters, 2, 1) # oříznutí 3D na 2D ???
+    fields.set_points(barycenters, region_ids=region_ids)
 
     @action_def
     def sampler_fn(seed: int) -> Any:
