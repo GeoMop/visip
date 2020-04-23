@@ -10,7 +10,11 @@ class ActionCategory(QWidget):
         self.setLayout(self.inner_layout)
         self.items = []
 
-    def addWidget(self, widget):
+    def add_widget(self, widget):
         self.inner_layout.addWidget(widget,0,Qt.AlignCenter)
         self.items.append(widget)
+
+    def insert_widget(self, index, widget):
+        self.inner_layout.insertWidget(index, widget, 0, Qt.AlignCenter)
+        self.items.insert(index, widget)
 

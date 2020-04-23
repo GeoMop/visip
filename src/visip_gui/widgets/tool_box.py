@@ -110,17 +110,20 @@ class ToolBox(QToolBox):
                 if m.__name__ != self.BASE_MODULE_NAME:
                     self.addItem(module_category, module._full_name_dict[m.__name__])
                 else:
+                    index = 0
                     for action in visip.base_system_actions:
                         if isinstance(action, _Slot):
                             inst = _SlotCall("Slot")
                             g_action = GInputAction(TreeItem(["Input", 0, 0, 50, 50]), inst)
                             g_action.hide_name(True)
-                            ToolboxView(g_action, module_category)
+                            ToolboxView(g_action, module_category, index)
+                            index += 1
                         elif not isinstance(action, Dummy):
                             inst = ActionCall.create(action)
                             g_action = GAction(TreeItem([action.name, 0, 0, 50, 50]), inst)
                             g_action.hide_name(True)
-                            ToolboxView(g_action, module_category)
+                            ToolboxView(g_action, module_category, index)
+                            index += 1
 
                         if action.module not in self.action_database:
                             self.action_database[action.module] = {}

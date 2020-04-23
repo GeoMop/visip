@@ -5,9 +5,12 @@ from PyQt5.QtCore import Qt
 
 
 class ToolboxView(QLabel):
-    def __init__(self, item, parent):
+    def __init__(self, item, parent, insert_index=None):
         super(ToolboxView, self).__init__(parent)
-        parent.addWidget(self)
+        if insert_index is None:
+            parent.add_widget(self)
+        else:
+            parent.insert_widget(insert_index, self)
         self.item = item
         self.pixmap = item.paint_pixmap()
 
@@ -25,7 +28,7 @@ class ToolboxView(QLabel):
         drag = QDrag(self)
         mime = QMimeData()
         #print(self.item.w_data_item.action.module + "." + self.item.w_data_item.action_name)
-        mime.setData("ActionDrag", QByteArray((self.item.w_data_item.action.module + "." + self.item.w_data_item.action_name).encode("utf-8")))
+        mime.setData("ActionDrag", QByteArray((parent.name + "." + self.item.w_data_item.action_name).encode("utf-8")))
         drag.setMimeData(mime)
         drag.setPixmap(self.pixmap)
         drag.setHotSpot(QPoint( drag.pixmap().width()/2,
