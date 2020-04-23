@@ -241,7 +241,20 @@ class Module:
         :param module_dict: A dict mapping the full module path to its imported alias.
         :return: The action name using the alias instead of the full module path.
         """
-        alias = self._full_name_dict.get(module, module)
+        alias = self._full_name_dict.get(module, None)
+        ### Crude attempt to fix chained imports, only works for wrapped actions. ###
+        if alias is None:
+            for m in self.imported_modules:
+                action_wrapper = m.__dict__.get(name, None)
+                try:
+                    if action_wrapper is not None and action_wrapper.action.module == module:
+                        alias = self._full_name_dict.get(m.__name__, None)
+                        break
+                except:
+                    pass
+            if alias is None:
+                alias = module
+        #############################################################################
         if alias in {'builtins', self.name}:
             return name
         full_name = "{}.{}".format(alias, name)
