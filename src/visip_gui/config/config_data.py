@@ -8,8 +8,11 @@ class ConfigData(object):
 
     if 'APPDATA' in os.environ:
         __config_dir__ = os.path.join(os.environ['APPDATA'], 'VISIP')
-    else:
+    elif 'HOME' in os.environ:
         __config_dir__ = os.path.join(os.environ['HOME'], '.visip')
+    else:
+        __config_dir__ = ""
+
 
     FILENAME = "config.json"
     FILE_PATH = os.path.join(__config_dir__, FILENAME)
