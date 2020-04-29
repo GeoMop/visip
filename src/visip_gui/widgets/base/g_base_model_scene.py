@@ -10,6 +10,7 @@ from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtWidgets import QGraphicsScene
 
 from visip import _Value
+from visip.dev import dtype
 from visip.dev.action_instance import ActionInputStatus
 from visip.dev.dtype import Constant, ConstantValueType
 from visip_gui.data.g_action_data_model import GActionDataModel
@@ -72,7 +73,8 @@ class GBaseModelScene(QGraphicsScene):
                     status = action_argument.status
                     if action_argument.parameter.type is not None:
                         if hasattr(action_argument.parameter.type, '__name__'):
-                            if action_argument.parameter.type.__name__ == "Constant":  # hacky way, but the only one that I found
+                            if dtype.TypeInspector().is_constant(action_argument.parameter.type):
+                            #if action_argument.parameter.type.__name__ == "Constant":  # hacky way, but the only one that I found
                                 g_action = self.get_action(action_name)
                                 port = g_action.in_ports[i]
                                 port.set_constant(True)
