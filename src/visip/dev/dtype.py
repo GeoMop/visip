@@ -10,6 +10,7 @@ Original idea to use Python typing support was not applicable as the typing
 mechanisms currently works only for static checking and work with then in runtime is still in
 heavy development.
 """
+import numpy as np
 import pytypes
 import itertools
 import inspect
@@ -17,15 +18,18 @@ from . import tools
 import typing
 import typing_inspect
 import enum
+
 from . import base
 from typing import *
+
 ################################################################################################
 
 
-BasicType = typing.Union[bool, int, float, complex, str]
-valid_base_types = (bool, int, float, complex, str)
+BasicType = typing.Union[bool, int, float, complex, str, np.ndarray]
+valid_base_types = (bool, int, float, complex, str, np.ndarray)
 
-DataType = typing.Union[BasicType, typing.List['DataType'], typing.Dict['DataType', 'DataType'], typing.Tuple['DataType', ...], 'DataClassBase']
+DataType = typing.Union[BasicType, typing.List['DataType'], typing.Dict['DataType', 'DataType'], typing.Tuple[
+    'DataType', ...], 'DataClassBase', np.ndarray]
 # All valid data types that can be passed between VISIP actions.
 # TODO: check that all type check methods work with this definition.
 # ?? Can pytypes of typing inspect work with this recursive type definition.
@@ -34,23 +38,24 @@ DataType = typing.Union[BasicType, typing.List['DataType'], typing.Dict['DataTyp
 
 ConstantValueType = typing.TypeVar('ConstantValueType')
 
+
 class Constant(typing.Generic[ConstantValueType]):
     """
     Wrapper for constant values. I.e. values that are not results of other actions.
     TODO: Why and how to implement inner type.
     """
+
     def __init__(self, val: ConstantValueType):
         self._value: ConstantValueType = val
-
 
     @property
     def value(self):
         return self._value
 
-
     # @classmethod
     # def inner_type(cls):
     #     return TypeInspector().get_args(cls)[0]
+
 
 
 Function = typing.Any
@@ -68,34 +73,20 @@ Function = typing.Any
 #         return self._value
 
 
+
 class DataClassBase:
     """
     Base class to the dataclasses used in VISIP.
     Implement some common methods for hashing, and serialization.
     """
 
-    @tools.classproperty
-    def yaml_tag(cls):
-        """
-        Provides yaml_tag for class resolution in yaml.load.
-        The class has to be registered.
-        :return:
-        """
-        return '!{}'.format(cls.__name__)
-
-    def from_yaml(self):
-        pass
-
-    def to_yaml(self):
-        pass
-
-
 
 class TypeInspector_36:
     """
     Dropback solution for python < 3.7.4.
     """
-    map_origin = {typing.List: list, typing.Dict: dict, typing.Tuple: tuple, typing.Union: typing.Union, Constant: Constant}
+    map_origin = {typing.List: list, typing.Dict: dict, typing.Tuple: tuple, typing.Union: typing.Union,
+                  Constant: Constant}
     origin_typing = {list: typing.List, dict: typing.Dict, tuple: typing.Tuple, typing.Union: typing.Union}
 
     def is_any(self, xtype):
@@ -134,7 +125,6 @@ class TypeInspector_36:
         except:
             return False
 
-
     def is_constant(self, xtype):
         return self.get_origin(xtype) is Constant
 
@@ -165,6 +155,7 @@ class TypeInspector_37(TypeInspector_36):
     """
     Solution for 3.7.4 <= python < 3.8.
     """
+
     def get_origin(self, xtype):
         """
         Returns: list, dict, tuple, typing.Union (also for typing.Optional),
@@ -203,14 +194,8 @@ class TypeInspector(TypeInspector_37):
         """
         return typing.get_origin(xtype)
 
-
     def get_args(self, xtype):
         return typing.get_args(xtype)
-
-
-
-
-
 
 
 def closest_common_ancestor(*cls_list):
@@ -219,5 +204,6 @@ def closest_common_ancestor(*cls_list):
     for ancestors in itertools.zip_longest(*mros):
         if len(set(ancestors)) == 1:
             ancestor = ancestors[0]
-        else: break
+        else:
+            break
     return ancestor

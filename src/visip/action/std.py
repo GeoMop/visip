@@ -17,6 +17,7 @@ from ..dev import tools
 Folder = NewType('Folder', str)
 FileOut = NewType('FileOut', str)
 
+
 @attr.s(auto_attribs=True)
 class FileIn(dtype.DataClassBase):
     """
@@ -30,6 +31,7 @@ class FileIn(dtype.DataClassBase):
 
     def __str__(self):
         return self.path
+
 
 @attr.s(auto_attribs=True)
 class ExecResult(dtype.DataClassBase):
@@ -63,7 +65,6 @@ def file_out(path: str, workspace: Folder = "") -> FileOut:
         return FileOut(full_path)
 
 
-
 @decorators.Enum
 class SysFile:
     PIPE = subprocess.PIPE
@@ -74,14 +75,15 @@ class SysFile:
 Command = NewType('Command', List[Union[str, FileIn]])
 Redirection = NewType('Redirection', Union[FileOut, None, SysFile])
 
+
 def _subprocess_handle(redirection):
-    if type(redirection) is str:    # TODO: should be FileOut
+    if type(redirection) is str:  # TODO: should be FileOut
         return open(redirection, "w")
     return redirection
 
 
 @decorators.action_def
-def system(arguments: Command, stdout: Redirection = None, stderr: Redirection = None, workdir:str = '') -> ExecResult:
+def system(arguments: Command, stdout: Redirection = None, stderr: Redirection = None, workdir: str = '') -> ExecResult:
     """
     Execute a system command.  No support for portability.
     The files in the 'arguments' are converted to the file names.
@@ -98,7 +100,7 @@ def system(arguments: Command, stdout: Redirection = None, stderr: Redirection =
         args = [str(arg) for arg in arguments]
         stdout = _subprocess_handle(stdout)
         stderr = _subprocess_handle(stderr)
-        result = subprocess.run(args, stdout=stdout, stderr=stderr)
+        result = subprocess.run(args, stdout=stdout, stderr=stderr, shell=True) #fix ze schuzky
         exec_result = ExecResult(
             args=args,
             return_code=result.returncode,
@@ -116,20 +118,23 @@ def system(arguments: Command, stdout: Redirection = None, stderr: Redirection =
 
         return exec_result
 
+
 @decorators.action_def
-def derived_file(f: FileIn, ext:str) -> FileOut:
-    base, old_ext = os.path.splitext (f.path)
+def derived_file(f: FileIn, ext: str) -> FileOut:
+    base, old_ext = os.path.splitext(f.path)
     new_file_name = base + ext
     return file_out.call(new_file_name)
 
+
 @decorators.action_def
-def format(format_str: str, *args : Any) -> str:
+def format(format_str: str, *args: Any) -> str:
     return format_str.format(*args)
+
 
 @decorators.action_def
 def file_from_template(template: dtype.Constant[FileIn],
                        parameters: Dict,
-                       delimiters:dtype.Constant[str]="<>") -> FileIn:
+                       delimiters: dtype.Constant[str] = "<>") -> FileIn:
     """
     Substitute for placeholders of format '<name>' from the dict 'params'.
     :param file_in: Template file with extension '.tmpl'.
