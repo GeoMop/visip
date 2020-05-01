@@ -150,7 +150,8 @@ def mesh_square_1x1() -> MeshGMSH:
 
 
 @wf.workflow
-def workflow_schema(mesh: MeshGMSH, seed: int):
+def workflow_schema(seed: int):
+    mesh = mesh_square_1x1()
     # all_mesh_regions pro square_1x1_xy.msh
     all__mesh_regions = ['".bottom_y"', '".right_x"', '".top_y"', '".left_x"', '"bulk"']
 
@@ -174,8 +175,7 @@ def workflow_schema(mesh: MeshGMSH, seed: int):
 
 # @pytest.mark.skip
 def test_workflow_schema_1x1():
-    mesh = evaluation.run(mesh_square_1x1)
-    res = evaluation.run(workflow_schema, [mesh, 123])
+    res = evaluation.run(workflow_schema, [123])
 
     assert res == -1
     assert path.exists("Mesh_write_file.txt")

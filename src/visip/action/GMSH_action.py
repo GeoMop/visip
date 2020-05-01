@@ -56,16 +56,16 @@ def GMSH_reader(path: str) -> MeshGMSH:
 
     points = {}
     for idx, point in reader.nodes.items():
-        points[idx] = Point(point[0], point[1], point[2])
+        points[idx] = Point.action.constructor(point[0], point[1], point[2])
 
     elements = {}
     for idx, element in reader.elements.items():
         try:
-            elements[idx] = Element(element[0], None, element[1][0], element[1][1], element[1][2], element[2])
+            elements[idx] = Element.action.constructor(element[0], None, element[1][0], element[1][1], element[1][2], element[2])
         except:
-            elements[idx] = Element(element[0], None, element[1][0], element[1][1], None, element[2])
+            elements[idx] = Element.action.constructor(element[0], None, element[1][0], element[1][1], None, element[2])
 
-    my_Mesh = MeshGMSH(points, elements, reader.physical)
+    my_Mesh = MeshGMSH.action.constructor(points, elements, reader.physical)
     return my_Mesh
 
 
