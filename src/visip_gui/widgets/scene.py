@@ -3,11 +3,12 @@ from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QStaticText
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsItem, QMessageBox
 
+from visip_gui.graphical_items.g_action_ref import GActionRef
 from visip_gui.graphical_items.g_output_action import GOutputAction
 from visip import _Value
 from visip.action import Value
 from visip.dev.action_instance import ActionCall
-from visip.dev.action_workflow import _SlotCall, _ResultCall, _Slot
+from visip.dev.action_workflow import _SlotCall, _ResultCall, _Slot, _Workflow
 from visip_gui.graphical_items.g_input_action import GInputAction
 from visip_gui.graphical_items.g_action import GAction
 from visip_gui.graphical_items.g_connection import GConnection
@@ -49,8 +50,12 @@ class Scene(GBaseModelScene):
 
     def initialize_workspace_from_workflow(self):
         for action_name, action in {**self.workflow.action_call_dict, "__result__": self.workflow._result_call}.items():
-            if not isinstance(action.action, _Value):
+            if isinstance(action.action, _Value):
+                if issubclass(type(action.action.value), _Workflow):
+                    self._add_action(QPoint(0.0, 0.0), action_name)
+            else:
                 self._add_action(QPoint(0.0, 0.0), action_name)
+
 
         self.update_scene()
         self.order_diagram()
@@ -65,19 +70,21 @@ class Scene(GBaseModelScene):
 
         if action is None:
             i=0
-        if not isinstance(action.action, _Value):
+        if isinstance(action.action, _Value):
+            if issubclass(type(action.action.value), _Workflow):
+                self.actions.append(GActionRef(item, action, self.root_item))
+        else:
             if isinstance(action.action, _Slot):
                 self.actions.append(GInputAction(item, action, self.root_item))
                 self.workflow.is_analysis = False
+                self.main_widget.toolbox.update_category()
             elif isinstance(action, _ResultCall):
                 self.actions.append(GOutputAction(item, action, self.root_item))
             elif isinstance(action, ActionCall):
                 self.actions.append(GAction(item, action, self.root_item))
 
-            for child in item.children():
-                self.draw_action(child)
-
-            self.update()
+        for child in item.children():
+            self.draw_action(child)
 
     def drawForeground(self, painter, rectf):
         super(Scene, self).drawForeground(painter, rectf)
@@ -312,10 +319,12 @@ class Scene(GBaseModelScene):
 
             if isinstance(action, GInputAction):
                 self.workflow.remove_slot(self.workflow.slots.index(action.w_data_item))
+                self.main_widget.toolbox.update_category()
             action = action.w_data_item
             for i in range(len(action.arguments)):
                 if action.arguments[i].value is not None:
-                    if isinstance(action.arguments[i].value.action, Value):
+                    if      isinstance(action.arguments[i].value.action, _Value) and\
+                            not isinstance(action.arguments[i].value.action.value, _Workflow):
                         self.unconnected_actions.pop(action.arguments[i].value.name, None)
         else:
             action.setSelected(False)
@@ -327,7 +336,7 @@ class Scene(GBaseModelScene):
 
             if action1 == action2.arguments[i].value:
                 self.workflow.set_action_input(action2, i, None)
-        if isinstance(action1, Value):
+        if isinstance(action1, _Value) and not isinstance(action1.value, _Workflow):
             self._delete_action(conn.port1.parentItem())
 
         def put_all_actions_to_unconnected(action):

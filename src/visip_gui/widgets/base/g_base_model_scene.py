@@ -8,6 +8,7 @@ import math
 from PyQt5 import QtCore
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtWidgets import QGraphicsScene
+from visip.dev.action_workflow import _Workflow
 
 from visip import _Value
 from visip.dev import dtype
@@ -47,11 +48,12 @@ class GBaseModelScene(QGraphicsScene):
         self.update_model = True
 
     def update_scene(self):
-        # When you start optimizing start in this function (shame on me!!!)
-        self.workflow.update()
-        unconnected = self.unconnected_actions.values()
-        self.unconnected_actions = {item.name:item for item in unconnected}
+        # When you start optimizing, start in this function (shame on me!!!)
+
         if self.update_model and self.new_connection is None:
+            self.workflow.update()
+            unconnected = self.unconnected_actions.values()
+            self.unconnected_actions = {item.name: item for item in unconnected}
             selected = [item.name + 'g' if isinstance(item, GAction) else 'c' for item in self.selectedItems()]
             self.update_model = False
             self.clear()
@@ -80,19 +82,14 @@ class GBaseModelScene(QGraphicsScene):
                                 port.set_constant(True)
                     if status != ActionInputStatus.missing:
                         if not isinstance(action_argument.value.action, _Value):
-                            action_argument = action_argument.value
-                            g_action = self.get_action(action_argument.name)
-                            port1 = g_action.out_ports[0]
-
-                            g_action = self.get_action(action_name)
-                            port2 = g_action.in_ports[i]
-                            port1.connections.append(GConnection(port1, port2, status, self.root_item))
-                            port2.connections.append(port1.connections[-1])
-                            #self.addItem(port1.connections[-1])
+                            self.make_connection(action_name, action_argument.value, i, status)
                         else:
-                            g_action = self.get_action(action_name)
-                            port = g_action.in_ports[i]
-                            port.set_default(True)
+                            if isinstance(action_argument.value.action.value, _Workflow):
+                                self.make_connection(action_name, action_argument.value, i, status)
+                            else:
+                                g_action = self.get_action(action_name)
+                                port = g_action.in_ports[i]
+                                port.set_default(True)
 
                     i += 1
             actions = {item.name + 'g' if isinstance(item, GAction) else 'c': item for item in self.items() if hasattr(item, 'name')}
@@ -103,6 +100,16 @@ class GBaseModelScene(QGraphicsScene):
                 select.setSelected(True)
 
             self.update()
+
+    def make_connection(self, action_name, arg_value, arg_index, arg_status):
+        g_action = self.get_action(arg_value.name)
+        port1 = g_action.out_ports[0]
+
+        g_action = self.get_action(action_name)
+        port2 = g_action.in_ports[arg_index]
+        port1.connections.append(GConnection(port1, port2, arg_status, self.root_item))
+        port2.connections.append(port1.connections[-1])
+        # self.addItem(port1.connections[-1])
 
     def draw_action(self, item):
         raise NotImplementedError
