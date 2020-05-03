@@ -2,7 +2,7 @@
 =======
 Front end
 --------
-Should be mostly stable. Work with dynamic actions and callable actions is WIP.
+Should be mostly stable. Editing and running workflow with dynamic actions and callable actions is WIP.
 ### New Features
 - Made new tooltip to show messages to user inside editor
 - Tooltip shows action status
@@ -17,4 +17,6 @@ Should be mostly stable. Work with dynamic actions and callable actions is WIP.
 - User is prevented to connect action to constant parameter and is informed about it through tooltip
 - Fixed decoding error with emty config file
 - Side docks will use the whole height, bottom dock will not extend to corners if there are side docks
+- EvalWindow will now close when last tab closes
+- When EvalWindow is closed all eval tabs are also closed, if some evaluation is running user is asked weather the evaluations should be terminated
 - Many small bugfixes
