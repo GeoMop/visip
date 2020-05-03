@@ -19,4 +19,5 @@ Should be mostly stable. Editing and running workflow with dynamic actions and c
 - Side docks will use the whole height, bottom dock will not extend to corners if there are side docks
 - EvalWindow will now close when last tab closes
 - When EvalWindow is closed all eval tabs are also closed, if some evaluation is running user is asked weather the evaluations should be terminated
+- When new evaluation is created it will be shown as currently viewed evaluation
 - Many small bugfixes
