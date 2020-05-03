@@ -17,3 +17,7 @@ class ExcVCommandFailed(Exception):
 
 class ExcInvalidCall(Exception):
     pass
+
+class ExcNoType(Exception):
+    # Missing type annotation of :function args or return types, class attributes.
+    pass

@@ -95,6 +95,8 @@ def separate_underscored_keys(arg_dict: typing.Dict[str, typing.Any]):
 class ActionWrapper:
     def __init__(self, action):
         assert isinstance(action, base._ActionBase)
+        self.__name__ = action.__name__
+        self.__module__ = action.__module__
         self.action = action
         self.is_analysis = False
 
@@ -126,12 +128,13 @@ class ActionWrapper:
         # TODO: assert for arguments types
         return self.action.evaluate(args)
 
-def public_action(action):
+def public_action(action: base._ActionBase):
     """
-    Decorator makes a wrapper function for an action that should be used explicitelty in workspace.
+    Decorator makes a wrapper function for an action that should be used explicitly in a workflow.
     A wrapper is called instead of the action constructor in order to:
     1. preprocess arguments
-    2. return constructed action wrapped into the Dummy object.
+    2. return constructed ActionCall wrapped into a Dummy object.
+    :param action: Instance of _ActionBase.
     """
 
     return ActionWrapper(action)

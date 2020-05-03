@@ -1,5 +1,5 @@
 import visip as wf
-import action_defs as action_defs
+import action_defs
 
 
 @wf.workflow
