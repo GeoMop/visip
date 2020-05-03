@@ -8,6 +8,7 @@ Should be mostly stable. Work with dynamic actions and callable actions is WIP.
 - Tooltip shows action status
 - Actions can be renamed in editor by double clicking instance name
 - Callable actions can now be visualized
+- Data inspection in evaluation expands into tree structure based on source data
 
 ### Bugfixes / Improvements
 - Improved navigation inside module
