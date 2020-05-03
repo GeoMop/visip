@@ -71,7 +71,7 @@ class EvaluationScene(GBaseModelScene):
 
             self.update()
 
-    def update_states(self):
+    def update_states(self, finished=False):
         if self.task.childs is not None:
             for instance_name, instance in self.task.childs.items():
                 if isinstance(instance.action, _Value):
@@ -83,6 +83,8 @@ class EvaluationScene(GBaseModelScene):
                 if action.status != status:
                     action.status = status
                     action.widget.set_data(instance._result)
+        if not self.eval_gui.eval_thread.is_alive() and not finished:
+            self.eval_gui.finished.emit()
 
     def on_selection_changed(self):
         data_editor = self.eval_gui.eval_window.data_editor

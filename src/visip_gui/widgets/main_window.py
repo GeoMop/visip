@@ -7,13 +7,12 @@ Main window.
 import os
 
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QMessageBox, QTabWidget
+from PyQt5.QtWidgets import QMessageBox
 
 from visip_gui.config.config_data import ConfigData
 from visip_gui.menu.eval_menu import EvalMenu
 from visip_gui.menu.file_menu import FileMenu
-from visip_gui.services.gui_evaluation import GUIEvaluation
-from visip_gui.widgets.composite_type_view import CompositeTypeView
+from visip_gui.widgets.gui_evaluation import GUIEvaluation
 from visip_gui.widgets.eval_window import EvalWindow
 from visip_gui.widgets.property_editor import PropertyEditor
 from visip_gui.widgets.tool_box import ToolBox
@@ -88,7 +87,6 @@ class MainWindow(QtWidgets.QMainWindow):
         workflow = self.tab_widget.current_workspace().workflow
         if workflow.is_analysis:
             self.evaluation_window.add_eval(GUIEvaluation(workflow, self.evaluation_window))
-            #self.eval = GUIEvaluation(workflow)
         else:
             msg = QMessageBox(self)
             msg.setText( "This isn't analysis. Todo: make a dialog to fill empty slots!")

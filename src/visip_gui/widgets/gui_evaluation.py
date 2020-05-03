@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QDockWidget, QListWidgetI
 from visip.dev.action_workflow import _Workflow
 
 from visip.dev.evaluation import Evaluation
-from visip.dev.task import Composed, Atomic
+from visip.dev.task import Composed, Atomic, Status
 from visip_gui.widgets.evaluation_navigation import EvaluationNavigation
 from visip_gui.widgets.evaluation_scene import EvaluationScene
 from visip_gui.widgets.evaluation_view import EvaluationView
@@ -17,6 +17,9 @@ class GUIEvaluation(QWidget):
     def __init__(self, analysis, eval_window):
         super(GUIEvaluation, self).__init__()
         self.view = None
+        self.eval_thread = None
+        self.running = False
+        self.timer = QTimer()
         self.eval_window = eval_window
 
         self.analysis = analysis
@@ -27,30 +30,39 @@ class GUIEvaluation(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
 
         self.run()
-
-
-
         self.navigation = EvaluationNavigation(self)
         self.navigation.add_item(self.evaluation.final_task, self.analysis.name)
 
         self.navigation_dock = eval_window.navigation_dock
 
+        self.finished.connect(self.end_evaluation)
+
     def run(self):
-        thread = threading.Thread(target=self.evaluation.execute, args=[self.analysis])
-        thread.start()
+        self.eval_thread = threading.Thread(target=self.evaluation.execute, args=[self.analysis])
+        self.eval_thread.start()
+        self.running = True
+
+        self.timer.start(0.25)
+
         while self.evaluation.final_task is None:
             time.sleep(0.01)
 
-        timer = QTimer()
-        timer.start(0.25)
-
         self.view = EvaluationView(self)
         self.layout.addWidget(self.view)
-        timer.timeout.connect(self.view.scene.update_states)
+        self.timer.timeout.connect(self.view.scene.update_states)
 
-        self.view.scene.update_states()
-        while thread.is_alive():
-            QApplication.processEvents()
+        #while thread.is_alive():
+        #    QApplication.processEvents()
+
+
+    def end_evaluation(self):
+        self.timer.stop()
+        if self.evaluation.final_task.status != Status.finished:
+            self.evaluation.force_finish = True
+            while self.eval_thread.is_alive():
+                time.sleep(0.01)
+        self.running = False
+        self.view.scene.update_states(finished=True)
 
 
     def double_click(self, g_action):
