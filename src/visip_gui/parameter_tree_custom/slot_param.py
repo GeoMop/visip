@@ -2,6 +2,7 @@
 from PyQt5.QtCore import pyqtSignal
 from pyqtgraph import parametertree
 from pyqtgraph.parametertree.Parameter import PARAM_TYPES
+from visip.dev.action_workflow import _Workflow
 
 from visip import _Value
 from visip_gui.parameter_tree_custom.slot_param_item import SlotParamItem
@@ -24,6 +25,9 @@ class SlotParam(parametertree.parameterTypes.GroupParameter):
         opts['type'] = 'str'
         if arg is not None and arg.value is not None:
             if not isinstance(arg.value.action, _Value):
+                opts['name'] = self.get_label()
+                opts['readonly'] = True
+            elif isinstance(self.arg.value.action.value, _Workflow):
                 opts['name'] = self.get_label()
                 opts['readonly'] = True
         else:
@@ -50,7 +54,10 @@ class SlotParam(parametertree.parameterTypes.GroupParameter):
     def get_data(self):
         if self.arg is not None and self.arg.value is not None:
             if isinstance(self.arg.value.action, _Value):
-                return self.arg.value.action.value.__repr__()
+                if isinstance(self.arg.value.action.value, _Workflow):
+                    return "Connected to: " + self.arg.value.name
+                else:
+                    return self.arg.value.action.value.__repr__()
             else:
                 return "Connected to: " + self.arg.value.name
         else:

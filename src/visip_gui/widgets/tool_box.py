@@ -56,7 +56,8 @@ class ToolBox(QToolBox):
         self.import_modules = {}
 
     def update_category(self):
-        self.on_workspace_change(self.module, self.workspace)
+        if self.module is not None:
+            self.on_workspace_change(self.module, self.workspace)
 
     def on_workspace_change(self, module, curr_workspace):
         last_index = self.currentIndex()
@@ -70,11 +71,11 @@ class ToolBox(QToolBox):
         if module.definitions:
             self.action_database[module.name] = {}
             for item in module.definitions:
-                if not item.is_analysis and item.name != curr_workspace.scene.workflow.name:
-                    g_action = GAction(TreeItem([item.name, 0, 0, 50, 50]), ActionCall.create(item))
-                    g_action.hide_name(True)
-                    ToolboxView(g_action, module_category)
-                    self.action_database[module.name][item.name] = item
+                #if not item.is_analysis and item.name != curr_workspace.scene.workflow.name:
+                g_action = GAction(TreeItem([item.name, 0, 0, 50, 50]), ActionCall.create(item))
+                g_action.hide_name(True)
+                ToolboxView(g_action, module_category)
+                self.action_database[module.name][item.name] = item
 
             self.import_modules[module.name] = module_category
             self.insertItem(category_index, module_category, module.name)

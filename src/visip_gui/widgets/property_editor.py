@@ -2,6 +2,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QTreeWidget
 from pyqtgraph import parametertree, TreeWidget
 from pyqtgraph.parametertree import ParameterItem
+from visip.dev.action_workflow import _Workflow
 
 from visip import _Value
 from visip.dev.action_instance import ActionCall
@@ -63,11 +64,12 @@ class PropertyEditor(parametertree.ParameterTree):
         self.setParameters(self.root_item, showTop=True)
 
     def on_const_val_triggered(self):
+        scene = self.g_action.scene()
         item = self.selectedItems()[0]
         action = ActionCall.create(_Value(0))
         action.name = 'Value_1'
         i = 2
-        while action.name in self.workflow.action_call_dict:
+        while action.name in self.workflow.action_call_dict or action.name in scene.unconnected_actions:
             action.name = 'Value_' + str(i)
             i += 1
         if item.param.arg is None:
@@ -78,7 +80,8 @@ class PropertyEditor(parametertree.ParameterTree):
             self.workflow.set_action_input(self.g_action.w_data_item, i, action)
             item.showEditor()
         else:
-            if not isinstance(item.param.arg.value.action, _Value):
+            if not  isinstance(item.param.arg.value.action, _Value) or\
+                    isinstance(item.param.arg.value.action.value, _Workflow):
                 i = self.g_action.w_data_item.arguments.index(item.param.arg)
                 conn = self.g_action.in_ports[i].connections[0]
                 self.g_action.scene()._delete_connection(conn)

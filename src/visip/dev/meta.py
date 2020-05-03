@@ -204,7 +204,8 @@ class _If(MetaAction):
         Constructed by the Dummy.__call__.
         TODO: support kwargs in visip, necessary for perferct forwarding
         """
-        super().__init__("DynamicCall")
+        #super().__init__("DynamicCall")
+        super().__init__("If") # Dynamic Call
         self._parameters = Parameters()
         ReturnType = dtype.TypeVar('ReturnType')
         self._parameters.append(

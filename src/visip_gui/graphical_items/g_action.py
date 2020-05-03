@@ -6,7 +6,7 @@ Graphical object representing an action in pipeline.
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QPixmap, QPainter, QBrush, QPen
+from PyQt5.QtGui import QPixmap, QPainter, QBrush, QPen, QFont
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QStyleOptionGraphicsItem, QGraphicsItem
 
 from visip_gui.graphical_items.g_tooltip import GTooltip
@@ -56,6 +56,9 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.type_name = QGraphicsSimpleTextItem(w_data_item.action_name, self)
         self.type_name.setPos(QtCore.QPoint(self.resize_handle_width, GPort.SIZE / 2))
         self.type_name.setBrush(QtCore.Qt.white)
+        font = QFont()
+        font.setWeight(QFont.DemiBold)
+        self.type_name.setFont(font)
 
         self._name = EditableLabel(g_data_item.data(GActionData.NAME), self)
 
