@@ -38,7 +38,6 @@ class EvalWindow(QMainWindow):
         self.activateWindow()
 
         self.tab_widget.addTab(gui_eval, gui_eval.view.scene.workflow.name)
-        gui_eval.run()
 
     def tab_changed(self, index):
         curr_widget = self.tab_widget.currentWidget()

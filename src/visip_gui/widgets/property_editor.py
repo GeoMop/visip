@@ -2,6 +2,8 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QTreeWidget
 from pyqtgraph import parametertree, TreeWidget
 from pyqtgraph.parametertree import ParameterItem
+from visip_gui.parameter_tree_custom.eval_param import EvalParam
+
 from visip.dev.action_workflow import _Workflow
 
 from visip import _Value
@@ -135,7 +137,7 @@ class PropertyEditor(parametertree.ParameterTree):
         if hasattr(sel[0], 'selected'):
             sel[0].selected(True)
         # todo: attempt to show editor after creating new parameter by double click (very nasty)
-        if len(sel) == 1 and not isinstance(sel[0], RootParamItem):
+        if len(sel) == 1 and not isinstance(sel[0], RootParamItem) and isinstance(sel[0], EvalParam):
             if sel[0].param.arg is None:
                 self.on_const_val_triggered()
                 #self.root_item.child()

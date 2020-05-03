@@ -69,16 +69,23 @@ class SlotParam(parametertree.parameterTypes.GroupParameter):
                 #new_parent = parametertree.Parameter.create(name=f"[{data.__class__.__name__}]", type='group')
                 #item.addChild(new_parent)
                 for key, value in data.items():
-                    child = parametertree.Parameter.create(name="'" + key + "' = {" + type(value).__name__ + '}',
-                                                           type='group')
+                    child = parametertree.Parameter.create(
+                        name=repr(key) + " = {" + type(value).__name__ + '} ' + repr(value),
+                        type='group')
                     item.addChild(child)
-                    fill_item(child, (key, value))
+                    fill_item(child, value)
 
             elif isinstance(data, (tuple, list)):
-                new_parent = parametertree.Parameter.create(name=f"[{data.__class__.__name__}]", type='group')
+                #new_parent = parametertree.Parameter.create(name=f"[{data.__class__.__name__}]", type='group')
                 #item.addChild(new_parent)
-                for val in data:
-                    fill_item(new_parent, val)
+                i = 0
+                for value in data:
+                    child = parametertree.Parameter.create(
+                        name= str(i) + " = {" + type(value).__name__ + '} ' + repr(value),
+                        type='group')
+                    i += 1
+                    item.addChild(child)
+                    fill_item(child, value)
 
         self.setName(self.get_label())
         if isinstance(data, (tuple, list, dict)):

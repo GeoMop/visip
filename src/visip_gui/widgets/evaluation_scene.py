@@ -7,7 +7,7 @@ from PyQt5.QtCore import QPoint
 
 from visip import _Value
 from visip.dev.action_instance import ActionCall
-from visip.dev.action_workflow import _SlotCall
+from visip.dev.action_workflow import _SlotCall, _Workflow
 from visip.dev.task import Status
 from visip_gui.data.g_action_data_model import GActionData
 from visip_gui.graphical_items.g_action import GAction
@@ -55,7 +55,7 @@ class EvaluationScene(GBaseModelScene):
         if action is None:
             action = self.unconnected_actions.get(item.data(GActionData.NAME))
 
-        if not isinstance(action.action, _Value):
+        if not isinstance(action.action, _Value) or isinstance(action.action.value, _Workflow):
             if isinstance(action, _SlotCall):
                 self.actions.append(GInputAction(item, action, self.root_item, self.eval_gui, False))
             elif isinstance(action, ActionCall):
@@ -72,8 +72,10 @@ class EvaluationScene(GBaseModelScene):
             for instance_name, instance in self.task.childs.items():
                 if not isinstance(instance.action, _Value):
                     action = self.get_action(instance_name)
-                    action.status = StatusMaping[instance.status]
-                    action.widget.set_data(instance._result)
+                    status = StatusMaping[instance.status]
+                    if action.status != status:
+                        action.status = status
+                        action.widget.set_data(instance._result)
 
     def on_selection_changed(self):
         data_editor = self.eval_gui.eval_window.data_editor
