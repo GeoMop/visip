@@ -12,6 +12,7 @@ from visip.dev.task import Status
 from visip_gui.data.g_action_data_model import GActionData
 from visip_gui.graphical_items.g_action import GAction
 from visip_gui.graphical_items.g_action_background import ActionStatus
+from visip_gui.graphical_items.g_action_ref import GActionRef
 from visip_gui.graphical_items.g_connection import GConnection
 from visip_gui.graphical_items.g_input_action import GInputAction
 from visip_gui.widgets.base.g_base_model_scene import GBaseModelScene
@@ -59,7 +60,10 @@ class EvaluationScene(GBaseModelScene):
             if isinstance(action, _SlotCall):
                 self.actions.append(GInputAction(item, action, self.root_item, self.eval_gui, False))
             elif isinstance(action, ActionCall):
-                self.actions.append(GAction(item, action, self.root_item, self.eval_gui, False))
+                if isinstance(action.action, _Value):
+                    self.actions.append(GActionRef(item, action, self.root_item, self.eval_gui, False))
+                else:
+                    self.actions.append(GAction(item, action, self.root_item, self.eval_gui, False))
 
             self.actions[-1].widget = CompositeTypeView()
             for child in item.children():
@@ -70,12 +74,15 @@ class EvaluationScene(GBaseModelScene):
     def update_states(self):
         if self.task.childs is not None:
             for instance_name, instance in self.task.childs.items():
-                if not isinstance(instance.action, _Value):
-                    action = self.get_action(instance_name)
-                    status = StatusMaping[instance.status]
-                    if action.status != status:
-                        action.status = status
-                        action.widget.set_data(instance._result)
+                if isinstance(instance.action, _Value):
+                    if not isinstance(instance.action.value, _Workflow):
+                        continue
+
+                action = self.get_action(instance_name)
+                status = StatusMaping[instance.status]
+                if action.status != status:
+                    action.status = status
+                    action.widget.set_data(instance._result)
 
     def on_selection_changed(self):
         data_editor = self.eval_gui.eval_window.data_editor
