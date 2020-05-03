@@ -34,7 +34,6 @@ class sys_path_append:
             pass
 
 
-
 def my_exec(cmd, globals=None, locals=None, description='source string'):
     try:
         exec(cmd, globals, locals)
@@ -52,9 +51,6 @@ def my_exec(cmd, globals=None, locals=None, description='source string'):
 
         traceback.print_exception(etype, exc, tb)
         raise InterpreterError("%s at line %d of %s: %s" % (error_class, line_number, description, detail))
-    #else:
-    #    return
-
 
 
 class Module:
@@ -74,22 +70,6 @@ class Module:
 
     Captured object are stored in the list self.definitions which can be
     """
-
-
-    # @staticmethod
-    # def catch_object(name, object):
-    #     """
-    #     Predicate to identify Analysis definitions in the modlue dict.
-    #     TODO: possibly catch without decorators
-    #     Currently:
-    #     - ignore underscored names
-    #     - ignore non-classes
-    #     - ignore classes not derived from _ActionBase
-    #     - print all non-underscore ignored names
-    #     """
-    #     pass
-
-
 
     def __init__(self, module_path:str) -> None:
         """
@@ -193,28 +173,30 @@ class Module:
             self.analysis = None
 
 
-    @staticmethod
-    def module_named_attrs(mod_obj):
-        return
-
-
     def _set_object_names(self, mod_name, alias):
+        # Internal _object_names setter to simplify debugging.
+
         # print("Map: ", mod_name, alias)
         self._object_names.setdefault(mod_name, alias)
 
 
     def create_object_names(self):
         """
-        Names of:
-        - modules
-        - action_def actions
-        - dataclass -> as constructor action
-                    -> as typehint
+        Collect (module, name) -> reference name map self._object_names.
 
-        - enums
-        Problem is that it seems that typehints are not processed by decorators.
-        At least not in Python 3.6
-        :return:
+        This is done by BFS through the tree of imported modules and processing
+        their dictionaries. These names are used to define 'reference names'
+        (module, name) keys are retrieved from the objects __module__ and __name__
+        attributes.
+        During code representation we can not, however, use the same mechanism as
+        1. actions are instances and these do not have __name__attribute. So we add this attribute consistently
+        possibly modifying __module__ of the instance as well.
+        2. type hints of the classes do not undergo decoration so the object processed in `create_object_names`
+        is not the same as the type hint object of the class used in an annotation. However we are able to
+        retrieve the same (module, name) key. This is reason why we can not use simply `id(obj)` as the key.
+        3. The generic type hints from `typing` module do not have __name__ attribute since Python 3.7 so we use
+        the name from the module dictionary.
+        4. We only process modules from the `visip` package and the modules importing the `visip` modules.
         """
         # TODO: use BFS to find minimal reference, use aux dist or set to mark visited objects
         module_queue  = deque()     # queue of (module, alias_module_name)
@@ -363,32 +345,11 @@ class Module:
         """
         return self._name_to_def[name]
 
-    def get_dataclass(self, name:str) -> Callable[..., dtype.DataClassBase]:
-        """
-        ??? Not clear why this should exist.
-        """
-        assert False
-        #dclass = self._name_to_def[name]
-        #return dclass._evaluate
+    # def get_dataclass(self, name:str) -> Callable[..., dtype.DataClassBase]:
+    #     """
+    #     ??? Not clear why this should exist.
+    #     """
+    #     assert False
+    #     #dclass = self._name_to_def[name]
+    #     #return dclass._evaluate
 
-"""
-Object progression:
-- Actions (implementation)
-
-- Syntactic sugger classes
-- ActionInstances - connection into WorkFlow
-  This needs to be in close relation to previous since we want GUI - Python bidirectional conversions.
-  
-- Tasks - execution DAG
-- Jobs
-"""
-
-
-"""
-TODO:
-1. first implement Class action with _name config parameter
-2. Config parameters or impl. parameters - used to set some metadata of action.
-3. Implement action decorator.
-4. Implement evaluation mechanism - conversion to tasks, scheduler, evaluation of tasks by calling action evaluate methods.
-5. Implement Evaluation class - keeping data from tasks and evaluation progress - close realtion to MJ, need concept of Resources.
-"""
