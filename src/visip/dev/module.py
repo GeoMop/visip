@@ -162,7 +162,7 @@ class Module:
                 elif name[0] == '_':
                     self.ignored_definitions.append((name, obj))
 
-        self.create_object_names()
+        self.create_object_names(self.module, "")
 
         assert len(analysis) <= 1
         if analysis:
@@ -172,6 +172,10 @@ class Module:
         else:
             self.analysis = None
 
+    def insert_imported_module(self, mod_obj, alias):
+        self.imported_modules.append(mod_obj)
+        self.create_object_names(mod_obj, alias)
+
 
     def _set_object_names(self, mod_name, alias):
         # Internal _object_names setter to simplify debugging.
@@ -180,7 +184,7 @@ class Module:
         self._object_names.setdefault(mod_name, alias)
 
 
-    def create_object_names(self):
+    def create_object_names(self, mod_obj, alias):
         """
         Collect (module, name) -> reference name map self._object_names.
 
@@ -200,7 +204,7 @@ class Module:
         """
         # TODO: use BFS to find minimal reference, use aux dist or set to mark visited objects
         module_queue  = deque()     # queue of (module, alias_module_name)
-        module_queue.append( (self.module, "") )
+        module_queue.append( (mod_obj, alias) )
         while module_queue:
 
             mod_obj, mod_alias = module_queue.popleft()
