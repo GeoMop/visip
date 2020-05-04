@@ -46,7 +46,8 @@ class _ActionBase:
         self.task_type = TaskType.Atomic
         self.is_analysis = False
         self.name = action_name or self.__class__.__name__
-        self.__visip_module__ = action_module
+        self.__module__ = action_module
+        self.__name__ = self.name
         # Module where the action is defined.
         self._parameters = None
         # Parameter specification list, class attribute, no parameters by default.

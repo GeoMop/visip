@@ -109,7 +109,7 @@ class ToolBox(QToolBox):
 
                 self.import_modules[m.__name__] = module_category
                 if m.__name__ != self.BASE_MODULE_NAME:
-                    self.addItem(module_category, module._full_name_dict[m.__name__])
+                    self.addItem(module_category, module.object_name(m))
                 else:
                     index = 0
                     for action in visip.base_system_actions:
@@ -129,7 +129,7 @@ class ToolBox(QToolBox):
                         if action.module not in self.action_database:
                             self.action_database[action.module] = {}
                         self.action_database[action.module][action.name] = action
-                    self.insertItem(0, module_category, module._full_name_dict[m.__name__])
+                    self.insertItem(0, module_category, module.object_name(m))
 
 
     def contextMenuEvent(self, event):
