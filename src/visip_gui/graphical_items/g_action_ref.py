@@ -13,6 +13,8 @@ def make_ref_texture(background_color):
     painter.drawLine(0, 16, 16, 0)
     painter.drawLine(16, 32, 32, 16)
     painter.drawLine(0, 32, 32, 0)
+    painter.drawLine(1, -1, -1, 1)
+    painter.drawLine(33, 31, 31, 33)
     return ref_texture
 
 class GActionRef(GAction):

@@ -18,7 +18,7 @@ class GTooltipBase(QGraphicsItem):
         self.__widget_proxy = GraphicsProxyWidget(self)
         self.__widget_proxy.setVisible(False)
         self.__widget_proxy.hide()
-        self.widget = None
+        self.__widget = None
 
         self.__auto_show = False
 

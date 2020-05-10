@@ -62,6 +62,7 @@ class _ActionBase:
         Module prefix used in code generationn.
         :return:
         """
+        #TODO: TB - I think this property became obsolete. Also it currently doesn't work because __visip_module__ doesn't exist
         assert self.__visip_module__
         return self.__visip_module__
 

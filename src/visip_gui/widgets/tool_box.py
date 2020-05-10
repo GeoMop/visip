@@ -50,7 +50,7 @@ class ToolBox(QToolBox):
 
         # ToolboxView(GAction(TreeItem(["List", 0, 0, 50, 50]), instance.ActionInstance.create( dev.List())), toolbox_layout2)
         self.setMinimumWidth(180)
-        self.addItem(self.system_actions_layout, "System actions")
+        #self.addItem(self.system_actions_layout, "System actions")
         # self.toolBox.addItem(toolbox_layout2, "Data manipulation")
 
         self.import_modules = {}
@@ -95,9 +95,9 @@ class ToolBox(QToolBox):
             self.on_workspace_change(module, curr_workspace)
 
             for m in module.imported_modules:
-                module_category = ActionCategory(m.__name__)
-                self.action_database[m.__name__] = {}
-                #todo: load each module from file and get actions from module.definitions
+                module_name = module.object_name(m)
+                module_category = ActionCategory(module_name)
+                self.action_database[module_name] = {}
                 for name, obj in m.__dict__.items():
                     if issubclass(type(obj), ActionWrapper):
                         item = obj.action
@@ -105,11 +105,11 @@ class ToolBox(QToolBox):
                                             ActionCall.create(item))
                         g_action.hide_name(True)
                         ToolboxView(g_action, module_category)
-                        self.action_database[m.__name__][item.name] = item
+                        self.action_database[module_name][item.name] = item
 
-                self.import_modules[m.__name__] = module_category
+                self.import_modules[module_name] = module_category
                 if m.__name__ != self.BASE_MODULE_NAME:
-                    self.addItem(module_category, module.object_name(m))
+                    self.addItem(module_category, module_name)
                 else:
                     index = 0
                     for action in visip.base_system_actions:
@@ -126,10 +126,11 @@ class ToolBox(QToolBox):
                             ToolboxView(g_action, module_category, index)
                             index += 1
 
-                        if action.module not in self.action_database:
-                            self.action_database[action.module] = {}
-                        self.action_database[action.module][action.name] = action
-                    self.insertItem(0, module_category, module.object_name(m))
+                        if module_name not in self.action_database:
+                            self.action_database[module_name] = {}
+                        self.action_database[module_name][action.name] = action
+                    temp = self.insertItem(0, module_category, module_name)
+                    pass
 
 
     def contextMenuEvent(self, event):
