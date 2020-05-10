@@ -155,8 +155,9 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
 
     @height.setter
     def height(self, value):
-        self._height = max(value, self._name.boundingRect().height() + GPort.SIZE +
-                           self.type_name.boundingRect().height() + GPort.SIZE)
+        print(self.type_name.boundingRect().height())
+        self._height = max(value, GPort.SIZE + self._name.boundingRect().height() +
+                           self.type_name.boundingRect().height())
         self.position_ports()
         self.update_gfx()
         #self.resize_handles.update_handles()
@@ -221,7 +222,7 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         """Returns rectangle of the inner area of GAction."""
         return QRectF(self.resize_handle_width, GPort.SIZE / 2 + self.type_name.boundingRect().height() + 4,
                       self.width - 2 * self.resize_handle_width,
-                      self.height - GPort.SIZE - self.type_name.boundingRect().height() - 4)
+                      self.height - GPort.SIZE / 2 - self._name.boundingRect().height() - 4)
 
     def moveBy(self, dx, dy):
         super(GAction, self).moveBy(dx, dy)
