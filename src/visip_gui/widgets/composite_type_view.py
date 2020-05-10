@@ -39,7 +39,6 @@ class CompositeTypeView(QTreeWidget):
             child = QTreeWidgetItem([str(text)])
             if text not in ("[dict]", "[list]", "[tuple]"):
                 pass
-                #child.setFlags(child.flags() | Qt.ItemIsEditable)
             parent.addChild(child)
 
             return child

@@ -1,10 +1,10 @@
 
 from PyQt5.QtCore import pyqtSignal
 from pyqtgraph import parametertree
-from pyqtgraph.parametertree.Parameter import PARAM_TYPES
 from visip.dev.action_workflow import _Workflow
 
 from visip import _Value
+from visip_gui.parameter_tree_custom.group_param import GroupParam
 from visip_gui.parameter_tree_custom.slot_param_item import SlotParamItem
 
 
@@ -63,33 +63,31 @@ class SlotParam(parametertree.parameterTypes.GroupParameter):
         else:
             return "Not Connected"
 
-    def fill_data_info(self, data):
-        def fill_item(item, data):
-            if isinstance(data, dict):
-                #new_parent = parametertree.Parameter.create(name=f"[{data.__class__.__name__}]", type='group')
-                #item.addChild(new_parent)
-                for key, value in data.items():
-                    child = parametertree.Parameter.create(
-                        name=repr(key) + " = {" + type(value).__name__ + '} ' + repr(value),
-                        type='group')
-                    item.addChild(child)
-                    fill_item(child, value)
+    def fill_item(self, item, data):
+        if hasattr(data, "__dict__"):
+            for key, value in data.__dict__.items():
+                child = GroupParam(str(key) + " = {" + type(value).__name__ + '} ' + repr(value), value)
+                item.addChild(child)
+                #self.fill_item(child, value)
+        elif isinstance(data, dict):
+            for key, value in data.items():
+                child = GroupParam(repr(key) + " = {" + type(value).__name__ + '} ' + repr(value), value)
+                item.addChild(child)
+                #self.fill_item(child, value)
 
-            elif isinstance(data, (tuple, list)):
-                #new_parent = parametertree.Parameter.create(name=f"[{data.__class__.__name__}]", type='group')
-                #item.addChild(new_parent)
-                i = 0
-                for value in data:
-                    child = parametertree.Parameter.create(
-                        name= str(i) + " = {" + type(value).__name__ + '} ' + repr(value),
-                        type='group')
-                    i += 1
-                    item.addChild(child)
-                    fill_item(child, value)
+        elif isinstance(data, (tuple, list)):
+            i = 0
+            for value in data:
+                child = GroupParam(str(i) + " = {" + type(value).__name__ + '} ' + repr(value), value)
+                i += 1
+                item.addChild(child)
+                #self.fill_item(child, value)
+
+    def fill_data_info(self, data):
 
         self.setName(self.get_label())
         if isinstance(data, (tuple, list, dict)):
-            fill_item(self, data)
+            self.fill_item(self, data)
         return
 
     def addNew(self, typ=None):
