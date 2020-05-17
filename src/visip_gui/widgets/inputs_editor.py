@@ -16,9 +16,9 @@ from visip_gui.parameter_tree_custom.slot_param import SlotParam
 
 
 
-class PropertyEditor(parametertree.ParameterTree):
+class InputsEditor(parametertree.ParameterTree):
     def __init__(self, g_action=None, parent=None):
-        super(PropertyEditor, self).__init__(parent)
+        super(InputsEditor, self).__init__(parent)
         self.g_action = g_action
         self.workflow = None
         self.setHeaderHidden(True)

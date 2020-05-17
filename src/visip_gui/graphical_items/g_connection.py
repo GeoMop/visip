@@ -9,7 +9,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 
 from visip.dev.action_instance import ActionInputStatus
-from visip_gui.graphical_items.g_tooltip import GTooltip
+from visip_gui.graphical_items.g_tooltip_item import GTooltipItem
 from visip_gui.graphical_items.g_tooltip_base import GTooltipBase
 from visip_gui.graphical_items.glow import Glow
 import visip_gui.graphical_items.g_status_mapping as mapping
@@ -47,7 +47,7 @@ class GConnection(QtWidgets.QGraphicsPathItem):
         self.update_gfx()
         self.setCursor(Qt.ArrowCursor)
         self.setAcceptHoverEvents(True)
-        self.tool_tip = GTooltip(self, color)
+        self.tool_tip = GTooltipItem(self, color)
         self.tool_tip.set_text(self.text.get(state, "(Unknown state)"))
 
     @property

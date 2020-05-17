@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QMainWindow, QTabWidget, QDockWidget, QMessageBox
 from visip_gui.widgets.data_editor import DataEditor
 from visip_gui.widgets.eval_tab_widget import EvalTabWidget
 from visip_gui.widgets.evaluation_navigation import EvaluationNavigation
-from visip_gui.widgets.property_editor import PropertyEditor
+from visip_gui.widgets.inputs_editor import InputsEditor
 
 
 class EvalWindow(QMainWindow):

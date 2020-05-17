@@ -8,7 +8,7 @@ from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtWidgets import QApplication
 
 from visip.dev.action_instance import ActionArgument
-from visip_gui.graphical_items.g_tooltip import GTooltip
+from visip_gui.graphical_items.g_tooltip_item import GTooltipItem
 from visip_gui.graphical_items.g_tooltip_base import GTooltipBase
 
 
@@ -41,7 +41,7 @@ class GPort(QtWidgets.QGraphicsPathItem):
         self.setZValue(1.0)
         self.setFlag(self.ItemSendsGeometryChanges)
 
-        self.tool_tip = GTooltip(self)
+        self.tool_tip = GTooltipItem(self)
 
         self.index = index
         self.setCursor(QtCore.Qt.ArrowCursor)

@@ -14,7 +14,7 @@ from visip_gui.menu.eval_menu import EvalMenu
 from visip_gui.menu.file_menu import FileMenu
 from visip_gui.widgets.gui_evaluation import GUIEvaluation
 from visip_gui.widgets.eval_window import EvalWindow
-from visip_gui.widgets.property_editor import PropertyEditor
+from visip_gui.widgets.inputs_editor import InputsEditor
 from visip_gui.widgets.tool_box import ToolBox
 
 from .tab_widget import TabWidget
@@ -31,7 +31,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.cfg = ConfigData()
 
-        self.property_editor = PropertyEditor()
+        self.property_editor = InputsEditor()
         self.properities_dock.setWidget(self.property_editor)
 
         self.tab_widget = TabWidget(self, self.edit_menu)
@@ -70,7 +70,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.addDockWidget(Qt.LeftDockWidgetArea, self.toolbox_dock)
         self.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
 
-        self.properities_dock = QtWidgets.QDockWidget("Parameters Editor", self)
+        self.properities_dock = QtWidgets.QDockWidget("Inputs Editor", self)
         self.properities_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea)
         self.addDockWidget(Qt.RightDockWidgetArea, self.properities_dock)
 

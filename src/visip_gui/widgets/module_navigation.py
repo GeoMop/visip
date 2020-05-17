@@ -68,7 +68,7 @@ class ModuleNavigation(QTabWidget):
         for wf in self._module.definitions:
             names.append(wf.name)
         dialog = GetText(self, "New Workflow Name:", names)
-        dialog.setWindowTitle("New Workflow")
+        dialog.setWindowTitle("Rename Workflow")
         if dialog.exec_():
             index = self.tabBar().tabAt(self.menu_pos)
             self._module.rename_definition(self.tabText(index), dialog.text)

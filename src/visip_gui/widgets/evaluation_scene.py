@@ -20,13 +20,13 @@ from visip_gui.widgets.composite_type_view import CompositeTypeView
 
 StatusMaping = {
     Status.none: ActionStatus.IDLE,
-    Status.composed: ActionStatus.PAUSED,
-    Status.assigned: ActionStatus.PAUSED,
-    Status.determined: ActionStatus.PAUSED,
-    Status.ready: ActionStatus.PAUSED,
-    Status.submitted: ActionStatus.PAUSED,
-    Status.running: ActionStatus.PAUSED,
-    Status.finished: ActionStatus.OK
+    Status.composed: ActionStatus.READY,
+    Status.assigned: ActionStatus.READY,
+    Status.determined: ActionStatus.READY,
+    Status.ready: ActionStatus.READY,
+    Status.submitted: ActionStatus.READY,
+    Status.running: ActionStatus.READY,
+    Status.finished: ActionStatus.DONE
 }
 
 

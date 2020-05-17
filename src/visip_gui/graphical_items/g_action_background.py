@@ -4,16 +4,16 @@ from PyQt5.QtWidgets import QGraphicsRectItem
 
 class ActionStatus:
     ERROR = 0
-    OK = 1
-    PAUSED = 2
+    DONE = 1
+    READY = 2
     IDLE = 3
 
 
 class GActionBackground(QGraphicsRectItem):
     COLOR_PALETTE = {
         ActionStatus.ERROR: Qt.darkRed,
-        ActionStatus.OK: Qt.darkGreen,
-        ActionStatus.PAUSED: Qt.darkYellow,
+        ActionStatus.DONE: Qt.darkGreen,
+        ActionStatus.READY: Qt.darkYellow,
         ActionStatus.IDLE: Qt.darkGray
     }
     def __init__(self, parent):

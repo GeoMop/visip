@@ -9,7 +9,7 @@ from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtGui import QPixmap, QPainter, QBrush, QPen, QFont
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QStyleOptionGraphicsItem, QGraphicsItem
 
-from visip_gui.graphical_items.g_tooltip import GTooltip
+from visip_gui.graphical_items.g_tooltip_item import GTooltipItem
 from visip_gui.graphical_items.g_tooltip_base import GTooltipBase
 from visip_gui.graphical_items.glow import Glow
 from .g_action_background import GActionBackground, ActionStatus
@@ -155,7 +155,6 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
 
     @height.setter
     def height(self, value):
-        print(self.type_name.boundingRect().height())
         self._height = max(value, GPort.SIZE + self._name.boundingRect().height() +
                            self.type_name.boundingRect().height())
         self.position_ports()

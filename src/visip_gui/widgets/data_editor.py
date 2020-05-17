@@ -2,10 +2,10 @@ from visip_gui.parameter_tree_custom.root_param_item import RootParamItem
 
 from visip_gui.parameter_tree_custom.eval_param import EvalParam
 from visip_gui.parameter_tree_custom.root_param import RootParam
-from visip_gui.widgets.property_editor import PropertyEditor
+from visip_gui.widgets.inputs_editor import InputsEditor
 
 
-class DataEditor(PropertyEditor):
+class DataEditor(InputsEditor):
     def __init__(self, g_action=None, parent=None):
         super(DataEditor, self).__init__(g_action, parent)
         self.itemExpanded.connect(self.expand_item)

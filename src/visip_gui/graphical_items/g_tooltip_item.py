@@ -4,14 +4,14 @@ from PyQt5.QtGui import QPainterPath, QPen, QCursor, QTransform, QKeySequence
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsPathItem, QGraphicsItem, QGraphicsTextItem, QStyle
 
 
-class GTooltip(QGraphicsTextItem):
+class GTooltipItem(QGraphicsTextItem):
     ARROW_HEIGHT = 10
     MARGIN = 3
     LINE_WIDTH = 2
 
     def __init__(self, g_item, color=Qt.red):
 
-        super(GTooltip, self).__init__()
+        super(GTooltipItem, self).__init__()
         self.g_item = g_item
         self.background = QGraphicsPathItem(self)
         self.background.setBrush(Qt.white)
@@ -64,12 +64,12 @@ class GTooltip(QGraphicsTextItem):
 
     def set_text(self, text):
         if text != self.toPlainText():
-            super(GTooltip, self).setPlainText(text)
+            super(GTooltipItem, self).setPlainText(text)
             self.update_gfx()
 
     def update_gfx(self):
         path = QPainterPath()
-        rect = super(GTooltip, self).boundingRect()
+        rect = super(GTooltipItem, self).boundingRect()
         rect.adjust(-self.MARGIN + 1, -self.MARGIN + 1, self.MARGIN - 1, self.MARGIN - 1)
         path.addRoundedRect(rect, 3, 3)
         self.background.setPath(path)
@@ -101,7 +101,7 @@ class GTooltip(QGraphicsTextItem):
             view.zoom_changed.connect(self.close)
 
             tooltip_pos = self.g_item.mapToScene(self.tooltip_pos)
-            this_rect = super(GTooltip, self).boundingRect()
+            this_rect = super(GTooltipItem, self).boundingRect()
             transform = QTransform()
             transform = transform.scale(1/view.zoom, 1/view.zoom)
             this_rect = transform.mapRect(this_rect)
@@ -142,25 +142,25 @@ class GTooltip(QGraphicsTextItem):
         style.state &= ~QtWidgets.QStyle.State_Selected
         style.state &= ~QtWidgets.QStyle.State_HasFocus
 
-        super(GTooltip, self).paint(painter, style, widget)
+        super(GTooltipItem, self).paint(painter, style, widget)
 
     def setPos(self, *__args):
-        super(GTooltip, self).setPos(*__args)
+        super(GTooltipItem, self).setPos(*__args)
 
     def setVisible(self, b):
         pass
 
     def mousePressEvent(self, event):
-        super(GTooltip, self).mousePressEvent(event)
+        super(GTooltipItem, self).mousePressEvent(event)
         pass
 
     def hoverEnterEvent(self, event):
-        super(GTooltip, self).hoverEnterEvent(event)
+        super(GTooltipItem, self).hoverEnterEvent(event)
         self.close_timer.stop()
 
 
     def hoverLeaveEvent(self, event):
-        super(GTooltip, self).hoverLeaveEvent(event)
+        super(GTooltipItem, self).hoverLeaveEvent(event)
         self.close()
 
     def close(self):
