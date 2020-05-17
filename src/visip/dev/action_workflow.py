@@ -355,7 +355,7 @@ class _Workflow(meta.MetaAction):
 
         """
         if i_arg < len(action.arguments):
-            orig_input = action.arguments[i_arg]
+            orig_input = action.arguments[i_arg].value
         else:
             orig_input = None
         action.set_single_input(i_arg, input_action)
