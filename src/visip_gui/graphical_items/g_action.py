@@ -231,6 +231,7 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         super(GAction, self).mousePressEvent(press_event)
         self.setCursor(QtCore.Qt.ClosedHandCursor)
         if press_event.button() == Qt.RightButton:
+            self.scene().clearSelection()
             self.setSelected(True)
 
     def mouseReleaseEvent(self, release_event):
