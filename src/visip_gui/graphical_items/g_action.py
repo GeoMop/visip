@@ -191,7 +191,7 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         if not self.scene().action_name_changed(self.g_data_item, self.name) or self.name == "" :
             return False
         self.width = self.width
-        self.w_data_item.name = self.name
+        self.w_data_item.set_name(self.name)
 
         self.scene().update()
         return True
