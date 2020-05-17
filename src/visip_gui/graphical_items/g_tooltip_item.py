@@ -43,7 +43,7 @@ class GTooltipItem(QGraphicsTextItem):
     def enable(self):
         self.timer.timeout.connect(self._show_tooltip())
 
-    def tooltip_request(self, tooltip_pos, color=None, delay=500, close_after=0):
+    def tooltip_request(self, tooltip_pos=None, color=None, delay=500, close_after=0):
         self.close_after = close_after
         self.timer.setInterval(delay)
         self.timer.start()
@@ -99,6 +99,8 @@ class GTooltipItem(QGraphicsTextItem):
             view = self.g_item.scene().views()[0]
             view.scroll_changed.connect(self.close)
             view.zoom_changed.connect(self.close)
+            if self.tooltip_pos is None:
+                self.tooltip_pos = self.g_item.mapFromScene(view.mapToScene(view.mapFromGlobal(QCursor.pos())))
 
             tooltip_pos = self.g_item.mapToScene(self.tooltip_pos)
             this_rect = super(GTooltipItem, self).boundingRect()
@@ -112,10 +114,10 @@ class GTooltipItem(QGraphicsTextItem):
             scene_rect = view.mapToScene(view.viewport().geometry()).boundingRect()
 
             this_rect.moveTo(pos)
-            pos.setX(max(scene_rect.left() + self.MARGIN,
-                         min(pos.x(), scene_rect.right() - this_rect.width() - self.MARGIN)))
-            if scene_rect.bottom() < pos.y() + this_rect.height() + self.ARROW_HEIGHT:
-                pos = QPoint(pos.x(), self.tooltip_pos.y() - this_rect.height() - self.ARROW_HEIGHT/view.zoom)
+            pos.setX(max(scene_rect.left() + self.MARGIN / view.zoom,
+                         min(pos.x(), scene_rect.right() - this_rect.width() - 2 * self.MARGIN / view.zoom)))
+            if scene_rect.bottom() < pos.y() + this_rect.height() + self.ARROW_HEIGHT/view.zoom:
+                pos = QPoint(pos.x(), tooltip_pos.y() - this_rect.height() - self.ARROW_HEIGHT/view.zoom)
                 self.setPos(pos)
                 path = self.update_gfx()
                 rect = path.boundingRect()
