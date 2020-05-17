@@ -2,6 +2,7 @@ from PyQt5 import QtGui, QtCore
 from PyQt5.QtWidgets import QSizePolicy
 from pyqtgraph import parametertree
 from visip.dev.action_workflow import _Workflow
+from visip.dev.base import _ActionBase
 
 from visip_gui.parameter_tree_custom.base_widget_param_item import BaseWidgetParamItem
 from visip import _Value
@@ -49,18 +50,19 @@ class SlotParamItem(BaseWidgetParamItem):
                 self.param.arg is not None and\
                 self.param.arg.value is not None and\
                 isinstance(self.param.arg.value.action, _Value) and\
-                not isinstance(self.param.arg.value.action.value, _Workflow):
-
+                not isinstance(self.param.arg.value.action.value, _ActionBase):
+            action = self.param.arg.value.action
             try:
-                self.param.arg.value.action.value = int(val)
+                action.value = int(val)
             except ValueError:
                 try:
-                    self.param.arg.value.action.value = float(val)
+                    action.value = float(val)
                 except ValueError:
-                    if val[0] + val[-1] == "''" or val[0] + val[-1] == '""':
-                        self.param.arg.value.action.value = val[1:-1]
+                    if ((val[0] + val[-1] == "''" and val.count("'") == 2) or
+                            (val[0] + val[-1] == '""' and val.count('"') == 2)):
+                        action.value = val[1:-1]
                     elif val == 'None':
-                        self.param.arg.value.action.value = None
+                        action.value = None
                     else:
                         print('Changing composite type not implemented yet!')
                         return

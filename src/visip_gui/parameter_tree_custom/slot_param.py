@@ -4,6 +4,7 @@ from pyqtgraph import parametertree
 from visip.dev.action_workflow import _Workflow
 
 from visip import _Value
+from visip.dev.base import _ActionBase
 from visip_gui.parameter_tree_custom.group_param import GroupParam
 from visip_gui.parameter_tree_custom.slot_param_item import SlotParamItem
 
@@ -27,7 +28,7 @@ class SlotParam(parametertree.parameterTypes.GroupParameter):
             if not isinstance(arg.value.action, _Value):
                 opts['name'] = self.get_label()
                 opts['readonly'] = True
-            elif isinstance(self.arg.value.action.value, _Workflow):
+            elif isinstance(self.arg.value.action.value, _ActionBase):
                 opts['name'] = self.get_label()
                 opts['readonly'] = True
         else:
@@ -54,7 +55,7 @@ class SlotParam(parametertree.parameterTypes.GroupParameter):
     def get_data(self):
         if self.arg is not None and self.arg.value is not None:
             if isinstance(self.arg.value.action, _Value):
-                if isinstance(self.arg.value.action.value, _Workflow):
+                if isinstance(self.arg.value.action.value, _ActionBase):
                     return "Connected to: " + self.arg.value.name
                 else:
                     return self.arg.value.action.value.__repr__()

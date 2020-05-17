@@ -13,6 +13,7 @@ from visip.dev.action_workflow import _Workflow
 from visip import _Value
 from visip.dev import dtype
 from visip.dev.action_instance import ActionInputStatus
+from visip.dev.base import _ActionBase
 from visip.dev.dtype import Constant, ConstantValueType
 from visip_gui.data.g_action_data_model import GActionDataModel
 from visip_gui.graphical_items.g_action import GAction
@@ -49,7 +50,6 @@ class GBaseModelScene(QGraphicsScene):
 
     def update_scene(self):
         # When you start optimizing, start in this function (shame on me!!!)
-
         if self.update_model and self.new_connection is None:
             self.workflow.update()
             unconnected = self.unconnected_actions.values()
@@ -84,7 +84,7 @@ class GBaseModelScene(QGraphicsScene):
                         if not isinstance(action_argument.value.action, _Value):
                             self.make_connection(action_name, action_argument.value, i, status)
                         else:
-                            if isinstance(action_argument.value.action.value, _Workflow):
+                            if isinstance(action_argument.value.action.value, _ActionBase):
                                 self.make_connection(action_name, action_argument.value, i, status)
                             else:
                                 g_action = self.get_action(action_name)

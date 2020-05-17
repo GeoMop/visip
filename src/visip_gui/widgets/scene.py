@@ -3,6 +3,7 @@ from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QStaticText
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsItem, QMessageBox
 
+from visip.dev.base import _ActionBase
 from visip_gui.graphical_items.g_action_ref import GActionRef
 from visip_gui.graphical_items.g_output_action import GOutputAction
 from visip import _Value
@@ -51,7 +52,7 @@ class Scene(GBaseModelScene):
     def initialize_workspace_from_workflow(self):
         for action_name, action in {**self.workflow.action_call_dict, "__result__": self.workflow._result_call}.items():
             if isinstance(action.action, _Value):
-                if issubclass(type(action.action.value), _Workflow):
+                if issubclass(type(action.action.value), _ActionBase):
                     self._add_action(QPoint(0.0, 0.0), action_name)
             else:
                 self._add_action(QPoint(0.0, 0.0), action_name)
@@ -64,14 +65,13 @@ class Scene(GBaseModelScene):
 
     def draw_action(self, item):
         action = {**self.workflow.action_call_dict, "__result__": self.workflow._result_call}.get(item.data(GActionData.NAME))
-
         if action is None:
             action = self.unconnected_actions.get(item.data(GActionData.NAME))
 
         if action is None:
             i=0
         if isinstance(action.action, _Value):
-            if issubclass(type(action.action.value), _Workflow):
+            if isinstance(action.action.value, _ActionBase):
                 self.actions.append(GActionRef(item, action, self.root_item))
         else:
             if isinstance(action.action, _Slot):
@@ -177,9 +177,6 @@ class Scene(GBaseModelScene):
 
         else:
             assert False, "Action isn't supported by scene!"
-            return
-
-
 
         self.unconnected_actions[name] = action
 
@@ -339,7 +336,7 @@ class Scene(GBaseModelScene):
             for i in range(len(action.arguments)):
                 if action.arguments[i].value is not None:
                     if      isinstance(action.arguments[i].value.action, _Value) and\
-                            not isinstance(action.arguments[i].value.action.value, _Workflow):
+                            not isinstance(action.arguments[i].value.action.value, _ActionBase):
                         self.unconnected_actions.pop(action.arguments[i].value.name, None)
         else:
             action.setSelected(False)
@@ -351,7 +348,7 @@ class Scene(GBaseModelScene):
 
             if action1 == action2.arguments[i].value:
                 self.workflow.set_action_input(action2, i, None)
-        if isinstance(action1, _Value) and not isinstance(action1.value, _Workflow):
+        if isinstance(action1, _Value) and not isinstance(action1.value, _ActionBase):
             self._delete_action(conn.port1.parentItem())
 
         def put_all_actions_to_unconnected(action):
