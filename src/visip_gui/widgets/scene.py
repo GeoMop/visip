@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import QPoint, Qt
-from PyQt5.QtGui import QStaticText
+from PyQt5.QtGui import QStaticText, QCursor
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsItem, QMessageBox
 
 from visip.dev.base import _ActionBase
@@ -19,6 +19,7 @@ from visip_gui.data.g_action_data_model import GActionData
 import random
 import math
 
+from visip_gui.graphical_items.g_tooltip_item import GTooltipItem
 from visip_gui.widgets.base.g_base_model_scene import GBaseModelScene
 
 
@@ -231,12 +232,13 @@ class Scene(GBaseModelScene):
             self.new_connection.unsetCursor()
             self.addItem(self.new_connection)
             self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, False)
+            self.new_connection.set_port2_pos(self.views()[0].mapToScene(self.views()[0].mapFromGlobal(QCursor.pos())))
         else:
             if isinstance(port, GOutputPort):
                 self.enable_ports(True, True)
             else:
                 self.enable_ports(False, True)
-
+            orig_port = self.new_connection.port1
             self.new_connection.set_port2(port)
 
             port1 = self.new_connection.port1
@@ -245,8 +247,8 @@ class Scene(GBaseModelScene):
             port2.connections.append(self.new_connection)
             action1 = port1.parentItem().w_data_item
             action2 = port2.parentItem().w_data_item
-            self.workflow.set_action_input(action2, port2.index, action1)
-            if True: #self.is_graph_acyclic():
+
+            if self.workflow.set_action_input(action2, port2.index, action1):
                 self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, True)
                 self.new_connection.setCursor(Qt.ArrowCursor)
                 self.new_connection = None
@@ -274,13 +276,12 @@ class Scene(GBaseModelScene):
 
 
             else:
-                msg = "Pipeline cannot be cyclic!"
-                msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,
-                                            "Cyclic diagram", msg,
-                                            QtWidgets.QMessageBox.Ok)
-                msg.exec_()
+                self.tooltip = GTooltipItem(port)
+                self.tooltip.set_text("This connection would create cycle.\nThis is not allowed!")
+                self.tooltip.tooltip_request(port.boundingRect().center(), Qt.red, 0)
                 self._delete_connection(self.new_connection)
                 self.new_connection = None
+                self.add_connection(orig_port)
 
     def enable_ports(self, in_ports, enable):
         for action in self.actions:
