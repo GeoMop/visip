@@ -7,7 +7,9 @@ Should be mostly stable. Editing and running workflow with dynamic actions and c
 - Made new tooltip to show messages to user inside editor
 - Tooltip shows action status
 - Actions can be renamed in editor by double clicking instance name
-- Callable actions can now be visualized
+- Actions producing callable can now be visualized
+- Actions can be wrapped to Value action which will produce callable of the original action. This option is in context menu.
+- Connection to some action which produce callable
 - Data inspection in evaluation expands into tree structure based on source data
 
 ### Bugfixes / Improvements
@@ -20,4 +22,5 @@ Should be mostly stable. Editing and running workflow with dynamic actions and c
 - EvalWindow will now close when last tab closes
 - When EvalWindow is closed all eval tabs are also closed, if some evaluation is running user is asked weather the evaluations should be terminated
 - When new evaluation is created it will be shown as currently viewed evaluation
+- Data tree in data inspection expands dynamically as needed
 - Many small bugfixes
