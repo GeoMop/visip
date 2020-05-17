@@ -19,6 +19,7 @@ class TabWidget(QTabWidget):
         self.setTabShape(1)
         self.tabCloseRequested.connect(self.on_close_tab)
         self.edit_menu = edit_menu
+        self.edit_menu.return_callable_action.triggered.connect(self.return_callable_action)
         self.edit_menu.delete.triggered.connect(self.delete_items)
         self.edit_menu.order_diagram.triggered.connect(self.order_diagram)
         self.currentChanged.connect(self.current_changed)
@@ -91,6 +92,9 @@ class TabWidget(QTabWidget):
 
     def delete_items(self):
         self.current_workspace().scene.delete_items()
+
+    def return_callable_action(self):
+        self.current_workspace().scene.change_action_to_callable()
 
     def add_random_items(self):
         self.current_workspace().scene.add_random_items()

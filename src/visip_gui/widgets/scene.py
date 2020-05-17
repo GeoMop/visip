@@ -182,6 +182,21 @@ class Scene(GBaseModelScene):
 
 
         self.unconnected_actions[name] = action
+
+    def change_action_to_callable(self):
+        actions = self.selectedItems()
+        if len(actions) == 1:
+            g_action = actions[0]
+            base_action = g_action.w_data_item.action
+            if not (isinstance(base_action, _Value) and isinstance(base_action.value, _ActionBase)):
+                g_data = g_action.g_data_item._item_data
+                action_call = ActionCall.create(_Value(base_action))
+                action_call.name = g_action.w_data_item.name
+                self.delete_items()
+                self.action_model.add_item(*g_data[1:], g_data[0])
+
+                self.unconnected_actions[action_call.name] = action_call
+
     '''
     def add_while_loop(self):
         [parent, pos] = self.find_top_afs(self.new_action_pos)

@@ -12,6 +12,9 @@ class EditMenu(QtWidgets.QMenu):
         super(EditMenu, self).__init__(parent)
         self.setTitle("Edit")
 
+        self.return_callable_action = QtWidgets.QAction("Return this action as callable")
+        self.addAction(self.return_callable_action)
+
         self.delete = QtWidgets.QAction("Delete")
         self.delete.setShortcut(QtGui.QKeySequence.Delete)
         self.addAction(self.delete)
