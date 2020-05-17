@@ -107,8 +107,13 @@ class GBaseModelScene(QGraphicsScene):
 
         g_action = self.get_action(action_name)
         port2 = g_action.in_ports[arg_index]
-        port1.connections.append(GConnection(port1, port2, arg_status, self.root_item))
-        port2.connections.append(port1.connections[-1])
+        conn = GConnection(port1, port2, arg_status, self.root_item)
+        if isinstance(arg_value.action, _Value) and isinstance(arg_value.action.value, _ActionBase):
+            conn.setPen(conn.dash_pen)
+
+
+        port1.connections.append(conn)
+        port2.connections.append(conn)
         # self.addItem(port1.connections[-1])
 
     def draw_action(self, item):
