@@ -83,12 +83,12 @@ class ToolBox(QToolBox):
             self.workspace = curr_workspace
 
     def on_module_change(self, module, curr_workspace):
-        while self.count() > 1:
+        while self.count() > 0:
             self.removeItem(self.count()-1)
-            temp = self.action_database[self.BASE_MODULE_NAME]
-            self.action_database.clear()
-            self.import_modules.clear()
-            self.action_database[self.BASE_MODULE_NAME] = temp
+        #temp = self.action_database[self.BASE_MODULE_NAME]
+        self.action_database.clear()
+        self.import_modules.clear()
+        #self.action_database[self.BASE_MODULE_NAME] = temp
         #self.addItem(self.system_actions_layout, "System actions")
         self.module = module
         if module is not None:
@@ -136,13 +136,10 @@ class ToolBox(QToolBox):
     def contextMenuEvent(self, event):
         dialog = ImportModule(self.parent())
         if dialog.exec():
-            import os
-            relpath = os.path.relpath(dialog.filename(), os.path.dirname(self.module.module_file))
-            spec = importlib.util.spec_from_file_location(dialog.name(), dialog.filename())
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            self.module.insert_imported_module(module, dialog.name())
+            temp = self.module.load_module(dialog.filename())
+            self.module.insert_imported_module(temp, dialog.name())
             self.on_module_change(self.module, self.workspace)
+            self.setCurrentIndex(self.count() - 1)
 
 
 
