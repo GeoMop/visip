@@ -1,7 +1,13 @@
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QLineF
 from PyQt5.QtGui import QPen, QBrush, QPixmap, QBitmap, QPainter
 
 from visip_gui.graphical_items.g_action import GAction
+
+lines = [QLineF(0, 16, 16, 0),
+         QLineF(16, 32, 32, 16),
+         QLineF(0, 32, 32, 0),
+         QLineF(1, -1, -1, 1),
+         QLineF(33, 31, 31, 33)]
 
 def make_ref_texture(background_color):
     ref_texture = QPixmap(32, 32)
@@ -10,11 +16,7 @@ def make_ref_texture(background_color):
     pen = QPen(Qt.darkGray)
     pen.setWidth(3)
     painter.setPen(pen)
-    painter.drawLine(0, 16, 16, 0)
-    painter.drawLine(16, 32, 32, 16)
-    painter.drawLine(0, 32, 32, 0)
-    painter.drawLine(1, -1, -1, 1)
-    painter.drawLine(33, 31, 31, 33)
+    painter.drawLines(lines)
     return ref_texture
 
 class GActionRef(GAction):

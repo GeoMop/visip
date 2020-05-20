@@ -19,7 +19,7 @@ def main():
     w = MainWindow(app)
     w.resize(1000, 720)
     w.move(300, 50)
-    w.setWindowTitle('VISIP')
+    w.setWindowTitle('ViSiP')
     w.show()
 
     sys.exit(app.exec_())

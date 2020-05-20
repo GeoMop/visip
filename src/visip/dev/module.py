@@ -175,6 +175,7 @@ class Module:
     def insert_imported_module(self, mod_obj, alias):
         self.imported_modules.append(mod_obj)
         self.create_object_names(mod_obj, alias)
+        self._object_names[(None, mod_obj.__name__)] = alias
 
 
     def _set_object_names(self, mod_name, alias):
