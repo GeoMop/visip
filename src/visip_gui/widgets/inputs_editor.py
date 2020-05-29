@@ -3,18 +3,24 @@ from PyQt5.QtWidgets import QTreeWidget
 from pyqtgraph import parametertree, TreeWidget
 from pyqtgraph.parametertree import ParameterItem
 
+from visip.dev.base import _ActionBase
+from visip_gui.parameter_tree_custom.eval_param import EvalParam
+
+from visip.dev.action_workflow import _Workflow
+
 from visip import _Value
 from visip.dev.action_instance import ActionCall
 from visip_gui.graphical_items.g_action import GAction
 from visip_gui.menu.param_menu import ParamMenu
 from visip_gui.parameter_tree_custom.root_param import RootParam
+from visip_gui.parameter_tree_custom.root_param_item import RootParamItem
 from visip_gui.parameter_tree_custom.slot_param import SlotParam
 
 
 
-class PropertyEditor(parametertree.ParameterTree):
+class InputsEditor(parametertree.ParameterTree):
     def __init__(self, g_action=None, parent=None):
-        super(PropertyEditor, self).__init__(parent)
+        super(InputsEditor, self).__init__(parent)
         self.g_action = g_action
         self.workflow = None
         self.setHeaderHidden(True)
@@ -52,7 +58,7 @@ class PropertyEditor(parametertree.ParameterTree):
 
     def update_editor(self):
         i = 0
-        self.root_item = RootParam(self.g_action.name)
+        self.root_item = RootParam(self.g_action)
         for arg in self.g_action.w_data_item.arguments:
             self.insert_item(arg, arg.parameter.name or self.g_action.in_ports[i].name)
             i += 1
@@ -62,11 +68,12 @@ class PropertyEditor(parametertree.ParameterTree):
         self.setParameters(self.root_item, showTop=True)
 
     def on_const_val_triggered(self):
+        scene = self.g_action.scene()
         item = self.selectedItems()[0]
         action = ActionCall.create(_Value(0))
         action.name = 'Value_1'
         i = 2
-        while action.name in self.workflow.action_call_dict:
+        while action.name in self.workflow.action_call_dict or action.name in scene.unconnected_actions:
             action.name = 'Value_' + str(i)
             i += 1
         if item.param.arg is None:
@@ -77,7 +84,8 @@ class PropertyEditor(parametertree.ParameterTree):
             self.workflow.set_action_input(self.g_action.w_data_item, i, action)
             item.showEditor()
         else:
-            if not isinstance(item.param.arg.value.action, _Value):
+            if not  isinstance(item.param.arg.value.action, _Value) or\
+                    isinstance(item.param.arg.value.action.value, _ActionBase):
                 i = self.g_action.w_data_item.arguments.index(item.param.arg)
                 conn = self.g_action.in_ports[i].connections[0]
                 self.g_action.scene()._delete_connection(conn)
@@ -88,6 +96,10 @@ class PropertyEditor(parametertree.ParameterTree):
 
         self.g_action.scene().data_changed()
         self.update_editor()
+        # todo: attempt to show editor after creating new parameter by double click
+        temp = self.topLevelItem(0).child(i)
+        temp.showEditor()
+
 
     def on_constant_changed(self, param, val: bool):
         action = ActionCall.create(_Value(None)) if not val else None
@@ -126,6 +138,14 @@ class PropertyEditor(parametertree.ParameterTree):
         self.lastSel = sel[0]
         if hasattr(sel[0], 'selected'):
             sel[0].selected(True)
+        # todo: attempt to show editor after creating new parameter by double click (very nasty)
+        if len(sel) == 1 and (not isinstance(sel[0], RootParamItem) or isinstance(sel[0], (EvalParam, SlotParam))):
+            if hasattr(sel[0].param, "arg"):
+                if sel[0].param.arg is None:
+                    self.on_const_val_triggered()
+                    #self.root_item.child()
+                elif sel[0].param.arg.value is None:
+                    self.on_const_val_triggered()
 
 
     def selectionChanged(self, *args):

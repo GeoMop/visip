@@ -9,17 +9,18 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor
 
 from visip.dev.action_instance import ActionInputStatus
+from visip_gui.graphical_items.g_tooltip_item import GTooltipItem
 from visip_gui.graphical_items.g_tooltip_base import GTooltipBase
+from visip_gui.graphical_items.glow import Glow
+import visip_gui.graphical_items.g_status_mapping as mapping
 
 from .g_port import GPort, GOutputPort
 
 
-class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
+class GConnection(QtWidgets.QGraphicsPathItem):
     """Representation of connection between two ports."""
-    color = {ActionInputStatus.ok: QColor(0,200,0),
-             ActionInputStatus.seems_ok: QColor(200,200,0),
-             ActionInputStatus.error_type: QColor(200,0,0),
-             ActionInputStatus.error_value: QColor(200,0,0)}
+    color = mapping.color
+    text = mapping.text
 
     LINE_THICKNESS = 3
 
@@ -30,10 +31,12 @@ class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
         :param parent: Action which holds this connection: this connection is inside parent action.
         """
         super(GConnection, self).__init__(parent)
+        self.glow = Glow(self)
+        self.glow.hide()
         self._shape = QtGui.QPainterPath()
         self.connection_set = False if port2 is None else True
         self.port1 = port1  # either first port when creating connection or always OutputPort if connection is set
-        self.port2 = port2 if self.connection_set else GPort(-1, self.port1.get_connection_point())  # usually InputPort
+        self.port2 = port2 if self.connection_set else GPort(-1, None, self.port1.get_connection_point())  # usually InputPort
         # drawing options
         color = self.color.get(state, Qt.black)
         self.full_pen = QtGui.QPen(color, self.LINE_THICKNESS)
@@ -42,9 +45,10 @@ class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.setZValue(10.0)
         self.setFlag(self.ItemIsSelectable)
         self.update_gfx()
-        self.setToolTip("conn_type")
         self.setCursor(Qt.ArrowCursor)
         self.setAcceptHoverEvents(True)
+        self.tool_tip = GTooltipItem(self, color)
+        self.tool_tip.set_text(self.text.get(state, "(Unknown state)"))
 
     @property
     def name(self):
@@ -52,6 +56,28 @@ class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
             return "Connection from: (" + str(self.port1) + ") to: (" + str(self.port2) + ")"
         else:
             return "Connection from: (" + str(self.port1) + ")"
+
+    def hoverEnterEvent(self, event):
+        super(GConnection, self).hoverEnterEvent(event)
+        if self.connection_set:
+            if (    not self.port1.mapToScene(self.port1.boundingRect()).boundingRect()
+                    .contains(self.mapToScene(event.pos())) and
+                    not self.port2.mapToScene(self.port2.boundingRect()).boundingRect()
+                            .contains(self.mapToScene(event.pos()))):
+                self.tool_tip.tooltip_request(event.pos())
+
+    def hoverMoveEvent(self, event):
+        if not self.tool_tip.timer.isActive():
+            if (not self.port1.mapToScene(self.port1.boundingRect()).boundingRect()
+                    .contains(self.mapToScene(event.pos())) and
+                    not self.port2.mapToScene(self.port2.boundingRect()).boundingRect()
+                            .contains(self.mapToScene(event.pos()))):
+                self.tool_tip.tooltip_request(event.pos())
+        self.tool_tip.update_pos(event.pos())
+
+    def hoverLeaveEvent(self, event):
+        super(GConnection, self).hoverLeaveEvent(event)
+        self.tool_tip.timer.stop()
 
     def is_connected(self, port):
         """Returns True if this connection is attached to specified port."""
@@ -62,6 +88,8 @@ class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
 
     def __repr__(self):
         return self.name
+
+
 
     def mousePressEvent(self, event):
         """Mouse press is ignored by this connection if it is inside port."""
@@ -74,9 +102,9 @@ class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
     def itemChange(self, change_type, value):
         if change_type == QtWidgets.QGraphicsItem.ItemSelectedHasChanged:
             if self.isSelected():
-                self.setPen(self.dash_pen)
+                self.glow.show()
             else:
-                self.setPen(self.full_pen)
+                self.glow.hide()
         return super(GConnection, self).itemChange(change_type, value)
 
     def paint(self, painter, style, widget=None):
@@ -119,6 +147,7 @@ class GConnection(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self._shape.connectPath(right_curve)
         self._shape.closeSubpath()
 
+        self.glow.update_path(path)
 
         return path
 

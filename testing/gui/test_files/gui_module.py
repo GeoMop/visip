@@ -3,7 +3,7 @@ import visip_gui.test_files.home as home
 
 
 @wf.workflow
-def test_clas(self, a, b):
+def test_class1(self, a, b):
     self.c = [a]
     self.e = [self.c, [a, b]]
     list_3 = [[1, 4, 3, 3, 'str'], self.e[1][0]]
@@ -20,9 +20,9 @@ def test_class(self, a, b):
 
 @wf.analysis
 def test_analysis(self):
-    self.tuple = test_clas(a=10, b='hallo')
-    self.point = test_clas(a=home.Point(x=20, y=30), b=home.Point(x=40, y=50))
-    self.list = test_clas(a=1, b=2)
+    self.tuple = test_class1(a=10, b='hallo')
+    self.point = test_class1(a=home.Point(x=20, y=30), b=home.Point(x=40, y=50))
+    self.list = test_class1(a=1, b=2)
     self.extract = self.list[1]
     list_0 = [self.tuple, self.point, self.extract]
     return list_0

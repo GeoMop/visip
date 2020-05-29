@@ -251,7 +251,7 @@ class ActionCall:
         arg_names = [arg.value.get_code_instance_name() for arg in self.arguments]
         arg_values = [arg.value for arg in self.arguments]
 
-        full_action_name = representer.make_rel_name(self.action.__visip_module__, self.action.name)
+        full_action_name = representer.make_rel_name(self.action.__module__, self.action.__name__)
         #print(self.action)
         expr_format = self.action.call_format(representer, full_action_name, arg_names, arg_values)
         return expr_format

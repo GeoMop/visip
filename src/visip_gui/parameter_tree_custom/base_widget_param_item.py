@@ -15,12 +15,14 @@ class BaseWidgetParamItem(parametertree.parameterTypes.WidgetParameterItem):
                 self.focusNext(forward=False)
                 return True  ## don't let anyone else see this event
             elif ev.key() in (QtCore.Qt.Key_Enter, QtCore.Qt.Key_Return):
-                self.hideEditor()
+                pass
+                #self.hideEditor()
             elif ev.key() == QtCore.Qt.Key_Escape:
                 pass
 
         elif ev.type() == ev.FocusOut:
-            self.hideEditor()
+            pass
+            #self.hideEditor()
 
         return False
 

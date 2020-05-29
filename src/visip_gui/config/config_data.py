@@ -8,8 +8,11 @@ class ConfigData(object):
 
     if 'APPDATA' in os.environ:
         __config_dir__ = os.path.join(os.environ['APPDATA'], 'VISIP')
-    else:
+    elif 'HOME' in os.environ:
         __config_dir__ = os.path.join(os.environ['HOME'], '.visip')
+    else:
+        __config_dir__ = ""
+
 
     FILENAME = "config.json"
     FILE_PATH = os.path.join(__config_dir__, FILENAME)
@@ -27,7 +30,10 @@ class ConfigData(object):
         if not os.path.exists(self.__config_dir__):
             os.mkdir(self.__config_dir__)
         if os.path.exists(self.FILE_PATH):
-            self.load()
+            try:
+                self.load()
+            except json.decoder.JSONDecodeError:
+                pass
 
     @property
     def module_root_directory(self):

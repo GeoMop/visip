@@ -6,10 +6,12 @@ Graphical object representing an action in pipeline.
 
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt, QRectF
-from PyQt5.QtGui import QPixmap, QPainter
+from PyQt5.QtGui import QPixmap, QPainter, QBrush, QPen, QFont
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QStyleOptionGraphicsItem, QGraphicsItem
 
+from visip_gui.graphical_items.g_tooltip_item import GTooltipItem
 from visip_gui.graphical_items.g_tooltip_base import GTooltipBase
+from visip_gui.graphical_items.glow import Glow
 from .g_action_background import GActionBackground, ActionStatus
 from .g_port import GPort, GInputPort, GOutputPort
 from visip_gui.util.editable_text import EditableLabel
@@ -25,6 +27,12 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         :param parent: Action which holds this subaction: this GAction is inside parent GAction.
         """
         super(GAction, self).__init__(parent)
+        self._msg = "Action name has to be unique and at least one character long!"
+        self._msg_box = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,
+                                       "Duplicate object name", self._msg,
+                                       QtWidgets.QMessageBox.Ok)
+        self.glow = Glow(self)
+        self.glow.hide()
         self._width = g_data_item.data(GActionData.WIDTH)
         self._height = g_data_item.data(GActionData.HEIGHT)
         self.in_ports = []
@@ -48,6 +56,9 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.type_name = QGraphicsSimpleTextItem(w_data_item.action_name, self)
         self.type_name.setPos(QtCore.QPoint(self.resize_handle_width, GPort.SIZE / 2))
         self.type_name.setBrush(QtCore.Qt.white)
+        font = QFont()
+        font.setWeight(QFont.DemiBold)
+        self.type_name.setFont(font)
 
         self._name = EditableLabel(g_data_item.data(GActionData.NAME), self)
 
@@ -66,8 +77,6 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.width = self.width
 
         self.progress = 0
-
-
 
     def has_const_params(self):
         if len(self.w_data_item.parameters.parameters) > 0:
@@ -121,7 +130,11 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
 
     @name.setter
     def name(self, name):
+        old_name = self._name
         self._name.setPlainText(name)
+        if not self.name_has_changed():
+            self._name = old_name
+            raise ValueError
 
     @property
     def width(self):
@@ -142,8 +155,8 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
 
     @height.setter
     def height(self, value):
-        self._height = max(value, self._name.boundingRect().height() + GPort.SIZE +
-                           self.type_name.boundingRect().height() + GPort.SIZE)
+        self._height = max(value, GPort.SIZE + self._name.boundingRect().height() +
+                           self.type_name.boundingRect().height())
         self.position_ports()
         self.update_gfx()
         #self.resize_handles.update_handles()
@@ -175,10 +188,11 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.width = self.width
 
     def name_has_changed(self):
-        if not self.scene().action_name_changed(self.g_data_item, self.name) or self.name == "":
+        if not self.scene().action_name_changed(self.g_data_item, self.name) or self.name == "" :
             return False
         self.width = self.width
-        self.w_data_item.name(self.name)
+        self.w_data_item.set_name(self.name)
+
         self.scene().update()
         return True
 
@@ -196,9 +210,9 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
 
     def _add_ports(self, n_ports, appending=False):
         for i in range(n_ports):
-            self.add_g_port(True, "Input Port" + str(i))
+            self.add_g_port(True, self.w_data_item.arguments[i], "Input Port" + str(i))
         if appending and self.appending_ports:
-            self.add_g_port(True, "Appending port")
+            self.add_g_port(True, self.w_data_item.parameters.parameters, "Appending port")
             self.in_ports[-1].appending_port = True
 
         self.add_g_port(False, "Output Port")
@@ -207,7 +221,7 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         """Returns rectangle of the inner area of GAction."""
         return QRectF(self.resize_handle_width, GPort.SIZE / 2 + self.type_name.boundingRect().height() + 4,
                       self.width - 2 * self.resize_handle_width,
-                      self.height - GPort.SIZE - self.type_name.boundingRect().height() - 4)
+                      self.height - GPort.SIZE / 2 - self._name.boundingRect().height() - 4)
 
     def moveBy(self, dx, dy):
         super(GAction, self).moveBy(dx, dy)
@@ -217,6 +231,7 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         super(GAction, self).mousePressEvent(press_event)
         self.setCursor(QtCore.Qt.ClosedHandCursor)
         if press_event.button() == Qt.RightButton:
+            self.scene().clearSelection()
             self.setSelected(True)
 
     def mouseReleaseEvent(self, release_event):
@@ -243,6 +258,11 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
             for port in self.ports():
                 for conn in port.connections:
                     conn.update_gfx()
+        if change_type == QtWidgets.QGraphicsItem.ItemSelectedHasChanged:
+            if self.isSelected():
+                self.glow.show()
+            else:
+                self.glow.hide()
 
         '''
         elif change_type == self.ItemParentChange:
@@ -250,10 +270,13 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         '''
         return super(GAction, self).itemChange(change_type, value)
 
-    def paint(self, painter, item, widget=None):
+    def paint(self, painter, style, widget=None):
         """Update model of this GAction if necessary."""
         #self.setBrush(self.background.COLOR_PALETTE[self.status])
-        super(GAction, self).paint(painter, item, widget)
+
+        style.state &= ~QtWidgets.QStyle.State_Selected
+
+        super(GAction, self).paint(painter, style, widget)
 
     def paint_pixmap(self):
         progress = self.progress
@@ -268,19 +291,21 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         painter.setRenderHint(QPainter.Antialiasing, True)
         painter.translate(-rect.topLeft())
 
+        style = QStyleOptionGraphicsItem()
+        style.state &= ~QtWidgets.QStyle.State_Selected
         for child in self.childItems():
-            if child.flags() & QGraphicsItem.ItemStacksBehindParent:
+            if child.flags() & QGraphicsItem.ItemStacksBehindParent and child.isVisible():
                 painter.save()
                 painter.translate(child.mapToParent(self.pos()))
-                child.paint(painter, QStyleOptionGraphicsItem(), None)
+                child.paint(painter, style, None)
                 painter.restore()
 
-        self.paint(painter, QStyleOptionGraphicsItem())
+        self.paint(painter, style)
         for child in self.childItems():
-            if not child.flags() & QGraphicsItem.ItemStacksBehindParent:
+            if not child.flags() & QGraphicsItem.ItemStacksBehindParent and child.isVisible():
                 painter.save()
                 painter.translate(child.mapToParent(self.pos()))
-                child.paint(painter, QStyleOptionGraphicsItem(), None)
+                child.paint(painter, style, None)
                 painter.restore()
 
         painter.end()
@@ -293,18 +318,19 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.prepareGeometryChange()
         p = QtGui.QPainterPath()
         p.addRoundedRect(QtCore.QRectF(0, 0, self.width, self.height), 6, 6)
+        self.glow.update_path(p)
         if not self._hide_name:
             p.addRoundedRect(self.inner_area(), 4, 4)
         self.setPath(p)
         self.update()
         self.background.update_gfx()
 
-    def add_g_port(self, is_input, name=""):
+    def add_g_port(self, is_input, argument, name=""):
         """Adds a port to this GAction.
         :param is_input: Decides if the new port will be input or output.
         """
         if is_input:
-            self.in_ports.append(GInputPort(len(self.in_ports), QtCore.QPoint(0, 0), name, self))
+            self.in_ports.append(GInputPort(len(self.in_ports), argument, QtCore.QPoint(0, 0), name, self))
         else:
             self.out_ports.clear()
             self.out_ports.append(GOutputPort(len(self.out_ports), QtCore.QPoint(0, 0), name, self))

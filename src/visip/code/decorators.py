@@ -5,7 +5,7 @@ from ..dev import base
 from ..dev import action_workflow as wf
 from ..action import constructor
 from ..dev.parameters import ActionParameter, Parameters
-
+from ..dev import exceptions
 
 class _Variables:
     """
@@ -45,7 +45,8 @@ def workflow(func):
     output_action = wrap.into_action(func(*func_args))
     new_workflow = wf._Workflow(workflow_name)
     new_workflow.set_from_source(slots, output_type, output_action)
-    new_workflow.__visip_module__ = func.__module__
+    new_workflow.__module__ = func.__module__
+    new_workflow.__name__ = func.__name__
     return wrap.public_action(new_workflow)
 
 
@@ -76,11 +77,16 @@ def Class(data_class):
     """
     params = Parameters()
     for name, ann in data_class.__annotations__.items():
-        attr_type = wrap.unwrap_type(ann)
+        try:
+            attr_type = wrap.unwrap_type(ann)
+        except TypeError:
+            raise exceptions.ExcNoType(
+                f"Missing type for attribute '{name}' of the class '{data_class.__name__}'.")
         attr_default = data_class.__dict__.get(name, params.no_default)
         # Unwrapping of default value and type checking should be part of the Action creation.
         params.append(ActionParameter(name, attr_type, attr_default))
     dataclass_action = constructor.ClassActionBase.construct_from_params(data_class.__name__, params, module=data_class.__module__)
+    dataclass_action.__module__ = data_class.__module__
     return wrap.public_action(dataclass_action)
 
 def Enum(enum_cls):
@@ -102,7 +108,10 @@ def action_def(func):
     Input types are given by the type hints of the function params.
     """
     action_name = func.__name__
-    action = base._ActionBase(action_name)
+    action_module = func.__module__  # attempt to fix imported modules, but it brakes chained (successive) imports
+    action = base._ActionBase(action_name, action_module)
+    action.__module__ = func.__module__
+    action.__name__ = func.__name__
     action._evaluate = func
     action._extract_input_type()
     return wrap.public_action(action)

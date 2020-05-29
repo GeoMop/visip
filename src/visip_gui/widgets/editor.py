@@ -13,11 +13,11 @@ from visip_gui.widgets.base.g_base_model_view import GBaseModelView
 from .scene import Scene
 
 
-class Workspace(GBaseModelView):
+class Editor(GBaseModelView):
     """Graphics scene which handles user input and shows user the results."""
     def __init__(self, workflow, main_widget, available_actions, parent=None):
         """Initializes class."""
-        super(Workspace, self).__init__(parent)
+        super(Editor, self).__init__(parent)
         self.workflow = workflow
         self.scene = Scene(main_widget, workflow, available_actions, self)
         self.setScene(self.scene)
@@ -49,26 +49,28 @@ class Workspace(GBaseModelView):
 
     def mousePressEvent(self, press_event):
         """Store information about position where this event occurred."""
-        super(Workspace, self).mousePressEvent(press_event)
+        super(Editor, self).mousePressEvent(press_event)
         self.last_mouse_event_pos = press_event.pos()
         self.mouse_press_event_pos = press_event.pos()
 
     def dragEnterEvent(self, drag_enter):
         """Accept drag event if it carries action."""
-        if drag_enter.mimeData().hasText():
-            identifier = drag_enter.mimeData().text()
+        if drag_enter.mimeData().hasFormat("ActionDrag"):
+            identifier = drag_enter.mimeData().data("ActionDrag").data().decode("utf-8")
             index = identifier.rfind(".")
             module = identifier[:index]
             action_name = identifier[index + 1:]
-            if module == "wf" and (action_name == "Slot"):
-                drag_enter.acceptProposedAction()
-            if action_name in self.available_actions[module]:
+            try:
+                self.available_actions[module][action_name]
+            except KeyError as e:
+                print("Unknown action " + identifier)
+            else:
                 drag_enter.acceptProposedAction()
 
     def dropEvent(self, drop_event):
         """Create new action from dropped information"""
         self.scene.add_action(self.mapToScene(drop_event.pos()) - drop_event.source().get_pos_correction(),
-                              drop_event.mimeData().text())
+                              drop_event.mimeData().data("ActionDrag").data().decode("utf-8"))
         drop_event.acceptProposedAction()
 
     def dragMoveEvent(self, move_event):
@@ -77,7 +79,7 @@ class Workspace(GBaseModelView):
     def mouseMoveEvent(self, move_event):
         """ If new connection is being crated, move the loose end to mouse position.
             If user drags with right button pressed, move visible rectangle. """
-        super(Workspace, self).mouseMoveEvent(move_event)
+        super(Editor, self).mouseMoveEvent(move_event)
         if self.scene.new_connection is not None:
             self.scene.new_connection.set_port2_pos(self.mapToScene(move_event.pos()))
             self.scene.update()
@@ -94,7 +96,7 @@ class Workspace(GBaseModelView):
         self.last_mouse_event_pos = move_event.pos()
 
     def mouseReleaseEvent(self, release_event):
-        super(Workspace, self).mouseReleaseEvent(release_event)
+        super(Editor, self).mouseReleaseEvent(release_event)
         '''
         self.last_mouse_event_pos = release_event.pos()
         mouse_grabber = self.scene.mouseGrabberItem()
@@ -106,13 +108,15 @@ class Workspace(GBaseModelView):
 
     def contextMenuEvent(self, event):
         """Open context menu on right mouse button click if no dragging occurred."""
-        super(Workspace, self).contextMenuEvent(event)
-        if not self.viewport_moved:
-            self.scene.new_action_pos = self.mapToScene(event.pos())
-            self.edit_menu.exec_(event.globalPos())
-        else:
-            self.setCursor(QtCore.Qt.ArrowCursor)
-            self.viewport_moved = False
+        super(Editor, self).contextMenuEvent(event)
+        if not event.isAccepted():
+            if not self.viewport_moved:
+                self.scene.new_action_pos = self.mapToScene(event.pos())
+                self.edit_menu.exec_(event.globalPos())
+                event.accept()
+            else:
+                self.setCursor(QtCore.Qt.ArrowCursor)
+                self.viewport_moved = False
 
     def show_fps(self):
         """Debug tool"""
@@ -134,13 +138,13 @@ class Workspace(GBaseModelView):
             self.centerOn(self.scene.itemsBoundingRect().center())
         start = time.time()
 
-        super(Workspace, self).paintEvent(event)
+        super(Editor, self).paintEvent(event)
         self.frame_time += time.time() - start
         self.fps_count += 1
 
     def save(self):
         save_location = QFileDialog.getSaveFileName(self.parent(), "Select Save Location")
-        print(save_location)
+        #print(save_location)
         with open(save_location[0],'w') as save_file:
             self.scene.save_item(save_file, self.scene.action_model.get_item())
 

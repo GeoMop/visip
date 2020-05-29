@@ -42,11 +42,12 @@ class _ActionBase:
     - implement expansion to the Task DAG.
     - have _code representation
     """
-    def __init__(self, action_name = None):
+    def __init__(self, action_name = None, action_module="visip"):
         self.task_type = TaskType.Atomic
         self.is_analysis = False
         self.name = action_name or self.__class__.__name__
-        self.__visip_module__ = "visip"
+        self.__module__ = action_module
+        self.__name__ = self.name
         # Module where the action is defined.
         self._parameters = None
         # Parameter specification list, class attribute, no parameters by default.
@@ -61,6 +62,7 @@ class _ActionBase:
         Module prefix used in code generationn.
         :return:
         """
+        #TODO: TB - I think this property became obsolete. Also it currently doesn't work because __visip_module__ doesn't exist
         assert self.__visip_module__
         return self.__visip_module__
 
