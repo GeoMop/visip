@@ -42,6 +42,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.file_menu.export.triggered.connect(self.export_to_file)
 
         self.toolbox = ToolBox(self)
+        self.toolbox_dock.setWidget(self.toolbox)
 
         self.evaluation_window = EvalWindow()
 
@@ -65,7 +66,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _init_docks(self):
         """Initializes docks"""
         self.setCorner(Qt.BottomRightCorner, Qt.RightDockWidgetArea)
-        self.toolbox_dock = QtWidgets.QDockWidget("Toolbox", self)
+        self.toolbox_dock = QtWidgets.QDockWidget("Toolbox")
         self.toolbox_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.toolbox_dock)
         self.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
