@@ -3,6 +3,7 @@ PyQt5
 # indexed.py
 attrs
 pytypes
+typing_inspect
 pytest
 pytest-qt
 ruamel.yaml
