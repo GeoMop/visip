@@ -18,10 +18,10 @@ class TabWidget(QTabWidget):
         self.setTabsClosable(True)
         self.setTabShape(1)
         self.tabCloseRequested.connect(self.on_close_tab)
-        self.edit_menu = edit_menu
-        self.edit_menu.return_callable_action.triggered.connect(self.return_callable_action)
-        self.edit_menu.delete.triggered.connect(self.delete_items)
-        self.edit_menu.order_diagram.triggered.connect(self.order_diagram)
+        #self.edit_menu = edit_menu
+        edit_menu.return_callable_action.triggered.connect(self.return_callable_action)
+        edit_menu.delete.triggered.connect(self.delete_items)
+        edit_menu.order_diagram.triggered.connect(self.order_diagram)
         self.currentChanged.connect(self.current_changed)
         self.tabBarClicked.connect(self.before_curr_index_change)
 

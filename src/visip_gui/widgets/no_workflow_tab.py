@@ -11,7 +11,7 @@ class NoWorkflowTab(QWidget):
         self.welcome.setAlignment(Qt.AlignCenter)
         self.layout.addWidget(self.welcome)
 
-        self.new = QPushButton("Create new workflow")
+        self.new = QPushButton("Create new workflow...")
         self.layout.addWidget(self.new)
         self.new.setStyleSheet('QPushButton {color: blue; border:0px}')
         self.new.clicked.connect(fnc_create_new_workflow)

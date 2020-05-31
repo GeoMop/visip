@@ -170,7 +170,7 @@ class GBaseModelScene(QGraphicsScene):
                     prev_x = prev_x - items[i].width - 10
                     self.move(items[i].g_data_item, prev_x, None)
 
-            prev_y = prev_y + max_height + 50
+            prev_y = prev_y + max_height + 30
 
         self.update_model = True
         self.update()

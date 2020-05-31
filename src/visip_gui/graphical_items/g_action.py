@@ -9,6 +9,8 @@ from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtGui import QPixmap, QPainter, QBrush, QPen, QFont
 from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QStyleOptionGraphicsItem, QGraphicsItem
 
+from visip import _Slot
+from visip.dev.action_workflow import _SlotCall
 from visip_gui.graphical_items.g_tooltip_item import GTooltipItem
 from visip_gui.graphical_items.g_tooltip_base import GTooltipBase
 from visip_gui.graphical_items.glow import Glow
@@ -191,7 +193,10 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         if not self.scene().action_name_changed(self.g_data_item, self.name) or self.name == "" :
             return False
         self.width = self.width
-        self.w_data_item.set_name(self.name)
+        if isinstance(self.w_data_item, _SlotCall):
+            self.w_data_item.name = self.name
+        else:
+            self.w_data_item.set_name(self.name)
 
         self.scene().update()
         return True
