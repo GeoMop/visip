@@ -205,7 +205,17 @@ class Module:
         """
         # TODO: use BFS to find minimal reference, use aux dist or set to mark visited objects
         module_queue  = deque()     # queue of (module, alias_module_name)
-        module_queue.append( (mod_obj, alias) )
+
+        # TODO: must be tested, should replace hack in the 'insert_imported_module'
+        name, obj = alias, mod_obj
+        obj_mod_name = self.mod_name(obj)
+        if obj_mod_name in self._object_names:
+            return
+        alias_name = f"{name}".lstrip('.')
+        module_queue.append((obj, alias_name))
+        self._set_object_names(obj_mod_name, alias_name)
+        # ================
+
         while module_queue:
 
             mod_obj, mod_alias = module_queue.popleft()
