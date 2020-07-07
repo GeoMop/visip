@@ -380,3 +380,6 @@ class Scene(GBaseModelScene):
 
     def load_item(self):
         pass
+
+    def update_parameters(self):
+        self.workflow.update_parameters()

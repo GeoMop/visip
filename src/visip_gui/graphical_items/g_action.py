@@ -190,11 +190,12 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.width = self.width
 
     def name_has_changed(self):
-        if not self.scene().action_name_changed(self.g_data_item, self.name) or self.name == "" :
+        if not self.scene().action_name_changed(self.g_data_item, self.name) or self.name == "":
             return False
         self.width = self.width
         if isinstance(self.w_data_item, _SlotCall):
             self.w_data_item.name = self.name
+            self.scene().update_parameters()
         else:
             self.w_data_item.set_name(self.name)
 
