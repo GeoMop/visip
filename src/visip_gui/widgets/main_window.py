@@ -6,7 +6,7 @@ Main window.
 
 import os
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QByteArray
 from PyQt5.QtWidgets import QMessageBox
 
 from visip_gui.config.config_data import ConfigData
@@ -26,10 +26,17 @@ from visip_gui.menu.edit_menu import EditMenu
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self, app, parent=None):
         super(MainWindow, self).__init__(parent)
+        self.cfg = ConfigData()
         self._init_menu()
         self._init_docks()
 
-        self.cfg = ConfigData()
+
+        if not self.cfg.contains("mainWindow/geometry"):
+            self.resize(1000, 720)
+            self.move(300, 50)
+        else:
+            self.restoreGeometry(self.cfg.value("mainWindow/geometry", QByteArray()))
+
 
         self.property_editor = InputsEditor()
         self.properities_dock.setWidget(self.property_editor)
@@ -46,11 +53,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.evaluation_window = EvalWindow()
 
+
+        self.restoreState(self.cfg.value("mainWindow/windowState", QByteArray()))
+
         app.aboutToQuit.connect(self.before_exit)
 
     def before_exit(self):
-        cfg = ConfigData()
-        cfg.save()
+        self.cfg.setValue("mainWindow/geometry", self.saveGeometry())
+        self.cfg.setValue("mainWindow/windowState", self.saveState())
 
     def _init_menu(self):
         """Initializes menus"""
@@ -67,11 +77,13 @@ class MainWindow(QtWidgets.QMainWindow):
         """Initializes docks"""
         self.setCorner(Qt.BottomRightCorner, Qt.RightDockWidgetArea)
         self.toolbox_dock = QtWidgets.QDockWidget("Toolbox")
+        self.toolbox_dock.setObjectName("toolbox_dock")
         self.toolbox_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
         self.addDockWidget(Qt.LeftDockWidgetArea, self.toolbox_dock)
         self.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
 
         self.properities_dock = QtWidgets.QDockWidget("Inputs Editor", self)
+        self.properities_dock.setObjectName("properities_dock")
         self.properities_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea)
         self.addDockWidget(Qt.RightDockWidgetArea, self.properities_dock)
 
