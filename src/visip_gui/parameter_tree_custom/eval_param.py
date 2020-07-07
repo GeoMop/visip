@@ -1,3 +1,4 @@
+from PyQt5.QtWidgets import QTreeWidgetItem
 from pyqtgraph import parametertree
 
 from visip import _Value
@@ -15,15 +16,17 @@ class EvalParam(parametertree.parameterTypes.Parameter):
         self.setOpts(**opts)
         self.data = data
         self.populated = False
+        self.expandable = False
 
     def makeTreeItem(self, depth):
         self.opts["expanded"] = self.populated
         self.tree_item = self.itemClass(self, depth, self.on_expand)
+        if self.expandable:
+            self.tree_item.setChildIndicatorPolicy(QTreeWidgetItem.ShowIndicator)
         return self.tree_item
 
     def on_expand(self, fnc_add_param):
         if not self.populated:
-            self.clearChildren()
             self.fill_item(self, self.data, fnc_add_param)
             self.populated = True
             return True
@@ -66,8 +69,8 @@ class EvalParam(parametertree.parameterTypes.Parameter):
     @staticmethod
     def insert_item_and_make_expandable(root, child, value, fnc_add_param):
         if isinstance(value, (dict, tuple, list)) or hasattr(value, "__dict__"):
-            placeholder = parametertree.Parameter.create(name="placeholder")
-            child.addChild(placeholder)
+            child.expandable = True
+
         if fnc_add_param is None:
             root.addChild(child)
         else:
