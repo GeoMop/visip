@@ -1,7 +1,7 @@
 import attr
 from typing import List, Union
 
-@attr.s(auto_attribs=True, frozen=True)
+@attr.s(auto_attribs=True, frozen=True, repr=False)
 class Placeholder:
     name: str
 

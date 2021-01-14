@@ -208,7 +208,7 @@ class _Workflow(meta.MetaAction):
         """
         return [v.action_name() for v in self._action_calls]
 
-    @attr.s(auto_attribs=True)
+    @attr.s(auto_attribs=True, repr=False)
     class InstanceRepr:
         code: 'format.Format'
         # A formatting string for the code.

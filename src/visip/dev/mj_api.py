@@ -41,7 +41,7 @@ class ExecutionModel:
     def predict(self, n_cores, task_params, program_params, resource_params):
         pass
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, repr=False)
 class Resource:
     """
     Represents a logical computational resource with given capabilities.
@@ -105,7 +105,7 @@ class WorkerStatus(enum.IntEnum):
 
 
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, repr=False)
 class WorkerProxy:
     """
     Reserved part of resource with fixed number of cores, reseerved memory and wall time.

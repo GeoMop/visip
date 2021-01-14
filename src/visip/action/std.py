@@ -19,7 +19,7 @@ from ..dev import tools
 Folder = NewType('Folder', str)
 FileOut = NewType('FileOut', str)
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, repr=False)
 class FileIn(dtype.DataClassBase):
     """
     Represent an existing input file.
@@ -33,7 +33,7 @@ class FileIn(dtype.DataClassBase):
     def __str__(self):
         return self.path
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, repr=False)
 class ExecResult(dtype.DataClassBase):
     args: List[str]
     return_code: int

@@ -19,7 +19,7 @@ class ActionInputStatus(enum.IntEnum):
     ok          = 2      # correct input
 
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, repr=False)
 class ActionArgument:
     parameter: ActionParameter
     value: Optional['ActionCall'] = None
