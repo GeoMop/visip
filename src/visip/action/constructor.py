@@ -140,7 +140,7 @@ class ClassActionBase(_ActionBase):
         if module:
             data_class.__module__ = module
 
-        return attr.s(data_class)
+        return attr.s(repr=False)(data_class)
 
     @classmethod
     def construct_from_params(cls, name: str, params: Parameters, module=None):

@@ -25,6 +25,8 @@ from ..code import wrap
 from ..code.dummy import Dummy
 from . import tools
 
+from loom.client import Client, tasks
+
 
 class Resource:
     """
@@ -90,7 +92,7 @@ class Resource:
                 assert task.is_ready()
                 result = task.evaluate_fn()
                 data_inputs = [input.result for input in task.inputs]
-                res_value = result(data_inputs)
+                res_value = self.compute(result, data_inputs)
                 # print(task.action)
                 # print(task.inputs)
                 # print(task_hash, res_value)
@@ -99,6 +101,31 @@ class Resource:
             task.finish(result=res_value, task_hash=task_hash)
             self._finished.append(task)
 
+    def compute(self, result, data_inputs):
+        res_value = result(data_inputs)
+        return res_value
+
+
+class ResourceLoom(Resource):
+    def __init__(self):
+        super().__init__()
+
+        self._loom_client = Client("localhost", 9010)
+
+    def compute(self, result, data_inputs):
+        # create loom python object
+        loom_data_inputs = tasks.py_value(data_inputs)
+
+        # create loom python task
+        @tasks.py_task(context=True)
+        def f(ctx, a):
+            return ctx.wrap(result(a.unwrap()))
+
+        # submit task and gather result
+        t = f(loom_data_inputs)
+        res_value = self._loom_client.submit_one(t).gather()
+
+        return res_value
 
 
 
@@ -208,7 +235,7 @@ class Scheduler:
 
 
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, repr=False)
 class Result:
     input: bytearray
     result: bytearray

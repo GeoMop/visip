@@ -22,7 +22,7 @@ class NoDefault:
 #     # Optional default value of the configuration parameter.
 
 
-@attr.s(auto_attribs=True)
+@attr.s(auto_attribs=True, repr=False)
 class ActionParameter:
     """
     Description of a single parameter of a function (action).
