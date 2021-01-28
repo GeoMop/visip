@@ -20,6 +20,7 @@ import time
 from . import data, task as task_mod, base, dfs,  dtype as dtype, action_instance as instance
 from .action_workflow import _Workflow
 from ..action.constructor import Value
+from ..action.std import ExecResult
 from ..eval.cache import ResultCache
 from ..code import wrap
 from ..code.dummy import Dummy
@@ -128,7 +129,127 @@ class ResourceLoom(Resource):
         return res_value
 
 
+class ResourceLoom2(Resource):
+    def __init__(self):
+        super().__init__()
 
+        self._loom_client = Client("localhost", 9010)
+
+    def submit(self, task):
+        is_ready = task.is_ready()
+        assert task.status >= task_mod.Status.ready
+        if is_ready:
+            # hash of action and inputs
+            # TODO: move into task
+            task_hash = task.lazy_hash()
+            # Check result cache
+
+            res_value = self.cache.value(task_hash)
+            if res_value is self.cache.NoValue:
+                assert task.is_ready()
+                data_inputs = [input.result for input in task.inputs]
+                if isinstance(task, task_mod.AtomicSystem) and data_inputs[0][0] == "../flow.shx":
+                    res_value = self.compute2(task, data_inputs)
+                elif isinstance(task, task_mod.AtomicSystem) and data_inputs[0][0] == "../gmsh.sh":
+                    res_value = self.compute3(task, data_inputs)
+                else:
+                    result = task.evaluate_fn()
+                    res_value = self.compute0(result, data_inputs)
+                self.cache.insert(task_hash, res_value)
+
+            task.finish(result=res_value, task_hash=task_hash)
+            self._finished.append(task)
+
+    def compute(self, result, data_inputs):
+        # create loom python object
+        loom_data_inputs = tasks.py_value(data_inputs)
+
+        # create loom python task
+        @tasks.py_task(context=True)
+        def f(ctx, a):
+            return ctx.wrap(result(a.unwrap()))
+
+        # submit task and gather result
+        t = f(loom_data_inputs)
+        res_value = self._loom_client.submit_one(t).gather()
+
+        return res_value
+
+    def compute2(self, task, data_inputs):
+        # nevim jak ziskat
+        args = [os.path.abspath('../flow.sh'), 'darcy_flow.yaml', '-o', '.']
+        input_files = ["darcy_flow.yaml", "square.msh"]
+        output_files = ["flow_fields/flow_fields-000000.vtu", "low123.0.log", "flow_fields.pvd"]
+
+        # create const tasks from input files
+        input_files_tasks = []
+        for f in input_files:
+            with open(f, "rb") as fd:
+                t = tasks.const(fd.read())
+            input_files_tasks.append(t)
+
+        task_run = tasks.run(tuple(args),
+                             [(t, f) for t, f in zip(input_files_tasks, input_files)],
+                             outputs=(None, ) + tuple(output_files))
+
+        # submit task and gather result
+        res = self._loom_client.submit_one(task_run).gather()
+
+        # we need list
+        if not isinstance(res, list):
+            res = [res]
+
+        # write outputs to files
+        for i, f in enumerate(output_files):
+            with open(f, "wb") as fd:
+                fd.write(res[i + 1])
+
+        return ExecResult(
+            args=args,
+            return_code=0,
+            workdir=os.getcwd(),
+            stdout=res[0],
+            stderr="")
+
+    def compute3(self, task, data_inputs):
+        # nevim jak ziskat
+        args = [os.path.abspath('../gmsh.sh'), 'square.geo', '-2', '-clscale', '0.1', '-format', 'msh2', '-o', 'square.msh']
+        input_files = ["square.geo"]
+        output_files = ["square.msh"]
+
+        # create const tasks from input files
+        input_files_tasks = []
+        for f in input_files:
+            with open(f, "rb") as fd:
+                t = tasks.const(fd.read())
+            input_files_tasks.append(t)
+
+        task_run = tasks.run(tuple(args),
+                             [(t, f) for t, f in zip(input_files_tasks, input_files)],
+                             outputs=(None, ) + tuple(output_files))
+
+        # submit task and gather result
+        res = self._loom_client.submit_one(task_run).gather()
+
+        # we need list
+        if not isinstance(res, list):
+            res = [res]
+
+        # write outputs to files
+        for i, f in enumerate(output_files):
+            with open(f, "wb") as fd:
+                fd.write(res[i + 1])
+
+        return ExecResult(
+            args=args,
+            return_code=0,
+            workdir=os.getcwd(),
+            stdout=res[0],
+            stderr="")
+
+    def compute0(self, result, data_inputs):
+        res_value = result(data_inputs)
+        return res_value
 
 
 class Scheduler:

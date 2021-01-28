@@ -83,7 +83,7 @@ def _subprocess_handle(redirection):
 
 
 @decorators.action_def
-def system(arguments: Command, stdout: Redirection = None, stderr: Redirection = None, workdir:str = '') -> ExecResult:
+def system(arguments: Command, stdout: Redirection = None, stderr: Redirection = None, workdir:str = '', input_files : List[str] = None, output_files : List[str] = None) -> ExecResult:
     """
     Execute a system command.  No support for portability.
     The files in the 'arguments' are converted to the file names.

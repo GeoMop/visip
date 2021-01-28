@@ -131,7 +131,10 @@ class _TaskBase:
         """
         task_type = action.task_type
         if task_type == base.TaskType.Atomic:
-            child = Atomic(action, input_tasks, parent_task, child_name)
+            if action.name == "system":
+                child = AtomicSystem(action, input_tasks, parent_task, child_name)
+            else:
+                child = Atomic(action, input_tasks, parent_task, child_name)
         elif task_type == base.TaskType.Composed:
             child = Composed(action, input_tasks, parent_task, child_name)
         else:
@@ -159,6 +162,12 @@ class Atomic(_TaskBase):
         TODO: should handle just status and possibly store the result
         since Resource may execute the task remotely.
         """
+        assert self.is_ready()
+        return self.action.evaluate
+
+
+class AtomicSystem(Atomic):
+    def evaluate_fn(self):
         assert self.is_ready()
         return self.action.evaluate
 
