@@ -148,19 +148,17 @@ class ResourceLoom2(Resource):
             if res_value is self.cache.NoValue:
                 assert task.is_ready()
                 data_inputs = [input.result for input in task.inputs]
-                if isinstance(task, task_mod.AtomicSystem) and data_inputs[0][0] == "../flow.shx":
-                    res_value = self.compute2(task, data_inputs)
-                elif isinstance(task, task_mod.AtomicSystem) and data_inputs[0][0] == "../gmsh.sh":
-                    res_value = self.compute3(task, data_inputs)
+                if isinstance(task, task_mod.AtomicSystem) and data_inputs[0][0].endswith("gmsh.sh"):
+                    res_value = self.compute_loom_system(task, data_inputs)
                 else:
                     result = task.evaluate_fn()
-                    res_value = self.compute0(result, data_inputs)
+                    res_value = self.compute_local(result, data_inputs)
                 self.cache.insert(task_hash, res_value)
 
             task.finish(result=res_value, task_hash=task_hash)
             self._finished.append(task)
 
-    def compute(self, result, data_inputs):
+    def compute_loom(self, result, data_inputs):
         # create loom python object
         loom_data_inputs = tasks.py_value(data_inputs)
 
@@ -175,34 +173,48 @@ class ResourceLoom2(Resource):
 
         return res_value
 
-    def compute2(self, task, data_inputs):
-        # nevim jak ziskat
-        args = [os.path.abspath('../flow.sh'), 'darcy_flow.yaml', '-o', '.']
-        input_files = ["darcy_flow.yaml", "square.msh"]
-        output_files = ["flow_fields/flow_fields-000000.vtu", "low123.0.log", "flow_fields.pvd"]
+    def compute_loom_system(self, task, data_inputs):
+        # get action inputs
+        args = [str(arg) for arg in data_inputs[0]]
+        input_files_abs = [os.path.abspath(path) for path in data_inputs[4]]
+        output_files_abs = [os.path.abspath(path) for path in data_inputs[5]]
+
+        # we need relative path of files
+        cwd = os.getcwd()
+        for i in range(len(args)):
+            if args[i].startswith(cwd):
+                args[i] = os.path.relpath(args[i])
+        input_files = [os.path.relpath(path) for path in input_files_abs]
+        output_files = [os.path.relpath(path) for path in output_files_abs]
 
         # create const tasks from input files
         input_files_tasks = []
-        for f in input_files:
-            with open(f, "rb") as fd:
-                t = tasks.const(fd.read())
+        for f in input_files_abs:
+            t = tasks.open(f)
             input_files_tasks.append(t)
 
         task_run = tasks.run(tuple(args),
                              [(t, f) for t, f in zip(input_files_tasks, input_files)],
                              outputs=(None, ) + tuple(output_files))
 
+        #task_run.resource_request = tasks.cpus(16)
+
+        # stdout task
+        if output_files_abs:
+            stdout_task = tasks.get(task_run, 0)
+        else:
+            # if no output files, task_run returns plain object with stdout
+            stdout_task = task_run
+
+        # create output files tasks
+        output_files_tasks = []
+        for i, f in enumerate(output_files_abs):
+            t = tasks.save(tasks.get(task_run, i + 1), f)
+            output_files_tasks.append(t)
+
         # submit task and gather result
-        res = self._loom_client.submit_one(task_run).gather()
-
-        # we need list
-        if not isinstance(res, list):
-            res = [res]
-
-        # write outputs to files
-        for i, f in enumerate(output_files):
-            with open(f, "wb") as fd:
-                fd.write(res[i + 1])
+        results = self._loom_client.submit((stdout_task, ) + tuple(output_files_tasks))
+        res = self._loom_client.gather(results)
 
         return ExecResult(
             args=args,
@@ -211,43 +223,141 @@ class ResourceLoom2(Resource):
             stdout=res[0],
             stderr="")
 
-    def compute3(self, task, data_inputs):
-        # nevim jak ziskat
-        args = [os.path.abspath('../gmsh.sh'), 'square.geo', '-2', '-clscale', '0.1', '-format', 'msh2', '-o', 'square.msh']
-        input_files = ["square.geo"]
-        output_files = ["square.msh"]
+    def compute_local(self, result, data_inputs):
+        res_value = result(data_inputs)
+        return res_value
+
+
+class LoomUncompleteTask:
+    def __init__(self, task, task_hash, loom_futures):
+        self.task = task
+        self.task_hash = task_hash
+        self.loom_futures = loom_futures
+
+    def finished(self):
+        for future in self.loom_futures:
+            if not future.finished():
+                future.client._process_events(lambda f: f == future)
+                # todo: ceka az bude hotovo
+                return False
+        return True
+
+
+class ResourceLoom3(Resource):
+    def __init__(self):
+        super().__init__()
+
+        self._loom_client = Client("localhost", 9010)
+
+        self._loom_uncomplete_tasks = []
+
+    def get_finished(self):
+        """
+        Return list of the tasks finished since the last call.
+        :return:
+        """
+        self.process_loom_tasks()
+        finished = self._finished
+        self._finished = []
+        return finished
+
+    def process_loom_tasks(self):
+        uncomplete = self._loom_uncomplete_tasks
+        self._loom_uncomplete_tasks = []
+        for t in uncomplete:
+            if t.finished():
+                res = self._loom_client.gather(t.loom_futures)
+                # todo: poresit args, workdir
+                res_value = ExecResult(args=[], return_code=0, workdir=os.getcwd(), stdout=res[0], stderr="")
+                self.cache.insert(t.task_hash, res_value)
+                t.task.finish(result=res_value, task_hash=t.task_hash)
+                self._finished.append(t.task)
+            else:
+                self._loom_uncomplete_tasks.append(t)
+
+    def submit(self, task):
+        is_ready = task.is_ready()
+        assert task.status >= task_mod.Status.ready
+        if is_ready:
+            # hash of action and inputs
+            # TODO: move into task
+            task_hash = task.lazy_hash()
+            # Check result cache
+
+            res_value = self.cache.value(task_hash)
+            if res_value is self.cache.NoValue:
+                assert task.is_ready()
+                data_inputs = [input.result for input in task.inputs]
+                if isinstance(task, task_mod.AtomicSystem) and data_inputs[0][0].endswith("gmsh.sh"):
+                    self.compute_loom_system(task, task_hash, data_inputs)
+                    return
+                else:
+                    result = task.evaluate_fn()
+                    res_value = self.compute_local(result, data_inputs)
+                    self.cache.insert(task_hash, res_value)
+            task.finish(result=res_value, task_hash=task_hash)
+            self._finished.append(task)
+
+    def compute_loom(self, result, data_inputs):
+        # create loom python object
+        loom_data_inputs = tasks.py_value(data_inputs)
+
+        # create loom python task
+        @tasks.py_task(context=True)
+        def f(ctx, a):
+            return ctx.wrap(result(a.unwrap()))
+
+        # submit task and gather result
+        t = f(loom_data_inputs)
+        res_value = self._loom_client.submit_one(t).gather()
+
+        return res_value
+
+    def compute_loom_system(self, task, task_hash, data_inputs):
+        # get action inputs
+        args = [str(arg) for arg in data_inputs[0]]
+        input_files_abs = [os.path.abspath(path) for path in data_inputs[4]]
+        output_files_abs = [os.path.abspath(path) for path in data_inputs[5]]
+
+        # we need relative path of files
+        cwd = os.getcwd()
+        for i in range(len(args)):
+            if args[i].startswith(cwd):
+                args[i] = os.path.relpath(args[i])
+        input_files = [os.path.relpath(path) for path in input_files_abs]
+        output_files = [os.path.relpath(path) for path in output_files_abs]
 
         # create const tasks from input files
         input_files_tasks = []
-        for f in input_files:
-            with open(f, "rb") as fd:
-                t = tasks.const(fd.read())
+        for f in input_files_abs:
+            t = tasks.open(f)
             input_files_tasks.append(t)
 
         task_run = tasks.run(tuple(args),
                              [(t, f) for t, f in zip(input_files_tasks, input_files)],
                              outputs=(None, ) + tuple(output_files))
 
+        #task_run.resource_request = tasks.cpus(16)
+
+        # stdout task
+        if output_files_abs:
+            stdout_task = tasks.get(task_run, 0)
+        else:
+            # if no output files, task_run returns plain object with stdout
+            stdout_task = task_run
+
+        # create output files tasks
+        output_files_tasks = []
+        for i, f in enumerate(output_files_abs):
+            t = tasks.save(tasks.get(task_run, i + 1), f)
+            output_files_tasks.append(t)
+
         # submit task and gather result
-        res = self._loom_client.submit_one(task_run).gather()
+        results = self._loom_client.submit((stdout_task, ) + tuple(output_files_tasks))
+        self._loom_uncomplete_tasks.append(LoomUncompleteTask(task, task_hash, results))
 
-        # we need list
-        if not isinstance(res, list):
-            res = [res]
 
-        # write outputs to files
-        for i, f in enumerate(output_files):
-            with open(f, "wb") as fd:
-                fd.write(res[i + 1])
-
-        return ExecResult(
-            args=args,
-            return_code=0,
-            workdir=os.getcwd(),
-            stdout=res[0],
-            stderr="")
-
-    def compute0(self, result, data_inputs):
+    def compute_local(self, result, data_inputs):
         res_value = result(data_inputs)
         return res_value
 
