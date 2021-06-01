@@ -1,0 +1,9 @@
+qsub -I -q charon_2h -l select=1:ncpus=1:mem=4gb:scratch_local=10gb:host=charon23.nti.tul.cz
+module add python/python-3.7.7-gcc-8.3.0-t4loj4a
+module add protobuf/protobuf-3.11.2-gcc-6.3.0-b6aiuo7
+
+cd loom/file_transfer/
+
+../HyperLoom/_build/src/server/loom-server &
+../HyperLoom/_build/src/worker/loom-worker --cpu=2 --wdir=$SCRATCHDIR charon24 9010 &
+../env/bin/python test.py

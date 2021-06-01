@@ -1,0 +1,272 @@
+Forward:
+-------------------------------
+File size: 10
+pass 1
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.072441 s
+pass 2
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.068903 s
+pass 3
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.090683 s
+pass 4
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.058495 s
+pass 5
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.073472 s
+pass 6
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.066305 s
+pass 7
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.098254 s
+pass 8
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.068108 s
+pass 9
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.059281 s
+pass 10
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.068612 s
+
+Mean time: 0.072455 s
+
+-------------------------------
+File size: 1048576
+pass 1
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.113264 s
+pass 2
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.078072 s
+pass 3
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.080128 s
+pass 4
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.074576 s
+pass 5
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.103530 s
+pass 6
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.076451 s
+pass 7
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.077223 s
+pass 8
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.075737 s
+pass 9
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.110220 s
+pass 10
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 0.073211 s
+
+Mean time: 0.086241 s
+
+-------------------------------
+File size: 1073741824
+pass 1
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 9.232940 s
+pass 2
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 9.254029 s
+pass 3
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 9.430095 s
+pass 4
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 9.228068 s
+pass 5
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 9.248395 s
+pass 6
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 9.224812 s
+pass 7
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 9.221673 s
+pass 8
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 9.256549 s
+pass 9
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 9.229663 s
+pass 10
+host1: charon23.nti.tul.cz
+host2: charon24.nti.tul.cz
+t: 9.226284 s
+
+Mean time: 9.255251 s
+
+
+Reverse:
+-------------------------------
+File size: 10
+pass 1
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.065773 s
+pass 2
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.074178 s
+pass 3
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.058077 s
+pass 4
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.061790 s
+pass 5
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.064842 s
+pass 6
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.063931 s
+pass 7
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.061539 s
+pass 8
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.064015 s
+pass 9
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.060085 s
+pass 10
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.059062 s
+
+Mean time: 0.063329 s
+
+-------------------------------
+File size: 1048576
+pass 1
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.066713 s
+pass 2
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.069972 s
+pass 3
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.069669 s
+pass 4
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.070753 s
+pass 5
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.071985 s
+pass 6
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.069776 s
+pass 7
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.070288 s
+pass 8
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.067631 s
+pass 9
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.065244 s
+pass 10
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 0.070504 s
+
+Mean time: 0.069254 s
+
+-------------------------------
+File size: 1073741824
+pass 1
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 9.215601 s
+pass 2
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 9.217578 s
+pass 3
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 9.258809 s
+pass 4
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 9.215485 s
+pass 5
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 9.212099 s
+pass 6
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 9.247855 s
+pass 7
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 9.212086 s
+pass 8
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 9.217598 s
+pass 9
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 9.230350 s
+pass 10
+host1: charon24.nti.tul.cz
+host2: charon23.nti.tul.cz
+t: 9.211571 s
+
+Mean time: 9.223903 s
