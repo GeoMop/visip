@@ -20,14 +20,17 @@ from typing import NewType
 import pickle
 import hashlib
 
-HashValue = NewType('HashValue', int)
+HashValue = NewType('HashValue', bytes)
 
-default_hash_fn = hash
-def my_hash(x, seed=0):
-    return default_hash_fn((x, seed))
+default_hash = hashlib.sha256
+def my_hash(x, seed=b""):
+    m = default_hash()
+    m.update(x)
+    m.update(seed)
+    return m.digest()
 
 hasher_fn = my_hash
-def hash_stream(stream: bytearray, previous:HashValue=0) -> HashValue:
+def hash_stream(stream: bytearray, previous:HashValue=b"") -> HashValue:
     """
     Compute the hash of the bytearray.
     We use fast non-cryptographic hashes long enough to keep probability of collision rate at
@@ -40,22 +43,22 @@ def hash_stream(stream: bytearray, previous:HashValue=0) -> HashValue:
     """
     return hasher_fn(stream, seed=previous)
 
-def hash(data, previous=0):
-    return hash_stream(str(data), previous)
+def hash(data, previous=b""):
+    return hash_stream(str(data).encode('utf-8'), previous)
 
 
 def hash_file(file_path):
     # BUF_SIZE is totally arbitrary, change for your app!
     BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
-    sha1 = hashlib.sha1()
+    m = default_hash()
 
     with open(file_path, 'rb') as f:
         while True:
             data = f.read(BUF_SIZE)
             if not data:
                 break
-            sha1.update(data)
-    return hash(sha1.digest())
+            m.update(data)
+    return m.digest()
 
 
 def serialize(data):

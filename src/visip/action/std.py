@@ -28,7 +28,7 @@ class FileIn(dtype.DataClassBase):
     two as separate types.
     """
     path: str
-    hash: int
+    hash: bytes
 
     def __str__(self):
         return self.path
