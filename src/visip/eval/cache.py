@@ -48,14 +48,13 @@ class ResultCacheMongo(ResultCache):
         })
         if res:
             try:
-                value = data.deserialize(res['value'])
+                value = res['value']
                 return value
             except KeyError:
                 pass
         return ResultCache.NoValue
 
-    def insert(self, hash_int, value):
-        thebytes = data.serialize(value)
+    def insert(self, hash_int, bin_data):
         self.mongo_collection.update_one(
             filter={
                 'hash_int': hash_int
@@ -63,7 +62,7 @@ class ResultCacheMongo(ResultCache):
             update={
                 '$set': {
                     'hash_int': hash_int,
-                    'value': bson.binary.Binary(thebytes)
+                    'value': bson.binary.Binary(bin_data)
                 }
             },
             upsert=True
