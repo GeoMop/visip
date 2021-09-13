@@ -55,7 +55,8 @@ setuptools.setup(
                       'attrs',
                       'pytypes',
                       'typing-inspect',
-                      'pyqtgraph'],
+                      'pyqtgraph',
+                      'pymongo'],
     setup_requires=['wheel'],
     python_requires='>=3.6',
     # extras_require={
