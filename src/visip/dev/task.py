@@ -31,6 +31,8 @@ class _TaskBase:
         # Input tasks for the action's arguments.
         self.outputs: List['Atomic'] = []
         # List of tasks dependent on the result. (Try to not use and eliminate.)
+        self.input_hashes = []
+        # hashes of input tasks
         self.id: int = 0
         # Task is identified by the hash of the hash of its parent task and its name within the parent.
         self.parent: Optional['Composed'] = parent
@@ -58,6 +60,9 @@ class _TaskBase:
             assert isinstance(input, _TaskBase)
             self.inputs.append(input)
             input.outputs.append(self)
+
+        self.input_hashes = [input.result_hash for input in inputs]
+        self._result_hash = self.lazy_hash()
 
 
 
@@ -87,17 +92,15 @@ class _TaskBase:
             task_hash = data.hash(input.result_hash, previous=task_hash)
         return task_hash
 
-    def finish(self, result, task_hash):
+    def finish(self, result):
         """
         Store the result of the action.
         :param result: The result value.
-        :param task_hash: The hash of lazy evaluation of the value (hash of the action chain)
         :return:
         """
         assert result is not self.no_value
         self.status = Status.finished
         self._result = result
-        self._result_hash = task_hash
 
     def is_finished(self):
         return self.result is not self.no_value
@@ -180,6 +183,10 @@ class ComposedHead(Atomic):
     def result(self):
         return self.inputs[0].result
 
+    @property
+    def result_hash(self):
+        return self.inputs[0].result_hash
+
 
 class Composed(Atomic):
     """
@@ -259,6 +266,7 @@ class Composed(Atomic):
             assert len(result_task.outputs) == 0
             result_task.outputs.append(self)
             self.inputs = [result_task]
+            self.input_hashes = [result_task.result_hash]
             # After expansion the composed task is just a dummy task dependent on the previoous result.
             # This works with Workflow, see how it will work with other composed actions:
             # if, reduce (for, while)

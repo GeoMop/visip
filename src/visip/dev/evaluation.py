@@ -77,27 +77,31 @@ class Resource:
         return finished
 
     def submit(self, task):
-        is_ready = task.is_ready()
-        assert task.status >= task_mod.Status.ready
-        if is_ready:
-            # hash of action and inputs
-            # TODO: move into task
-            task_hash = task.lazy_hash()
-            # Check result cache
+        # is_ready = task.is_ready()
+        # assert task.status >= task_mod.Status.ready
+        # if is_ready:
+        # hash of action and inputs
+        # TODO: move into task
+        #task_hash = task.lazy_hash()
+        # Check result cache
 
-            res_value = self.cache.value(task_hash)
-            if res_value is self.cache.NoValue:
-                assert task.is_ready()
-                result = task.evaluate_fn()
-                data_inputs = [input.result for input in task.inputs]
-                res_value = result(data_inputs)
-                # print(task.action)
-                # print(task.inputs)
-                # print(task_hash, res_value)
-                self.cache.insert(task_hash, res_value)
+        res_value = self.cache.value(task.result_hash)
+        if res_value is self.cache.NoValue:
+            #assert task.is_ready()
+            result = task.evaluate_fn()
+            data_inputs = []
+            for input_hash in task.input_hashes:
+                input = self.cache.value(input_hash)
+                assert input is not self.cache.NoValue
+                data_inputs.append(input)
+            res_value = result(data_inputs)
+            # print(task.action)
+            # print(task.inputs)
+            # print(task_hash, res_value)
+            self.cache.insert(task.result_hash, res_value)
 
-            task.finish(result=res_value, task_hash=task_hash)
-            self._finished.append(task)
+        task.finish(result=res_value)
+        self._finished.append(task)
 
 
 
