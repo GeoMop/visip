@@ -88,13 +88,12 @@ class Resource:
         res_value = self.cache.value(task.result_hash)
         if res_value is self.cache.NoValue:
             #assert task.is_ready()
-            result = task.evaluate_fn()
             data_inputs = []
             for input_hash in task.input_hashes:
                 input = self.cache.value(input_hash)
                 assert input is not self.cache.NoValue
                 data_inputs.append(input)
-            res_value = result(data_inputs)
+            res_value = task.evaluate_fn(data_inputs)
             # print(task.action)
             # print(task.inputs)
             # print(task_hash, res_value)
@@ -160,7 +159,7 @@ class Scheduler:
         # collect finished tasks, update ready queue
         finished = []
         for resource in self.resources:
-            new_finished = resource.get_finished()
+            new_finished = [task.task_schedule for task in resource.get_finished()]
             for task in new_finished:
                 for dep_task in task.outputs:
                     self.ready_queue_push(dep_task)
@@ -177,7 +176,7 @@ class Scheduler:
         while self._ready_queue:
             task = heapq.heappop(self._ready_queue)
             if task.id in self.tasks:   # deal with duplicate entrieas in the queue
-                self.resources[task.resource_id].submit(task)
+                self.resources[task.resource_id].submit(task.task)
                 del self.tasks[task.id]
         return finished
 
@@ -351,7 +350,7 @@ class Evaluation:
         """
         return []
 
-    def execute(self, analysis) -> task_mod._TaskBase:
+    def execute(self, analysis) -> task_mod.TaskSchedule:
         """
         Execute the workflow.
         assigned_tasks_limit -  maximum number of tasks processed by the Scheduler
@@ -362,7 +361,7 @@ class Evaluation:
         """
         #TODO: Reinit scheduler and own structures to allow reuse of the Evaluation object.
 
-        self.final_task = task_mod._TaskBase._create_task(analysis, [], None, '__root__')
+        self.final_task = task_mod.TaskSchedule._create_task(analysis, [], None, '__root__')
         self.enqueue(self.final_task)
         # init scheduler
         self.tasks_update([self.final_task])
