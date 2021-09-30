@@ -41,8 +41,6 @@ class _TaskBase:
         self.input_hashes = input_hashes
         self._result_hash = self.lazy_hash()
 
-        self.task_schedule = task_schedule
-
     def action_hash(self):
         return self.action.action_hash()
 

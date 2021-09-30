@@ -132,6 +132,9 @@ class Scheduler:
         self._topology_sort = []
         # Topological sort of the tasks.
 
+        self._task_map = {}
+        # Maps task.result_hash to list of tasks.
+
     def can_expand(self):
         return self.n_assigned_tasks < self.n_tasks_limit
     @property
@@ -159,7 +162,13 @@ class Scheduler:
         # collect finished tasks, update ready queue
         finished = []
         for resource in self.resources:
-            new_finished = [task.task_schedule for task in resource.get_finished()]
+            new_finished = []
+            for task in resource.get_finished():
+                try:
+                    new_finished.extend(self._task_map.pop(task.result_hash))
+                except KeyError:
+                    pass
+
             for task in new_finished:
                 for dep_task in task.outputs:
                     self.ready_queue_push(dep_task)
@@ -177,6 +186,13 @@ class Scheduler:
             task = heapq.heappop(self._ready_queue)
             if task.id in self.tasks:   # deal with duplicate entrieas in the queue
                 self.resources[task.resource_id].submit(task.task)
+
+                key = task.result_hash
+                if key in self._task_map:
+                    self._task_map[key].append(task)
+                else:
+                    self._task_map[key] = [task]
+
                 del self.tasks[task.id]
         return finished
 
