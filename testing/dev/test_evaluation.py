@@ -29,9 +29,10 @@ def test_evaluation(src_file):
     result = eval.execute(analysis)
 
     assert isinstance(result, task.Composed)
-    assert isinstance(result.result, Point._data_class)
-    assert result.result.x == 0
-    assert result.result.y == 3
+    res = eval.task_result(result)
+    assert isinstance(res, Point._data_class)
+    assert res.x == 0
+    assert res.y == 3
 
     # first level workflow
     assert result.action == analysis
@@ -40,10 +41,10 @@ def test_evaluation(src_file):
 
     # second level workflow
     assert test_wf_task.action == wf_test_class
-    assert test_wf_task.child('a').result.x == 0
-    assert test_wf_task.child('a').result.y == 1
-    assert test_wf_task.child('b').result.x == 2
-    assert test_wf_task.child('b').result.y == 3
+    assert eval.task_result(test_wf_task.child('a')).x == 0
+    assert eval.task_result(test_wf_task.child('a')).y == 1
+    assert eval.task_result(test_wf_task.child('b')).x == 2
+    assert eval.task_result(test_wf_task.child('b')).y == 3
 
 global_n_calls = 0
 

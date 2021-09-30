@@ -29,8 +29,6 @@ class _TaskBase:
         self.input_hashes = []
         # hashes of input tasks
 
-        self._result: Any = self.no_value
-        # The task result.
         self._result_hash = None
         # Hash of the result
 
@@ -45,10 +43,6 @@ class _TaskBase:
         return self.action.action_hash()
 
     @property
-    def result(self):
-        return self._result
-
-    @property
     def result_hash(self):
         return self._result_hash
 
@@ -57,15 +51,6 @@ class _TaskBase:
         for input_hash in self.input_hashes:
             task_hash = data.hash(input_hash, previous=task_hash)
         return task_hash
-
-    def finish(self, result):
-        """
-        Store the result of the action.
-        :param result: The result value.
-        :return:
-        """
-        assert result is not self.no_value
-        self._result = result
 
 
 class TaskSchedule:
@@ -109,7 +94,7 @@ class TaskSchedule:
     def priority(self):
         return 1
 
-    def is_ready(self):
+    def is_ready(self, cache):
         assert False, "Not implemented."
 
     def get_path(self):
@@ -148,16 +133,9 @@ class TaskSchedule:
     def set_evaluate_fn(self):
         pass
 
-    def is_finished(self):
-        return self.result is not _TaskBase.no_value
-
     @property
     def action(self):
         return self.task.action
-
-    @property
-    def result(self):
-        return self.task.result
 
     @property
     def result_hash(self):
@@ -167,13 +145,13 @@ class TaskSchedule:
 class Atomic(TaskSchedule):
 
 
-    def is_ready(self):
+    def is_ready(self, cache):
         """
         Update ready status, return
         :return:
         """
         if self.status < Status.ready:
-            is_ready = all([task.is_finished() for task in self.inputs])
+            is_ready = all([cache.value(task.result_hash) is not cache.NoValue for task in self.inputs])
             if is_ready:
                 self.status = Status.ready
         return self.status == Status.ready
@@ -227,12 +205,12 @@ class Composed(Atomic):
         self.childs: Atomic = None
         # map child_id to the child task, filled during expand.
 
-    def is_ready(self):
+    def is_ready(self, cache):
         """
         Block submission of unexpanded tasks.
         :return:
         """
-        return self.is_expanded() and Atomic.is_ready(self)
+        return self.is_expanded() and Atomic.is_ready(self, cache)
 
 
     def child(self, item: Union[int, str]) -> Optional[Atomic]:
@@ -258,7 +236,7 @@ class Composed(Atomic):
     def create_child_task(self, name, action, inputs):
         return TaskSchedule._create_task(action, inputs, self, name)
 
-    def expand(self):
+    def expand(self, cache):
         """
         Composed task expansion.
 
@@ -279,7 +257,7 @@ class Composed(Atomic):
         for head in heads:
             head.outputs = []
         # Generate and connect body tasks.
-        childs = self.action.expand(self, self.create_child_task)
+        childs = self.action.expand(self, self.create_child_task, cache)
         if childs is not None:
             self.childs = {task.child_id: task for task in childs}
             result_task = self.childs['__result__']

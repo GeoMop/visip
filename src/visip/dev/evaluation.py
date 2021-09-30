@@ -36,7 +36,7 @@ class Resource:
     We shall start with fixed number of resources, dynamic creation of executing PBS jobs can later be done.
 
     """
-    def __init__(self):
+    def __init__(self, cache:ResultCache):
         """
         Initialize time scaling and other features of the resource.
         """
@@ -53,7 +53,7 @@ class Resource:
         self._finished = []
 
 
-        self.cache = ResultCache()
+        self.cache = cache
 
     # def assign_task(self, task, i_thread=None):
     #     """
@@ -99,7 +99,6 @@ class Resource:
             # print(task_hash, res_value)
             self.cache.insert(task.result_hash, res_value)
 
-        task.finish(result=res_value)
         self._finished.append(task)
 
 
@@ -108,12 +107,14 @@ class Resource:
 
 
 class Scheduler:
-    def __init__(self, resources:Resource, n_tasks_limit:int = 1024):
+    def __init__(self, resources:Resource, cache:ResultCache, n_tasks_limit:int = 1024):
         """
         :param tasks_dag: Tasks to be evaluated.
         """
         self.resources = resources
         # Dict of available resources
+        self.cache = cache
+        # Result cache instance
         self.n_tasks_limit = n_tasks_limit
         # When number of assigned (and unprocessed) tasks is over the limit we do not accept
         # further DAG expansion.
@@ -153,7 +154,7 @@ class Scheduler:
         self.tasks.update({ t.id: t for t in tasks})
 
     def ready_queue_push(self, task):
-        if task.is_ready():
+        if task.is_ready(self.cache):
             heapq.heappush(self._ready_queue, task)
 
 
@@ -205,7 +206,7 @@ class Scheduler:
         """
         # perform topological sort
         def predecessors(task):
-            if task.is_finished():
+            if self.cache.value(task.result_hash) is not self.cache.NoValue:
                 return []
             else:
                 max_end_time = 0
@@ -315,8 +316,10 @@ class Evaluation:
 
         :param analysis: an action without inputs
         """
+        self.cache = ResultCache()
+
         if scheduler is None:
-            scheduler = Scheduler([ Resource() ])
+            scheduler = Scheduler([ Resource(self.cache) ], self.cache)
         self.scheduler = scheduler
         self.workspace = workspace
         self.plot_expansion = plot_expansion
@@ -349,7 +352,7 @@ class Evaluation:
         :param task:
         :return:
         """
-        if task.is_finished():
+        if self.cache.value(task.result_hash) is not self.cache.NoValue:
             task.eval_time = task.end_time - task.start_time
         else:
             task.time_estimate = 1
@@ -419,7 +422,7 @@ class Evaluation:
 
         while self.queue and not self.force_finish and self.scheduler.can_expand():
             composed_id, time, composed_task = heapq.heappop(self.queue)
-            task_dict = composed_task.expand()
+            task_dict = composed_task.expand(self.cache)
 
             if task_dict is None:
                 # Can not expand yet, return back into queue
@@ -452,7 +455,7 @@ class Evaluation:
             return task.inputs
 
         def previsit(task: 'Task'):
-            if task.is_finished():
+            if self.cache.value(task.result_hash) is not self.cache.NoValue:
                 color='green'
             else:
                 color='gray'
@@ -484,6 +487,9 @@ class Evaluation:
         except Exception as e:
             print(e)
 
+    def task_result(self, task):
+        return self.cache.value(task.result_hash)
+
 
 def run(action: Union[base._ActionBase, wrap.ActionWrapper],
         inputs:List[DataOrDummy] = None,
@@ -498,4 +504,5 @@ def run(action: Union[base._ActionBase, wrap.ActionWrapper],
         inputs = []
     analysis = Evaluation.make_analysis(action, inputs)
     eval_obj = Evaluation(**kwargs)
-    return eval_obj.execute(analysis).result
+    final_task = eval_obj.execute(analysis)
+    return eval_obj.task_result(final_task)

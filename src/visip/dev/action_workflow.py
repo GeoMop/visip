@@ -395,12 +395,13 @@ class _Workflow(meta.MetaAction):
             self._parameters.append(p)
 
 
-    def expand(self, task, task_creator):
+    def expand(self, task, task_creator, cache):
         """
         Expansion of the composed task with given data inputs (possibly None if not evaluated yet).
         :param inputs: List[Task]
         :param task_creator: Dependency injection method for creating tasks from action instances:
             task_creator(instance_name, action, input_tasks)
+        :param cache: Result cache instance
         :return:
             None if can not be expanded yet.
             List of created actions.

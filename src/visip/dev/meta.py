@@ -41,7 +41,7 @@ class MetaAction(base._ActionBase):
         # Task type determines how the actions are converted to the tasks.
         # Composed tasks are expanded.
 
-    def expand(self, task: 'Task', task_creator):
+    def expand(self, task: 'Task', task_creator, cache):
         """
         Expansion of the composed task. In order to no break input references of other tasks
         the current task is collapsed to an effective Pass action connected to the expansion __result__ task.
@@ -52,6 +52,7 @@ class MetaAction(base._ActionBase):
         :param task: The complex task to expand.
         :param task_creator: Dependency injection method for creating tasks from the actions:
             task_creator(instance_name:str, action:base._ActionBase, input_tasks:List[Task])
+        :param cache: Result cache instance
         :return:
             None if can not be expanded yet.
 
@@ -60,13 +61,13 @@ class MetaAction(base._ActionBase):
         """
         assert False, "Missing definition."
 
-    def dynamic_action(self, input_task):
+    def dynamic_action(self, input_result):
         """
         Extract a dynamic action from the result of a meta action.
-        :param input_task:
+        :param input_result:
         :return:
         """
-        action = input_task.result
+        action = input_result
         if isinstance(action, wrap.ActionWrapper):
             action = action.action
         if not isinstance(action, base._ActionBase):
@@ -186,10 +187,10 @@ class DynamicCall(MetaAction):
         #    ActionParameter(name=None, type=typing.Any, default=ActionParameter.no_default))
         self._output_type = ReturnType
 
-    def expand(self, task, task_creator):
-        if task.inputs[0].is_finished():
+    def expand(self, task, task_creator, cache):
+        if cache.value(task.inputs[0].result_hash) is not cache.NoValue:
             return [task_creator('__result__',
-                    self.dynamic_action(task.inputs[0]), task.inputs[1:])]
+                    self.dynamic_action(cache.value(task.inputs[0].result_hash)), task.inputs[1:])]
         else:
             return None
 
@@ -216,13 +217,13 @@ class _If(MetaAction):
             ActionParameter(name="false_body", type=dtype.Callable[..., ReturnType]))
         self._output_type = ReturnType
 
-    def expand(self, task, task_creator):
-        if all([ i_task.is_finished() for i_task in task.inputs]):
-            condition = task.inputs[0].result
+    def expand(self, task, task_creator, cache):
+        if all([cache.value(i_task.result_hash) is not cache.NoValue for i_task in task.inputs]):
+            condition = cache.value(task.inputs[0].result_hash)
             if condition:
-                return [task_creator('__result__', self.dynamic_action(task.inputs[1]), [])]
+                return [task_creator('__result__', self.dynamic_action(cache.value(task.inputs[1].result_hash)), [])]
             else:
-                return [task_creator('__result__', self.dynamic_action(task.inputs[2]), [])]
+                return [task_creator('__result__', self.dynamic_action(cache.value(task.inputs[2].result_hash)), [])]
         else:
             return None
 
