@@ -20,6 +20,7 @@ Implementation of the Workflow composed action.
 class _Slot(base._ActionBase):
     def __init__(self):
         super().__init__("_Slot")
+        self.action_kind = base.ActionKind.Generic
         self._parameters = Parameters()
         self._output_type = Any
 
@@ -58,6 +59,7 @@ class _Result(_ListBase):
     """
     def __init__(self):
         super().__init__(action_name='result')
+        self.action_kind = base.ActionKind.Generic
         self._parameters = Parameters()
         self._parameters.append(ActionParameter(name="result", type=Any, default=ActionParameter.no_default))
         # The return value, there should be always some return value, as we want to use "functional style".

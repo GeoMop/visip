@@ -36,6 +36,7 @@ class MetaAction(base._ActionBase):
     """
     def __init__(self, name):
         super().__init__(name)
+        self.action_kind = base.ActionKind.Meta
 
         self.task_type = base.TaskType.Composed
         # Task type determines how the actions are converted to the tasks.

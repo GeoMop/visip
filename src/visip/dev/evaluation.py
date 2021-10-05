@@ -55,6 +55,9 @@ class Resource:
 
         self.cache = cache
 
+        self.action_kind_list = [base.ActionKind.Regular, base.ActionKind.Meta, base.ActionKind.Generic]
+        # list of action kind that this resource is capable run
+
     # def assign_task(self, task, i_thread=None):
     #     """
     #     Just evaluate tthe task immediately.
@@ -136,6 +139,15 @@ class Scheduler:
         self._task_map = {}
         # Maps task.result_hash to list of tasks.
 
+        self._resource_map = {base.ActionKind.Regular: [],
+                              base.ActionKind.Meta: [],
+                              base.ActionKind.Generic: []}
+        # map from action kind to list of capable resources
+
+        for i, res in enumerate(self.resources):
+            for kind in res.action_kind_list:
+                self._resource_map[kind].append(i)
+
     def can_expand(self):
         return self.n_assigned_tasks < self.n_tasks_limit
     @property
@@ -216,7 +228,11 @@ class Scheduler:
             return task.inputs
 
         def post_visit(task):
-            task.resource_id = 0
+            kind = task.task.action.action_kind
+            kind_list = self._resource_map[kind]
+            assert kind_list, 'There are no resource capable of run "{}".'.format(kind)
+            task.resource_id = kind_list[0]
+
             self.ready_queue_push(task)
             self._topology_sort.append(task)
 

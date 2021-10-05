@@ -31,6 +31,12 @@ class TaskType(enum.Enum):
     Composed = 2
 
 
+class ActionKind(enum.IntEnum):
+    Regular = 1  # input and output have specific type
+    Meta = 2     # input or output is function / action
+    Generic = 3  # input or output is generic type
+
+
 
 
 class _ActionBase:
@@ -44,6 +50,7 @@ class _ActionBase:
     """
     def __init__(self, action_name = None, action_module="visip"):
         self.task_type = TaskType.Atomic
+        self.action_kind = ActionKind.Regular
         self.is_analysis = False
         self.name = action_name or self.__class__.__name__
         self.__module__ = action_module

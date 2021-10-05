@@ -11,6 +11,7 @@ class GetAttribute(base._ActionBase):
     """
     def __init__(self):
         super().__init__()
+        self.action_kind = base.ActionKind.Generic
 
     def call_format(self, representer, action_name, arg_names, arg_values):
         assert len(arg_names) == 2
@@ -32,6 +33,7 @@ class GetItem(base._ActionBase):
     """
     def __init__(self):
         super().__init__()
+        self.action_kind = base.ActionKind.Generic
 
     def call_format(self, representer, action_name, arg_names, arg_values):
         assert len(arg_names) == 2

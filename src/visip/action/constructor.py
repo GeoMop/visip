@@ -5,6 +5,7 @@ from ..dev.base import _ActionBase
 from ..dev import dtype as dtype
 from ..dev.parameters import Parameters, ActionParameter, extract_func_signature
 from ..dev import data
+from ..dev import base
 
 
 class Value(_ActionBase):
@@ -28,6 +29,7 @@ class Pass(_ActionBase):
     """
     def __init__(self):
         super().__init__()
+        self.action_kind = base.ActionKind.Generic
 
     def _evaluate(self, input: dtype.DataType):
         return input
@@ -46,6 +48,7 @@ class _ListBase(_ActionBase):
 
     def __init__(self, action_name):
         super().__init__(action_name)
+        self.action_kind = base.ActionKind.Generic
         self._parameters = Parameters()
         self._parameters.append(
             ActionParameter(name=None, type=typing.Any,
@@ -82,6 +85,7 @@ class A_tuple(_ListBase):
 class A_dict(_ActionBase):
     def __init__(self):
         super().__init__(action_name='dict')
+        self.action_kind = base.ActionKind.Generic
         self._parameters = Parameters()
         self._parameters.append(
             ActionParameter(name=None, type=typing.Tuple[typing.Any, typing.Any],
