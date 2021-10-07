@@ -1,6 +1,7 @@
 import os
 import visip as wf
 from visip.dev import evaluation
+import pytest
 # script_dir = os.path.dirname(os.path.realpath(__file__))
 
 
@@ -29,20 +30,20 @@ def test_action_returning_action():
 
 #######################
 
-# @wf.action_def
-# def add(a: float, b: float) -> float:
-#     return a + b
-#
-# @wf.analysis
-# def tst_partial_adder() -> float:
-#     adder_val = wf.partial(add, 7)
-#     return adder_val(2)
-#
-#
-# def test_partial():
-#     result = evaluation.run(tst_partial_adder)
-#     assert result == 9
-#
+@wf.action_def
+def add(a: float, b: float) -> float:
+    return a + b
+
+@wf.analysis
+def tst_partial_adder() -> float:
+    adder_val = wf.partial(add, 7)
+    return adder_val(2)
+
+@pytest.mark.skip
+def test_partial():
+    result = evaluation.run(tst_partial_adder)
+    assert result == 9
+
 #############################
 
 @wf.workflow

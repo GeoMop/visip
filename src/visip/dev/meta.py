@@ -20,7 +20,7 @@ from ..action import constructor
 from ..dev.parameters import Parameters, ActionParameter
 from . import dtype
 from ..code import wrap
-
+from .action_instance import ActionCall, ActionInputStatus
 
 class MetaAction(base._ActionBase):
     """
@@ -84,68 +84,109 @@ Partial TODO:
    - expand to the task of closure action conected to both X and Y tasks  
 """
 
+PartialReturnType = dtype.TypeVar('PartialReturnType')
+class _PartialClosure(MetaAction):
 
-# class _PartialClosure(MetaAction):
-#
-#     def __init__(self, function: base._ActionBase, args, kwargs):
-#         super().__init__("PartialClosure")
-#         self._function = function
-#         self._arg_tasks = args
-#         self._kwarg_tasks = kwargs
-#         # TODO: filter paratemters set Paratemers
-#         self._parameters = Parameters()
-#         # ?? Probably no need to specify parameters as the closure input substitution works only with tasks.
-#         # But we can make a check in the expansion step.
-#
-#
-#         # This allows DynamicCall to work
-#
-#     def expand(self, task, task_creator):
-#         # Always expand create the task with merged inputs.
-#         #TODO: merge new inputs to partial_args
-#         pass
-#
-#
-#
-# class Partial(MetaAction):
-#     def __init__(self):
-#         """
-#         Partial argument binding, creates a closure.
-#         TODO: support kwargs in visip, necessary for perfect forwarding
-#         """
-#         super().__init__("Partial")
-#         self._parameters = Parameters()
-#         PartialReturnType = dtype.TypeVar('PartialReturnType')
-#
-#         self._parameters.append(
-#             ActionParameter(name="function", type=dtype.Callable[..., PartialReturnType]))
-#         self._parameters.append(
-#             ActionParameter(name=None, type=dtype.Any, default=ActionParameter.no_default))
-#         # TODO: Support for kwargs forwarding.
-#         # TODO: Match 'function' parameters and given arguments.
-#         #self._parameters.append(
-#         #    ActionParameter(name=None, type=typing.Any, default=ActionParameter.no_default))
-#         self._output_type = dtype.Callable[..., PartialReturnType]
-#
-#
-#     def expand(self, task, task_creator):
-#         # TODO: need either support for partial substitution in Action Wrapper or must do it here.
-#         # Parameters of the resulting action must be determined dynamicaly.
-#         # TODO: Here is significant problem with parameter types since all are
-#         # optional
-#         assert len(task.inputs) == self._parameters.size()
-#         if task.inputs[0].is_finished():
-#             # Create the closure and mark the Partial task finished
-#             # independently on the status of the enclosed intputs.
-#             closure = _PartialClosure(self.dynamic_action(task.inputs[0]), task.inputs[1], {})
-#             task.finish(closure, task.lazy_hash()) # ?? May not work.
-#
-#             return [task_creator('__result__', constructor.Pass(), [task])]
-#         else:
-#             return None
+    def __init__(self, function, inputs, kw_inputs):
+        super().__init__("PartialClosure")
+        self._function = function
+        self._inputs = inputs
+        self._kw_inputs = kw_inputs
+        #self.
+        # Use acion call to consistently construct Parameters
+        # TODO: not clear how to use expansion to validate dynamic action calls
+        # and how to consistently report wrong connections
+        ac = ActionCall(function, '_closure_')
+        ac.set_inputs([self.task_value(ii) for ii in inputs],
+                      {k: self.task_value(ii) for k, ii in kw_inputs.items()}
+                      )
+        # TODO: filter paratemters set Paratemers
+        self._parameters = Parameters()
+        for arg in ac.arguments:
+            arg.status in  {ac.ActionInputStatus.default, ac.ActionInputStatus.missing}
+            self._parameters.append(arg.parameter)
+        # Keep only unbinded parameters.
+        # 1. Get all parameters of the 'function'.
+        # 2. Bind 'args' to the positional parameters from the beginning.
+        # 3. Bind 'kwargs' to named arguments.
+        # 4. anonymous positional and named gathered
+        #
+        # To not duplicate arguments processing:
+        # 1.Create an ActionCall in Partial with just some inputs set we must use a BindTask data
+        # to wrap input tasks to the Value actions.
+        # 2. Pass ActionCall to the Closure, extract unset parameters.
+        # 3. Finish ActionCall an expansion.
+
+
+        # ?? Probably no need to specify parameters as the closure input substitution works only with tasks.
+        # But we can make a check in the expansion step.
+
+
+        # This allows DynamicCall to work
+
+    def expand(self, task, task_creator):
+        # Always expand create the task with merged inputs.
+        # TODO: merge new inputs to partial_args
+        # TODO: How to match inputs to unbinded args.
+
+        ac = ActionCall(self.dynamic_action(task.inputs[0]), "_closure_")
+        self._inputs.expand(task.inputs)
+        self._kw_inputs.update(task._kw_inputs)
+        ac = ActionCall(self._function, '_closure_')
+        ac.set_inputs([self.task_value(ii) for ii in self._inputs],
+                      {k: self.task_value(ii) for k, ii in self._kw_inputs.items()}
+                      )
+        arg_tasks = [arg.value.input for arg in ac.arguments]
+        # TODO: How the args and kw_args will work in action call, here and in workflow expansion
+        # a bit complicated. 
+        task = task_creator('__result__', self._function, arg_tasks)
+        return [task]
+
+class Partial(MetaAction):
+    def __init__(self):
+        """
+        Partial argument binding, creates a closure.
+        TODO: support kwargs in visip, necessary for perfect forwarding
+        """
+        super().__init__("Partial")
+        self._parameters = Parameters()
+        PartialReturnType = dtype.TypeVar('PartialReturnType')
+
+        self._parameters.append(
+            ActionParameter(name="function", type=dtype.Callable[..., PartialReturnType]))
+        self._parameters.append(
+            ActionParameter(name=None, type=dtype.Any, default=ActionParameter.no_default))
+        # self._parameters.append(
+        #     ActionParameter(name=None, type=dtype.Any, default=ActionParameter.no_default))
+        # TODO: Support for kwargs forwarding.
+        # TODO: Match 'function' parameters and given arguments.
+        #self._parameters.append(
+        #    ActionParameter(name=None, type=typing.Any, default=ActionParameter.no_default))
+        self._output_type = dtype.Callable[..., PartialReturnType]
+
+
+    def expand(self, task, task_creator):
+        # TODO: need either support for partial substitution in Action Wrapper or must do it here.
+        # Parameters of the resulting action must be determined dynamicaly.
+        # TODO: Here is significant problem with parameter types since all are
+        # optional
+        assert len(task.inputs) == self._parameters.size()
+        if task.inputs[0].is_finished():
+            # Create the closure and mark the Partial task finished
+            # independently on the status of the enclosed intputs.
+            #ac = ActionCall(self.dynamic_action(task.inputs[0]), "_closure_")
+            #args = [ActionCall.create(constructor.Value(TaskValue(value))) for value in ]
+            #ac.set_inputs(args, {})
+            action = self.dynamic_action(task.inputs[0])
+            closure = _PartialClosure(action, task.inputs[1], task.inputs[2])
+            task.finish(closure, task.lazy_hash()) # ?? May not work.
+
+            return [task_creator('__result__', constructor.Pass(), [task])]
+        else:
+            return None
 
 #
-# PartialReturnType = dtype.TypeVar('PartialReturnType')
+
 # @decorators.action_def
 # def partial(function:dtype.Callable[..., PartialReturnType], *args:dtype.List[dtype.Any]) -> dtype.Callable[..., PartialReturnType]:
 #     # TODO: kwargs support

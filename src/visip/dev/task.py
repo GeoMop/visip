@@ -183,9 +183,14 @@ class Atomic(_TaskBase):
 
 class Composed(Atomic):
     """
-    Composed tasks are non-leaf vertices of the execution tree.
+    Composed tasks are non-leaf vertices of the execution (recursion) tree.
     The Evaluation class takes care of their expansion during execution according to the
-    preferences assigned by the Scheduler. It also keeps a map from
+    preferences assigned by the Scheduler.
+
+    After the expansion a composed task is still connected to its inputs, but the inputs are newly
+    connected to its slots. Moreover the composed task is made dependent on its own result and
+    while its evaluation is empty so any task dependent on the expanded task depends on the result only indirectly
+    through the expanded task. So the expansion doesn't break existing task dependencies.
     """
 
     def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'],

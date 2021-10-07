@@ -8,6 +8,7 @@ from . import dtype as dtype
 from ..code import representer
 
 class ActionInputStatus(enum.IntEnum):
+    error_default =  -5  # Invalid default value.
     error_impl  = -4     # Missing type hint or other error in the action implementation.
     missing     = -3     # missing value
     error_value = -2     # error input passed, can not be wrapped into an action
@@ -17,19 +18,18 @@ class ActionInputStatus(enum.IntEnum):
     none        = 0      # not checked yet
     seems_ok    = 1      # correct input, type not fully specified
     ok          = 2      # correct input
+    default     = 3      # default value.
 
 
 @attr.s(auto_attribs=True)
 class ActionArgument:
     parameter: ActionParameter
     value: Optional['ActionCall'] = None
-    is_default: bool = False
     status: ActionInputStatus = ActionInputStatus.missing
 
 InputDict = Dict[str, '_ActionBase']
 InputList = List['_ActionBase']
 RemainingArgs = Dict[Union[int, str], '_ActionBase']
-
 
 
 class ActionCall:
@@ -108,7 +108,8 @@ class ActionCall:
     def have_proper_name(self):
         return self._proper_instance_name
 
-    def make_argument(self, param, value: Optional['ActionCall']):
+    @staticmethod
+    def make_argument(param, value: Optional['ActionCall']):
         """
         Make ActionArgument from the ActionParameter and a value or ActionCall.
         - possibly get default value
@@ -117,12 +118,14 @@ class ActionCall:
         :param value: ActionCall connected to this argument
         :return:
         """
-
-        is_default = False
         if value is None:
             is_default, value = param.get_default()
             if is_default:
                 value = ActionCall.create(Value(value))
+                if dtype.TypeInspector().is_subtype(value.output_type, param.type):
+                    return ActionArgument(param, value, ActionInputStatus.default)
+                else:
+                    return ActionArgument(param, value, is_default, ActionInputStatus.error_default)
 
         if value is None:
             return ActionArgument(param, None, False, ActionInputStatus.missing)
@@ -132,18 +135,20 @@ class ActionCall:
 
         assert isinstance(value, ActionCall), type(value)
         check_type = param.type
+
+        # TODO: move this check into action only
         if param.type is None:
-            return ActionArgument(param, value, is_default, ActionInputStatus.error_impl)
+            return ActionArgument(param, value, ActionInputStatus.error_impl)
         if dtype.TypeInspector().is_constant(param.type):
             if isinstance(value, Value):
                 check_type = dtype.TypeInspector().constant_type(param.type)
             else:
-                return ActionArgument(param, value, is_default, ActionInputStatus.error_value)
+                return ActionArgument(param, value, ActionInputStatus.error_value)
 
         if not dtype.TypeInspector().is_subtype(value.output_type, check_type):
-            return  ActionArgument(param, value, is_default, ActionInputStatus.error_type)
+            return  ActionArgument(param, value, ActionInputStatus.error_type)
 
-        return ActionArgument(param, value, is_default, ActionInputStatus.seems_ok)
+        return ActionArgument(param, value, ActionInputStatus.seems_ok)
 
 
     def set_inputs(self, input_list: InputList = [], input_dict: InputDict={}) -> RemainingArgs:
