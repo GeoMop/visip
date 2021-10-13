@@ -179,4 +179,4 @@ class ClassActionBase(_ActionBase):
         a_hash = data.hash(self.name)
         for param in self.parameters:
             a_hash = data.hash(param.name, previous=a_hash)
-            a_hash = data.hash(param.name, previous=a_hash)
+        return a_hash
