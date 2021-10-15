@@ -180,7 +180,8 @@ class _ActionBase:
             "    pass"]
         return "\n".join(lines)
 
-
+    def __code__(self, representer):
+        return representer.make_rel_name(self.__module__, self.name)
 
 
 

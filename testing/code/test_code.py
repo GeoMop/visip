@@ -11,6 +11,7 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 
 
 @pytest.mark.parametrize("src_file", ["analysis_in.py", "dep_module_in.py", 'quadrature_in.py', 'wf_complex_in.py', 'import_user_defs_in.py', 'meta_actions_in.py'])
+#@pytest.mark.parametrize("src_file", ['meta_actions_in.py'])
 #@pytest.mark.parametrize("src_file", ["analysis_in.py", "dep_module_in.py", 'quadrature_in.py'])
 def test_representation(src_file):
     base, ext = os.path.splitext(src_file)
@@ -39,6 +40,8 @@ def test_representation(src_file):
         f.write(round_code)
     with open(reference_path, "r") as f:
         ref_code = f.read()
+    code = code.strip()
+    ref_code = ref_code.strip()
     assert code == ref_code, "round_code_file: {}  != ref_code_file: {}".format(round2_src_path, reference_path)
 
 # def test_module()
