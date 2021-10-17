@@ -26,7 +26,7 @@ class _TaskBase:
     def __init__(self, action: 'dev._ActionBase', input_hashes: List['data.HashValue'], task_schedule: 'TaskSchedule'):
         self.action = action
         # Action (like function definition) of the task (like function call).
-        self.input_hashes = []
+        self.input_hashes = input_hashes
         # hashes of input tasks
 
         self._result_hash = None
@@ -36,7 +36,6 @@ class _TaskBase:
         # Returns a function accepting the input data and computing the result.
         # e.g. action.evaluate
 
-        self.input_hashes = input_hashes
         self._result_hash = self.lazy_hash()
 
     def action_hash(self):
