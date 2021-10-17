@@ -189,7 +189,7 @@ class DynamicCall(MetaAction):
         self._output_type = ReturnType
 
     def expand(self, task, task_creator, cache):
-        if cache.value(task.inputs[0].result_hash) is not cache.NoValue:
+        if cache.is_finished(task.inputs[0].result_hash):
             return [task_creator('__result__',
                     self.dynamic_action(cache.value(task.inputs[0].result_hash)), task.inputs[1:])]
         else:
@@ -219,7 +219,7 @@ class _If(MetaAction):
         self._output_type = ReturnType
 
     def expand(self, task, task_creator, cache):
-        if all([cache.value(i_task.result_hash) is not cache.NoValue for i_task in task.inputs]):
+        if all([cache.is_finished(i_task.result_hash) for i_task in task.inputs]):
             condition = cache.value(task.inputs[0].result_hash)
             if condition:
                 return [task_creator('__result__', self.dynamic_action(cache.value(task.inputs[1].result_hash)), [])]

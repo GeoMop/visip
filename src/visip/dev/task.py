@@ -151,7 +151,7 @@ class Atomic(TaskSchedule):
         :return:
         """
         if self.status < Status.ready:
-            is_ready = all([cache.value(task.result_hash) is not cache.NoValue for task in self.inputs])
+            is_ready = all([cache.is_finished(task.result_hash) for task in self.inputs])
             if is_ready:
                 self.status = Status.ready
         return self.status == Status.ready

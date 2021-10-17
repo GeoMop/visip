@@ -218,7 +218,7 @@ class Scheduler:
         """
         # perform topological sort
         def predecessors(task):
-            if self.cache.value(task.result_hash) is not self.cache.NoValue:
+            if self.cache.is_finished(task.result_hash):
                 return []
             else:
                 max_end_time = 0
@@ -368,7 +368,7 @@ class Evaluation:
         :param task:
         :return:
         """
-        if self.cache.value(task.result_hash) is not self.cache.NoValue:
+        if self.cache.is_finished(task.result_hash):
             task.eval_time = task.end_time - task.start_time
         else:
             task.time_estimate = 1
@@ -471,7 +471,7 @@ class Evaluation:
             return task.inputs
 
         def previsit(task: 'Task'):
-            if self.cache.value(task.result_hash) is not self.cache.NoValue:
+            if self.cache.is_finished(task.result_hash):
                 color='green'
             else:
                 color='gray'
