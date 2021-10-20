@@ -10,7 +10,7 @@ Original idea to use Python typing support was not applicable as the typing
 mechanisms currently works only for static checking and work with then in runtime is still in
 heavy development.
 """
-import pytypes
+#import pytypes
 import itertools
 import inspect
 from . import tools
@@ -150,15 +150,12 @@ class TypeInspector_36:
     def is_subtype(self, xtype, type_spec):
         """
         pytypes works only for 3.6
-        TODO!!!
+        TODO!!! implement
         :param xtype:
         :param type_spec:
         :return:
         """
-        try:
-            return pytypes.is_subtype(xtype, type_spec)
-        except:
-            return False
+        return False
 
 
 class TypeInspector_37(TypeInspector_36):

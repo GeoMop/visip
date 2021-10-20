@@ -212,7 +212,7 @@ class Scheduler:
 class Result:
     input: bytearray
     result: bytearray
-    result_hash: int    # ints are of any size in Python3
+    result_hash: bytes
 
     @staticmethod
     def make_result(input, result):

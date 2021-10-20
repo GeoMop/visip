@@ -229,12 +229,26 @@ class _Workflow(meta.MetaAction):
         Code sugar:
         1. substitute all results used just once in single parameter actions
         2. try to substitute to multiparameter actions, check line length.
+
+        TODO:
+        - return short expressions without local variables
+        - omit self if not necessary, or require it always
+        - missing self local vars
         """
         indent = 4 * " "
         decorator = 'analysis' if self.is_analysis else 'workflow'
         params = [base._VAR_]
-        params.extend([self._slots[islot].name for islot in range(len(self._slots))])
-        head = "def {}({}):".format(self.name, ", ".join(params))
+        for i, param in enumerate(self.parameters):
+            assert(param.name == self._slots[i].name)
+            type_hint = ""
+            if param.type is not None:
+                type_hint = ": {}".format(representer.type_code(param.type))
+            param_def = "{}{}".format(param.name, type_hint)
+            params.append(param_def)
+        result_hint = ""
+        if self.output_type is not None:
+            result_hint = " -> {}:".format(representer.type_code(self.output_type))
+        head = "def {}({}){}:".format(self.name, ", ".join(params), result_hint)
         body = ["@{base_module}.{decorator}".format(base_module='wf', decorator=decorator), head]
 
         # Make dict: full_instance_name -> (format, [arg full names])

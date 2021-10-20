@@ -6,7 +6,7 @@ from visip_gui.parameter_tree_custom.eval_param_item import EvalParamItem
 from visip_gui.parameter_tree_custom.slot_param import SlotParam
 
 
-class EvalParam(parametertree.parameterTypes.Parameter):
+class EvalParam(parametertree.Parameter):
     itemClass = EvalParamItem
     def __init__(self, data, **opts):
         super(EvalParam, self).__init__(**opts)
