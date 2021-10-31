@@ -90,11 +90,17 @@ class _ActionBase:
             func = self._evaluate
         self._parameters, self._output_type = extract_func_signature(func, skip_self)
         self.check_type_annotations()
+        self.check_type_var()
 
     def check_type_annotations(self):
         for param in self.parameters:
             assert param.type is not None, "Missing type annotation of parameter: {}  of action: {}".format(param.name, self.name)
         assert self.output_type is not None, "Missing return type annotation of action: {}".format(self.name)
+
+    def check_type_var(self):
+        from visip.dev import dtype_new
+        input = dtype_new.Union([param.type for param in self.parameters])
+        assert dtype_new.check_type_var(input, self.output_type), "All TypeVars at output there are not also at input."
 
     @property
     def output_type(self):

@@ -1,6 +1,7 @@
 from visip.dev import dtype_new, dtype
 
 import typing
+import typing_inspect
 
 
 def test_from_typing():
@@ -18,7 +19,6 @@ def test_from_typing():
     assert nt.name == t.__name__
 
     tt = typing.Tuple[t, typing.List[t]]
-    print(tt)
     nt = dtype_new.from_typing(tt)
     assert nt.args[0] is nt.args[1].arg
 
@@ -65,6 +65,73 @@ def test_from_typing():
     assert isinstance(nt, dtype_new.Class)
     assert nt.module == A.__module__
     assert nt.name == A.__name__
+
+
+def test_to_typing():
+    # base
+    assert dtype_new.to_typing(dtype_new.Int()) is int
+    assert dtype_new.to_typing(dtype_new.Float()) is float
+    assert dtype_new.to_typing(dtype_new.Bool()) is bool
+    assert dtype_new.to_typing(dtype_new.Str()) is str
+
+
+    # TypeVar
+    t = dtype_new.TypeVar("T")
+    nt = dtype_new.to_typing(t)
+    print(type(nt))
+    assert isinstance(nt, typing.TypeVar)
+    assert nt.__name__ == t.name
+
+    tt = dtype_new.Tuple([t, dtype_new.List(t)])
+    nt = dtype_new.to_typing(tt)
+    args = typing_inspect.get_args(nt, evaluate=True)
+    assert args[0] is typing_inspect.get_args(args[1], evaluate=True)[0]
+
+
+    # Tuple
+    t = dtype_new.Tuple([dtype_new.Int(), dtype_new.Str()])
+    nt = dtype_new.to_typing(t)
+    assert typing_inspect.get_origin(nt) in [tuple, typing.Tuple]
+    args = typing_inspect.get_args(nt, evaluate=True)
+    assert args[0] is int
+    assert args[1] is str
+
+    # Union
+    t = dtype_new.Union([dtype_new.Int(), dtype_new.Str()])
+    nt = dtype_new.to_typing(t)
+    assert typing_inspect.get_origin(nt) is typing.Union
+    args = typing_inspect.get_args(nt, evaluate=True)
+    assert args[0] is int
+    assert args[1] is str
+
+    # List
+    t = dtype_new.List(dtype_new.Int())
+    nt = dtype_new.to_typing(t)
+    assert typing_inspect.get_origin(nt) in [list, typing.List]
+    assert typing_inspect.get_args(nt, evaluate=True)[0] is int
+
+    # Dict
+    t = dtype_new.Dict(dtype_new.Int(), dtype_new.Str())
+    nt = dtype_new.to_typing(t)
+    assert typing_inspect.get_origin(nt) in [dict, typing.Dict]
+    args = typing_inspect.get_args(nt, evaluate=True)
+    assert args[0] is int
+    assert args[1] is str
+
+    # Const
+    t = dtype_new.Const(dtype_new.Int())
+    nt = dtype_new.to_typing(t)
+    assert typing_inspect.get_origin(nt) is dtype.Constant
+    assert typing_inspect.get_args(nt, evaluate=True)[0] is int
+
+
+    # Class
+    class A(dtype.DataClassBase):
+        pass
+
+    t = dtype_new.Class(A.__module__, A.__name__, A)
+    nt = dtype_new.to_typing(t)
+    assert nt is A
 
 
 def test_is_subtype():
@@ -144,3 +211,31 @@ def test_is_subtype():
     assert sub(dt.Union([dt.Int(), dt.Str()]), dt.Union([t, u]))
     assert sub(dt.Tuple([dt.Union([dt.Int(), dt.Str()]), dt.Int()]), dt.Tuple([t, t]))
     assert sub(dt.Tuple([dt.Union([dt.Int(), dt.Str()]), dt.Int()]), dt.Tuple([dt.Union([t, dt.Str()]), t]))
+
+
+def test_extract_type_var():
+    dt = dtype_new
+
+    t = dt.TypeVar("T")
+    u = dt.TypeVar("U")
+
+    assert dt.extract_type_var(t) == {t}
+    assert dt.extract_type_var(dt.Int()) == set()
+    assert dt.extract_type_var(dt.Tuple([t])) == {t}
+    assert dt.extract_type_var(dt.Union([t, u])) == {t, u}
+    assert dt.extract_type_var(dt.Union([t, dt.Int()])) == {t}
+    assert dt.extract_type_var(dt.List(t)) == {t}
+    assert dt.extract_type_var(dt.Dict(t, u)) == {t, u}
+    assert dt.extract_type_var(dt.Const(t)) == {t}
+    assert dt.extract_type_var(dt.Dict(dt.Str(), dt.List(t))) == {t}
+    assert dt.extract_type_var(dt.Union([t, dt.Int(), dt.Union([u, dt.Str()])])) == {t, u}
+
+
+def test_check_type_var():
+    dt = dtype_new
+
+    t = dt.TypeVar("T")
+
+    assert dt.check_type_var(t, t)
+    assert dt.check_type_var(t, dt.Int())
+    assert not dt.check_type_var(dt.Int(), t)

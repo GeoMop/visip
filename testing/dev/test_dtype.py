@@ -1,5 +1,5 @@
 from visip import dev
-from visip.dev import dtype, evaluation
+from visip.dev import dtype, evaluation, dtype_new
 import visip.action as action
 from visip.code import wrap
 import typing
@@ -63,7 +63,7 @@ def test_data_class_base():
     # assert serialized == "!my_module.my_class {x: 3, y: 7}"
 
 def test_config_generic():
-    ti = dtype.TypeInspector()
+    ti = dtype_new.TypeInspector()
     def get_attr(
             key: dtype.Constant[str],
             dataclass: typing.Any) -> typing.Any:
@@ -74,7 +74,7 @@ def test_config_generic():
     dc_type = params.get_name('dataclass').type
     assert ti.is_constant(key_type) is True
     assert ti.is_constant(dc_type) is False
-    assert ti.constant_type(key_type) is str
+    assert isinstance(ti.constant_type(key_type), dtype_new.Str)
 
 
 

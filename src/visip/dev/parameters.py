@@ -124,6 +124,8 @@ def extract_func_signature(func, skip_self=True):
     :param skip_self: Skip first parameter if its name is 'self'.
     :return:
     """
+    from . import dtype_new
+
     signature = inspect.signature(func)
     no_value = inspect.Parameter.empty
     parameters = Parameters()
@@ -142,11 +144,11 @@ def extract_func_signature(func, skip_self=True):
 
         if param.kind == param.VAR_POSITIONAL:
             assert default == ActionParameter.no_default
-            param = ActionParameter(None, annotation, default)
+            param = ActionParameter(None, dtype_new.from_typing(annotation), default)
         else:
             assert param.kind == param.POSITIONAL_ONLY or param.kind == param.POSITIONAL_OR_KEYWORD, str(param.kind)
-            param = ActionParameter(param.name, annotation, default)
+            param = ActionParameter(param.name, dtype_new.from_typing(annotation), default)
         parameters.append(param)
-    return_type = signature.return_annotation if signature.return_annotation != no_value else None
+    return_type = dtype_new.from_typing(signature.return_annotation) if signature.return_annotation != no_value else None
 
     return parameters, return_type

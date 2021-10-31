@@ -1,4 +1,5 @@
 from ..dev import dtype as dtype
+from ..dev import dtype_new
 from . import formating
 from ..dev import parameters
 
@@ -27,6 +28,8 @@ class Representer:
         :param type_hint:
         :return:
         """
+        type_hint = dtype_new.to_typing(type_hint)
+
         ti = dtype.TypeInspector()
         if type_hint is None:
             # TODO: represent None as no type annotation, but it should be forbidden.

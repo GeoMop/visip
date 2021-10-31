@@ -133,7 +133,7 @@ def format(format_str: str, *args : Any) -> str:
 
 @decorators.action_def
 def file_from_template(template: dtype.Constant[FileIn],
-                       parameters: Dict,
+                       parameters: Dict[str, str],
                        delimiters:dtype.Constant[str]="<>") -> FileIn:
     """
     Substitute for placeholders of format '<name>' from the dict 'params'.

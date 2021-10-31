@@ -1,7 +1,9 @@
 from visip.dev import dtype
+from visip.code.wrap import ActionWrapper
 
 import typing
 import typing_inspect
+import inspect
 
 
 class Int:
@@ -58,13 +60,17 @@ class TypeVar:
         self.name = name
 
 
+class Other:
+    def __init__(self, origin_type):
+        self.origin_type = origin_type
+
+
 def from_typing(type):
     t, _ = from_typing_map(type, {})
     return t
 
 
 def from_typing_map(type, var_map):
-    print(type)
     # base
     if type is int:
         return Int(), var_map
@@ -92,7 +98,6 @@ def from_typing_map(type, var_map):
     # Tuple
     if typing_inspect.is_tuple_type(type):
         args = []
-        xx = typing_inspect.get_args(type, evaluate=True)
         for a in typing_inspect.get_args(type, evaluate=True):
             t, var_map = from_typing_map(a, var_map)
             args.append(t)
@@ -129,11 +134,105 @@ def from_typing_map(type, var_map):
 
 
     # Class
-    if issubclass(type, dtype.DataClassBase):
+    if inspect.isclass(type) and issubclass(type, dtype.DataClassBase):
         return Class(type.__module__, type.__name__, type), var_map
 
 
-    raise TypeError("Not supported type.")
+    if typing_inspect.is_new_type(type):
+        pass
+    elif type is typing.Any:
+        pass
+    elif type is None:
+        pass
+    elif isinstance(type, ActionWrapper):
+        pass
+    else:
+        assert False, "Unknown type."
+
+    #raise TypeError("Not supported type.")
+    return Other(type), var_map
+
+
+def to_typing(type):
+    t, _ = to_typing_map(type, {})
+    return t
+
+
+def to_typing_map(type, var_map):
+    # base
+    if isinstance(type, Int):
+        return int, var_map
+
+    if isinstance(type, Float):
+        return float, var_map
+
+    if isinstance(type, Bool):
+        return bool, var_map
+
+    if isinstance(type, Str):
+        return str, var_map
+
+
+    # TypeVar
+    if isinstance(type, TypeVar):
+        if type in var_map:
+            return var_map[type], var_map
+        t = typing.TypeVar(type.name)
+        var_map = var_map.copy()
+        var_map[type] = t
+        return t, var_map
+
+
+    # Tuple
+    if isinstance(type, Tuple):
+        args = []
+        for a in type.args:
+            t, var_map = to_typing_map(a, var_map)
+            args.append(t)
+        return typing.Tuple[tuple(args)], var_map
+
+
+    # Union
+    if isinstance(type, Union):
+        args = []
+        for a in type.args:
+            t, var_map = to_typing_map(a, var_map)
+            args.append(t)
+        return typing.Union[tuple(args)], var_map
+
+
+    # List
+    if isinstance(type, List):
+        t, var_map = to_typing_map(type.arg, var_map)
+        return typing.List[t], var_map
+
+    # Dict
+    if isinstance(type, Dict):
+        k, var_map = to_typing_map(type.key, var_map)
+        v, var_map = to_typing_map(type.value, var_map)
+        return typing.Dict[k, v], var_map
+
+    # Const
+    if isinstance(type, Const):
+        t, var_map = to_typing_map(type.arg, var_map)
+        return dtype.Constant[t], var_map
+
+
+    # Class
+    if isinstance(type, Class):
+        return type.origin_type, var_map
+
+
+    if isinstance(type, Other):
+        return type.origin_type, var_map
+
+    if type.__name__ in ["Point"]:
+        pass
+    else:
+        assert False, "Unknown type."
+
+    return type, var_map
+    #raise TypeError("Not supported type.")
 
 
 def is_subtype(type, typeinfo):
@@ -143,6 +242,9 @@ def is_subtype(type, typeinfo):
 
 def is_subtype_map(type, typeinfo, var_map, const=False):
     # var_map is not yet fully implemented
+
+    if isinstance(type, Other) or isinstance(typeinfo, Other):
+        return False, []
 
     # if type is Const, call recursively with const=True
     if isinstance(type, Const):
@@ -231,3 +333,61 @@ def is_subtype_map(type, typeinfo, var_map, const=False):
 
 def _vm_merge(vm1, vm2):
     return vm1 + vm2
+
+
+class TypeInspector:
+    def is_constant(self, type):
+        return isinstance(type, Const)
+
+    def constant_type(self, type):
+        return type.arg
+
+
+def extract_type_var(type):
+    """
+    Returns set of all TypeVars from composed type.
+    :param type:
+    :return:
+    """
+    ret = set()
+
+    # TypeVar
+    if isinstance(type, TypeVar):
+        ret.add(type)
+
+    # Tuple
+    elif isinstance(type, Tuple):
+        for a in type.args:
+            ret.update(extract_type_var(a))
+
+    # Union
+    elif isinstance(type, Union):
+        for a in type.args:
+            ret.update(extract_type_var(a))
+
+    # List
+    elif isinstance(type, List):
+        ret.update(extract_type_var(type.arg))
+
+    # Dict
+    elif isinstance(type, Dict):
+        ret.update(extract_type_var(type.key))
+        ret.update(extract_type_var(type.value))
+
+    # Const
+    elif isinstance(type, Const):
+        ret.update(extract_type_var(type.arg))
+
+    return ret
+
+
+def check_type_var(input, output):
+    """
+    Returns True if all TypeVars at output there are also at input.
+    :param input: input type
+    :param output: output type
+    :return:
+    """
+    in_set = extract_type_var(input)
+    out_set = extract_type_var(output)
+    return out_set.issubset(in_set)
