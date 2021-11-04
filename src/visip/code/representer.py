@@ -28,8 +28,9 @@ class Representer:
         :param type_hint:
         :return:
         """
-        type_hint = dtype_new.to_typing(type_hint)
+        return self.type_code_inner(dtype_new.to_typing(type_hint))
 
+    def type_code_inner(self, type_hint):
         ti = dtype.TypeInspector()
         if type_hint is None:
             # TODO: represent None as no type annotation, but it should be forbidden.
@@ -43,7 +44,7 @@ class Representer:
         else:
             args = ti.get_args(type_hint)
             if args:
-                args_code = ", ".join([self.type_code(arg) for arg in args])
+                args_code = ", ".join([self.type_code_inner(arg) for arg in args])
                 (module, name) = str(ti.get_typing_origin(type_hint)).split(".")
                 origin_name = self.make_rel_name(module, name)
                 code = "{}[{}]".format(origin_name, args_code)

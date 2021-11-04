@@ -1,6 +1,7 @@
 import attr
 from typing import *
 import inspect
+import builtins
 
 from . import data
 
@@ -125,10 +126,16 @@ def extract_func_signature(func, skip_self=True):
     :return:
     """
     from . import dtype_new
+    from ..code import wrap
 
     signature = inspect.signature(func)
     no_value = inspect.Parameter.empty
     parameters = Parameters()
+
+    def none_to_nonetype(type):
+        if type is None:
+            return builtins.type(None)
+        return type
 
     for param in signature.parameters.values():
         if parameters.size() == 0 and param.name == 'self':
@@ -144,11 +151,11 @@ def extract_func_signature(func, skip_self=True):
 
         if param.kind == param.VAR_POSITIONAL:
             assert default == ActionParameter.no_default
-            param = ActionParameter(None, dtype_new.from_typing(annotation), default)
+            param = ActionParameter(None, dtype_new.from_typing(wrap.unwrap_type(none_to_nonetype(annotation))), default)
         else:
             assert param.kind == param.POSITIONAL_ONLY or param.kind == param.POSITIONAL_OR_KEYWORD, str(param.kind)
-            param = ActionParameter(param.name, dtype_new.from_typing(annotation), default)
+            param = ActionParameter(param.name, dtype_new.from_typing(wrap.unwrap_type(none_to_nonetype(annotation))), default)
         parameters.append(param)
-    return_type = dtype_new.from_typing(signature.return_annotation) if signature.return_annotation != no_value else None
+    return_type = dtype_new.from_typing(wrap.unwrap_type(none_to_nonetype(signature.return_annotation))) if signature.return_annotation != no_value else None
 
     return parameters, return_type

@@ -3,7 +3,7 @@ Wrap an action instance construction in order to return the constructec ActionIn
 wrapped into Dummy object.
 """
 import typing
-import typing_inspect as ti
+import typing_inspect
 
 
 from ..dev import dtype as dtype
@@ -69,6 +69,14 @@ def unwrap_type(type_hint):
         return type_hint
     elif ti.is_dataclass(type_hint):
         return type_hint
+    elif ti.is_enum(type_hint):
+        return type_hint
+    elif typing_inspect.is_new_type(type_hint):
+        uarg = unwrap_type(type_hint.__supertype__)
+        return typing.NewType(type_hint.__name__, uarg)
+    elif ti.is_constant(type_hint):
+        uarg = unwrap_type(ti.get_args(type_hint)[0])
+        return dtype.Constant[uarg]
     else:
         args = ti.get_args(type_hint)
         if args:
@@ -78,6 +86,7 @@ def unwrap_type(type_hint):
         else:
             print("Can not unwrap the type_hint: {}"
                   .format(type_hint))
+            assert False
 
 
 def separate_underscored_keys(arg_dict: typing.Dict[str, typing.Any]):
