@@ -132,7 +132,9 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
 
     @name.setter
     def name(self, name):
-        old_name = self._name
+        if name == self._name.toPlainText():
+            return
+        old_name = self._name.toPlainText()
         self._name.setPlainText(name)
         if not self.name_has_changed():
             self._name = old_name
