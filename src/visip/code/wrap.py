@@ -77,6 +77,8 @@ def unwrap_type(type_hint):
     elif ti.is_constant(type_hint):
         uarg = unwrap_type(ti.get_args(type_hint)[0])
         return dtype.Constant[uarg]
+    elif typing_inspect.is_typevar(type_hint):
+        return type_hint
     else:
         args = ti.get_args(type_hint)
         if args:

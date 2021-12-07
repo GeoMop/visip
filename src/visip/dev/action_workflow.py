@@ -9,6 +9,7 @@ from . import meta
 from .action_instance import ActionCall
 from ..action.constructor import _ListBase, Pass
 from . parameters import Parameters, ActionParameter
+from . import dtype_new
 
 
 """
@@ -112,6 +113,10 @@ class _Workflow(meta.MetaAction):
         # Dict:  unique action instance name -> action instance.
         self._sorted_calls = []
         # topologically sorted action instance names
+        self._type_var_map = {}
+        # type_var mapping
+        self._type_var_restraints = {}
+        # type_var restraints
 
         self.update_parameters()
 
@@ -195,7 +200,45 @@ class _Workflow(meta.MetaAction):
             for i_arg, arg in enumerate(action.arguments):
                 if arg.value is not None:
                     arg.value.output_actions.append((action, i_arg))
+
+        self._check_types()
+
         return True
+
+    def _check_types(self):
+        self._type_var_map = {}
+        self._type_var_restraints = {}
+        types_ok = True
+
+        # backward
+        for call in reversed(self._sorted_calls):
+            if isinstance(call, _SlotCall):
+                # restraints in _SlotCall convert to type_var map
+                vts = call._type_var_map.values()
+                for vt in vts:
+                    if vt in self._type_var_restraints:
+                        self._type_var_map[vt] = self._type_var_restraints[vt]
+                continue
+
+            for arg in call.arguments:
+                b, self._type_var_map, self._type_var_restraints = dtype_new.is_subtype_map(
+                    arg.value.actual_output_type, arg.actual_type, self._type_var_map, self._type_var_restraints)
+                if not b:
+                    types_ok = False
+                    break
+            if not types_ok:
+                break
+
+        if not types_ok:
+            raise TypeError("Error in workflow typing.")
+
+        self._type_var_map = dtype_new.expand_var_map(self._type_var_map)
+
+        # forward
+        for call in self._sorted_calls:
+            for arg in call.arguments:
+                arg.actual_type, _ = dtype_new.substitute_type_vars(arg.actual_type, self._type_var_map)
+            call.actual_output_type, _ = dtype_new.substitute_type_vars(call.actual_output_type, self._type_var_map)
 
     # def evaluate(self, input):
     #     pass

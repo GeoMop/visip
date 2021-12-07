@@ -99,8 +99,11 @@ class _ActionBase:
 
     def check_type_var(self):
         from visip.dev import dtype_new
-        input = dtype_new.Union([param.type for param in self.parameters])
-        assert dtype_new.check_type_var(input, self.output_type), "All TypeVars at output there are not also at input."
+        in_set = set()
+        for param in self.parameters:
+            in_set.update(dtype_new.extract_type_var(param.type))
+        out_set = dtype_new.extract_type_var(self.output_type)
+        assert out_set.issubset(in_set), "All TypeVars at output there are not also at input."
 
     @property
     def output_type(self):

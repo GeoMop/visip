@@ -4,7 +4,7 @@ from typing import List, Dict, Union, Optional
 from . import base
 from .parameters import ActionParameter
 from ..action.constructor import Value
-from . import dtype as dtype
+from . import dtype as dtype, dtype_new
 from ..code import representer
 
 class ActionInputStatus(enum.IntEnum):
@@ -25,6 +25,7 @@ class ActionArgument:
     value: Optional['ActionCall'] = None
     is_default: bool = False
     status: ActionInputStatus = ActionInputStatus.missing
+    actual_type: Optional[dtype_new.Type] = None
 
 InputDict = Dict[str, '_ActionBase']
 InputList = List['_ActionBase']
@@ -48,8 +49,10 @@ class ActionCall:
         self.action = action
         """ The Action (instance of _ActionBase), have defined parameter. """
         self.arguments: List[ActionArgument] = []
+        self._type_var_map = {}
         self._fill_args()
         """ Inputs connected to the action parameters."""
+        self.actual_output_type, self._type_var_map = dtype_new.substitute_type_vars(self.output_type, self._type_var_map, create_new=True)
         self.output_actions = []
         """ Actions connected to the output. Set during the workflow construction."""
 
@@ -134,16 +137,15 @@ class ActionCall:
         check_type = param.type
         if param.type is None:
             return ActionArgument(param, value, is_default, ActionInputStatus.error_impl)
-        if dtype.TypeInspector().is_constant(param.type):
+        if dtype_new.TypeInspector().is_constant(param.type):
             if isinstance(value, Value):
-                check_type = dtype.TypeInspector().constant_type(param.type)
+                check_type = dtype_new.TypeInspector().constant_type(param.type)
             else:
                 return ActionArgument(param, value, is_default, ActionInputStatus.error_value)
 
-        if not dtype.TypeInspector().is_subtype(value.output_type, check_type):
-            return  ActionArgument(param, value, is_default, ActionInputStatus.error_type)
+        actual_type, self._type_var_map = dtype_new.substitute_type_vars(param.type, self._type_var_map, create_new=True)
 
-        return ActionArgument(param, value, is_default, ActionInputStatus.seems_ok)
+        return ActionArgument(param, value, is_default, ActionInputStatus.none, actual_type)
 
 
     def set_inputs(self, input_list: InputList = [], input_dict: InputDict={}) -> RemainingArgs:

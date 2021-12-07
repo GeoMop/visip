@@ -340,6 +340,7 @@ def test_is_equaltype():
     assert eq(dt.Const(dt.Int()), dt.Const(dt.Int()))
 
     assert eq(dt.Const(dt.Union([dt.Int()])), dt.Union([dt.Const(dt.Int())]))
+    assert eq(dt.Const(dt.Union([dt.Int()])), dt.Const(dt.Union([dt.Const(dt.Int())])))
 
     # Any
     assert eq(dt.Any(), dt.Any())
@@ -365,7 +366,7 @@ def test_is_equaltype():
 def test_is_subtype():
     dt = dtype_new
     sub = dt.is_subtype
-    
+
     # base
     assert sub(dt.Int(), dt.Int())
     assert not sub(dt.Int(), dt.Str())
@@ -453,7 +454,7 @@ def test_is_subtype():
     assert sub(dt.Const(dt.Int()), dt.Const(dt.Int()))
 
     assert sub(dt.Const(dt.Const(dt.Int())), dt.Int())
-    
+
     assert sub(dt.Const(dt.Tuple([dt.Int(), dt.Str()])), dt.Tuple([dt.Const(dt.Int()), dt.Str()]))
 
     # Any
@@ -466,7 +467,7 @@ def test_is_subtype():
     u = dt.TypeVar("U")
 
     assert sub(dt.Int(), t)
-    assert not sub(t, dt.Int())
+    assert sub(t, dt.Int())
     assert sub(t, u)
     #assert sub(dt.Int(), dt.Union([t, u]))
     assert sub(dt.Union([dt.Int(), dt.Str()]), t)
@@ -474,24 +475,44 @@ def test_is_subtype():
     assert sub(dt.Tuple([dt.Union([dt.Int(), dt.Str()]), dt.Int()]), dt.Tuple([t, t]))
     assert sub(dt.Tuple([dt.Union([dt.Int(), dt.Str()]), dt.Int()]), dt.Tuple([dt.Union([t, dt.Str()]), t]))
 
-    b, vm = dt.is_subtype_map(dt.Int(), t, {})
+    b, vm, _ = dt.is_subtype_map(dt.Int(), t, {}, {})
     assert dt.is_equaltype(vm[t], dt.Int())
 
-    b, vm = dt.is_subtype_map(dt.Union([dt.Int()]), dt.Union([t]), {})
+    b, vm, _ = dt.is_subtype_map(dt.Union([dt.Int()]), dt.Union([t]), {}, {})
     assert dt.is_equaltype(vm[t], dt.Int())
 
-    b, vm = dt.is_subtype_map(dt.Union([dt.Int()]), dt.Union([t, dt.Int()]), {})
+    b, vm, _ = dt.is_subtype_map(dt.Union([dt.Int()]), dt.Union([t, dt.Int()]), {}, {})
     assert vm == {}
 
-    b, vm = dt.is_subtype_map(dt.List(dt.Int()), dt.List(t), {})
+    b, vm, _ = dt.is_subtype_map(dt.List(dt.Int()), dt.List(t), {}, {})
     assert dt.is_equaltype(vm[t], dt.Int())
 
-    b, vm = dt.is_subtype_map(dt.Tuple([dt.Int(), dt.Str()]), dt.Tuple([t, t]), {})
+    b, vm, _ = dt.is_subtype_map(dt.Tuple([dt.Int(), dt.Str()]), dt.Tuple([t, t]), {}, {})
     assert dt.is_equaltype(vm[t], dt.Union([dt.Int(), dt.Str()]))
 
-    b, vm = dt.is_subtype_map(dt.Tuple([dt.Int(), dt.Str()]), dt.Tuple([t, u]), {})
+    b, vm, _ = dt.is_subtype_map(dt.Tuple([dt.Int(), dt.Str()]), dt.Tuple([t, u]), {}, {})
     assert dt.is_equaltype(vm[t], dt.Int())
     assert dt.is_equaltype(vm[u], dt.Str())
+
+    b, _, rest = dt.is_subtype_map(t, dt.Int(), {}, {})
+    assert dt.is_equaltype(rest[t], dt.Int())
+
+    b, _, rest = dt.is_subtype_map(t, dt.List(dt.Int()), {}, {})
+    assert dt.is_equaltype(rest[t], dt.List(dt.Int()))
+
+    b, vm, rest = dt.is_subtype_map(dt.Str(), u, {}, {u: dt.Int()})
+    assert not b
+
+    b, vm, rest = dt.is_subtype_map(t, u, {}, {u: dt.Int()})
+    assert dt.is_equaltype(vm[u], t)
+    assert dt.is_equaltype(rest[t], dt.Int())
+
+    b, vm, rest = dt.is_subtype_map(t, dt.List(u), {}, {u: dt.Int()})
+    assert dt.is_equaltype(rest[t], dt.List(dt.Int()))
+
+    b, vm, rest = dt.is_subtype_map(dt.List(t), u, {}, {u: dt.List(dt.Int())})
+    assert dt.is_equaltype(vm[u], dt.List(t))
+    assert dt.is_equaltype(rest[t], dt.Int())
 
     # NewType
     t = dt.NewType("NT", dt.Int())
@@ -501,6 +522,134 @@ def test_is_subtype():
     assert sub(t, dt.Int())
     assert not sub(dt.Int(), t)
     assert not sub(t, u)
+
+
+def test_common_sub_type():
+    dt = dtype_new
+    com_sub = dt.common_sub_type
+    eq = dt.is_equaltype
+
+    # base
+    b, t = com_sub(dt.Int(), dt.Int())
+    assert b
+    assert eq(t, dt.Int())
+
+    b, t = com_sub(dt.Int(), dt.Str())
+    assert not b
+
+    b, t = com_sub(dt.Int(), dt.Bool())
+    assert b
+    assert eq(t, dt.Int())
+
+    b, t = com_sub(dt.Bool(), dt.Int())
+    assert b
+    assert eq(t, dt.Int())
+
+    # Class
+    class A(dtype.DataClassBase):
+        pass
+
+    a = dt.from_typing(A)
+    a2 = dt.from_typing(A)
+
+    b, t = com_sub(a, a2)
+    assert b
+    assert eq(t, a)
+
+    # Enum
+    class A(enum.IntEnum):
+        pass
+
+    a = dt.from_typing(A)
+    a2 = dt.from_typing(A)
+
+    b, t = com_sub(a, a2)
+    assert b
+    assert eq(t, a)
+
+    # Union
+    b, t = com_sub(dt.Union([dt.Int(), dt.Str()]), dt.Union([dt.Str(), dt.Float()]))
+    assert b
+    assert eq(t, dt.Str())
+
+    b, t = com_sub(dt.Union([dt.Int(), dt.Str()]), dt.Str())
+    assert b
+    assert eq(t, dt.Str())
+
+    b, t = com_sub(dt.Str(), dt.Union([dt.Str(), dt.Float()]))
+    assert b
+    assert eq(t, dt.Str())
+
+    # Tuple
+    b, t = com_sub(dt.Tuple([dt.Int(), dt.Str()]), dt.Tuple([dt.Int(), dt.Str()]))
+    assert b
+    assert eq(t, dt.Tuple([dt.Int(), dt.Str()]))
+
+    b, t = com_sub(dt.Tuple([dt.Int(), dt.Str()]), dt.Tuple([dt.Int(), dt.Int()]))
+    assert not b
+
+    # List
+    b, t = com_sub(dt.List(dt.Int()), dt.List(dt.Int()))
+    assert b
+    assert eq(t, dt.List(dt.Int()))
+
+    b, t = com_sub(dt.List(dt.Int()), dt.List(dt.Str()))
+    assert not b
+
+    # Dict
+    b, t = com_sub(dt.Dict(dt.Int(), dt.Str()), dt.Dict(dt.Int(), dt.Str()))
+    assert b
+    assert eq(t, dt.Dict(dt.Int(), dt.Str()))
+
+    b, t = com_sub(dt.Dict(dt.Int(), dt.Str()), dt.Dict(dt.Str(), dt.Str()))
+    assert not b
+
+    b, t = com_sub(dt.Dict(dt.Int(), dt.Str()), dt.Dict(dt.Int(), dt.Int()))
+    assert not b
+
+    # Const
+    b, t = com_sub(dt.Const(dt.Int()), dt.Const(dt.Int()))
+    assert b
+    assert eq(t, dt.Const(dt.Int()))
+
+    b, t = com_sub(dt.Const(dt.Int()), dt.Int())
+    assert b
+    assert eq(t, dt.Const(dt.Int()))
+
+    b, t = com_sub(dt.Int(), dt.Const(dt.Int()))
+    assert b
+    assert eq(t, dt.Const(dt.Int()))
+
+    b, t = com_sub(dt.Const(dt.Union([dt.Int()])), dt.Union([dt.Const(dt.Int())]))
+    assert b
+    assert eq(t, dt.Const(dt.Union([dt.Int()])))
+
+    # Any
+    b, t = com_sub(dt.Any(), dt.Any())
+    assert b
+    assert eq(t, dt.Any())
+
+    # TypeVar
+    t = dt.TypeVar("T")
+    u = dt.TypeVar("U")
+
+    b, tt = com_sub(t, t)
+    assert b
+    assert eq(tt, t)
+
+    b, tt = com_sub(t, u)
+    assert not b
+
+    # NewType
+    t = dt.NewType("NT", dt.Int())
+    u = dt.NewType("NT2", dt.Int())
+
+    b, tt = com_sub(t, t)
+    assert b
+    assert eq(tt, t)
+
+    b, tt = com_sub(t, u)
+    assert not b
 
 
 def test_extract_type_var():
@@ -519,7 +668,7 @@ def test_extract_type_var():
     assert dt.extract_type_var(dt.Const(t)) == {t}
     assert dt.extract_type_var(dt.Dict(dt.Str(), dt.List(t))) == {t}
     #assert dt.extract_type_var(dt.Union([t, dt.Int(), dt.Union([u, dt.Str()])])) == {t, u}
-    assert dt.extract_type_var(dt.NewType("NT", t)) == {t}
+    #assert dt.extract_type_var(dt.NewType("NT", t)) == {t}
 
 
 def test_check_type_var():
@@ -530,3 +679,76 @@ def test_check_type_var():
     assert dt.check_type_var(t, t)
     assert dt.check_type_var(t, dt.Int())
     assert not dt.check_type_var(dt.Int(), t)
+
+
+def test_substitute_type_vars():
+    dt = dtype_new
+    sub_tv = dt.substitute_type_vars
+    eq = dt.is_equaltype
+
+    t = dt.TypeVar("T")
+    u = dt.TypeVar("U")
+    v = dt.TypeVar("V")
+
+    # type_var
+    tt, vm = sub_tv(t, {})
+    assert tt is t
+    assert vm == {}
+
+    tt, vm = sub_tv(t, {t: dt.Int()})
+    assert eq(tt, dt.Int())
+    assert eq(vm[t], dt.Int())
+
+    # create_new
+    tt, vm = sub_tv(t, {t: v}, create_new=True)
+    assert eq(tt, v)
+    assert eq(vm[t], v)
+
+    tt, vm = sub_tv(t, {}, create_new=True)
+    assert isinstance(tt, dt.TypeVar)
+    assert tt is not t
+    assert eq(vm[t], tt)
+
+    # recursive
+    tt, vm = sub_tv(t, {t: dt.List(u), u: dt.Int()}, recursive=True)
+    assert eq(tt, dt.List(dt.Int()))
+
+    # Tuple
+    tt, vm = sub_tv(dt.Tuple([t, dt.Int()]), {t: dt.Str()})
+    assert eq(tt, dt.Tuple([dt.Str(), dt.Int()]))
+
+    # Union
+    tt, vm = sub_tv(dt.Union([t, dt.Int()]), {t: dt.Str()})
+    assert eq(tt, dt.Union([dt.Str(), dt.Int()]))
+
+    # List
+    tt, vm = sub_tv(dt.List(t), {t: dt.Str()})
+    assert eq(tt, dt.List(dt.Str()))
+
+    # Dict
+    tt, vm = sub_tv(dt.Dict(t, v), {t: dt.Str(), v:dt.Int()})
+    assert eq(tt, dt.Dict(dt.Str(), dt.Int()))
+
+    # Const
+    tt, vm = sub_tv(dt.Const(t), {t: dt.Str()})
+    assert eq(tt, dt.Const(dt.Str()))
+
+
+def test_expand_var_map():
+    dt = dtype_new
+    eq = dt.is_equaltype
+
+    t = dt.TypeVar("T")
+    u = dt.TypeVar("U")
+    v = dt.TypeVar("V")
+
+    vm1 = {
+        u: dt.List(v),
+        t: dt.Int(),
+        v: dt.List(t)
+    }
+    vm2 = dt.expand_var_map(vm1)
+    assert len(vm2) == 3
+    assert eq(vm2[t], dt.Int())
+    assert eq(vm2[u], dt.List(dt.List(dt.Int())))
+    assert eq(vm2[v], dt.List(dt.Int()))
