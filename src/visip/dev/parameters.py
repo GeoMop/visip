@@ -137,6 +137,9 @@ def extract_func_signature(func, skip_self=True):
             return builtins.type(None)
         return type
 
+    var_map = {}
+    new_map = {}
+
     for param in signature.parameters.values():
         if parameters.size() == 0 and param.name == 'self':
             if skip_self:
@@ -145,17 +148,23 @@ def extract_func_signature(func, skip_self=True):
                 annotation = None
                 default = ActionParameter.no_default
         else:
-
-            annotation = param.annotation if param.annotation != no_value else None
+            if param.annotation != no_value:
+                annotation, var_map, new_map = dtype_new.from_typing_map(
+                    wrap.unwrap_type(none_to_nonetype(param.annotation)), var_map, new_map)
+            else:
+                annotation = None
             default = param.default if param.default != no_value else ActionParameter.no_default
 
         if param.kind == param.VAR_POSITIONAL:
             assert default == ActionParameter.no_default
-            param = ActionParameter(None, dtype_new.from_typing(wrap.unwrap_type(none_to_nonetype(annotation))), default)
+            param = ActionParameter(None, annotation, default)
         else:
             assert param.kind == param.POSITIONAL_ONLY or param.kind == param.POSITIONAL_OR_KEYWORD, str(param.kind)
-            param = ActionParameter(param.name, dtype_new.from_typing(wrap.unwrap_type(none_to_nonetype(annotation))), default)
+            param = ActionParameter(param.name, annotation, default)
         parameters.append(param)
-    return_type = dtype_new.from_typing(wrap.unwrap_type(none_to_nonetype(signature.return_annotation))) if signature.return_annotation != no_value else None
+    if signature.return_annotation != no_value:
+        return_type, var_map, new_map = dtype_new.from_typing_map(wrap.unwrap_type(none_to_nonetype(signature.return_annotation)), var_map, new_map)
+    else:
+        return_type = None
 
     return parameters, return_type
