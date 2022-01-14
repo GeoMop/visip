@@ -1,10 +1,10 @@
-from visip.eval.cache import ResultCacheMongo
+from visip.eval.cache import ResultCacheRedis
 from json_data import jsondata
 
 import json
 
 
-def test_mongo():
+def test_redis():
     @jsondata
     class A:
         a: int = 1
@@ -12,7 +12,7 @@ def test_mongo():
         c: float = 2.0
 
     # initialize and clear cache
-    cache = ResultCacheMongo()
+    cache = ResultCacheRedis()
     cache.clear()
 
     # create object and save to cache

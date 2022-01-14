@@ -2,8 +2,7 @@ from typing import *
 
 from ..dev import data
 
-import pymongo
-import bson
+import redis
 
 
 class ResultCache:
@@ -27,48 +26,19 @@ class ResultCache:
         self.cache[hash_int] = value
 
 
-class ResultCacheMongo(ResultCache):
-    _INDEX_NAME = 'hash_int_1'
-
+class ResultCacheRedis(ResultCache):
     def __init__(self):
-        client = pymongo.MongoClient('127.0.0.1', 27017)
-        db = client.visip_database
-        self.mongo_collection = db.visip_collection
-
-        index_inf = self.mongo_collection.index_information()
-        if ResultCacheMongo._INDEX_NAME not in index_inf:
-            hash_int1 = pymongo.IndexModel(
-                keys=[('hash_int', pymongo.ASCENDING)],
-                name=ResultCacheMongo._INDEX_NAME)
-            self.mongo_collection.create_indexes([hash_int1])
+        self.client = redis.Redis(host='localhost', port=6379, db=0)
 
     def value(self, hash_int: int) -> Any:
-        res = self.mongo_collection.find_one({
-            'hash_int': hash_int
-        })
-        if res:
-            try:
-                value = res['value']
-                return value
-            except KeyError:
-                pass
-        return ResultCache.NoValue
+        value = self.client.get(str(hash_int))
+        if value is not None:
+            return value
+        else:
+            return ResultCache.NoValue
 
     def insert(self, hash_int, bin_data):
-        self.mongo_collection.update_one(
-            filter={
-                'hash_int': hash_int
-            },
-            update={
-                '$set': {
-                    'hash_int': hash_int,
-                    'value': bson.binary.Binary(bin_data)
-                }
-            },
-            upsert=True
-        )
+        self.client.set(str(hash_int), bin_data)
 
     def clear(self):
-        self.mongo_collection.delete_many(
-            filter={}
-        )
+        self.client.flushdb()

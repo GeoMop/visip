@@ -56,7 +56,7 @@ setuptools.setup(
                       'pytypes',
                       'typing-inspect',
                       'pyqtgraph',
-                      'pymongo'],
+                      'redis'],
     setup_requires=['wheel'],
     python_requires='>=3.6',
     # extras_require={
