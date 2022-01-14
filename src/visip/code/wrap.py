@@ -49,7 +49,7 @@ def into_action(value):
 def unwrap_type(type_hint):
     """
     Remove ActionWrapper from (class) types.
-    :param type_hint:
+    :param type_hint: Python annotation or ActionWrapper
     :return:
     """
     ti = dtype.TypeInspector()
