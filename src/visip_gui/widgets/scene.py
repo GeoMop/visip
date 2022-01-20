@@ -382,4 +382,4 @@ class Scene(GBaseModelScene):
         pass
 
     def update_parameters(self):
-        self.workflow.update_parameters()
+        self.workflow._parameters = self.workflow.signature_from_dag()

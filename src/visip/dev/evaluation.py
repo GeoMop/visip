@@ -19,10 +19,11 @@ import time
 
 from . import data, task as task_mod, base, dfs,  dtype as dtype, action_instance as instance
 from .action_workflow import _Workflow
+from .action_instance import ActionCall
 from ..action.constructor import Value
 from ..eval.cache import ResultCache
 from ..code import wrap
-from ..code.dummy import Dummy
+from ..code.dummy import Dummy, DummyAction
 from . import tools
 
 
@@ -90,7 +91,8 @@ class Resource:
                 assert task.is_ready()
                 result = task.evaluate_fn()
                 data_inputs = [input.result for input in task.inputs]
-                res_value = result(data_inputs)
+                args, kwargs = task.inputs_to_args(data_inputs)
+                res_value = result(*args, **kwargs)
                 # print(task.action)
                 # print(task.inputs)
                 # print(task_hash, res_value)
@@ -229,7 +231,7 @@ class Result:
 
 
 
-DataOrDummy = Union[dtype.DataType, Dummy]
+DataOrDummy = Union[dtype.DataType, Dummy, DummyAction]
 
 class Evaluation:
     """/
@@ -273,12 +275,14 @@ class Evaluation:
         bind_action = instance.ActionCall.create(action)
         for i, input in enumerate(inputs):
             if isinstance(input, Dummy):
-                input_action = input._action_call
+                input_action = input._value
+            elif isinstance(input, DummyAction):
+                input_action = input._action_value
             else:
                 input_action = instance.ActionCall.create(Value(input))
             workflow.set_action_input(bind_action, i, input_action)
             #assert bind_action.arguments[i].status >= instance.ActionInputStatus.seems_ok
-        workflow.set_action_input(workflow.result, 0, bind_action)
+        workflow.set_action_input(workflow.result_call, 0, bind_action)
         return workflow
 
 
@@ -358,7 +362,9 @@ class Evaluation:
         """
         #TODO: Reinit scheduler and own structures to allow reuse of the Evaluation object.
 
-        self.final_task = task_mod._TaskBase._create_task(analysis, [], None, '__root__')
+
+        task_binding = tools.TaskBinding('__root__', analysis, ([],{}), [])
+        self.final_task = task_mod._TaskBase._create_task(None, task_binding)
         self.enqueue(self.final_task)
         # init scheduler
         self.tasks_update([self.final_task])
@@ -466,15 +472,15 @@ class Evaluation:
             print(e)
 
 
-def run(action: Union[base._ActionBase, wrap.ActionWrapper],
+def run(action: Union[base._ActionBase, DummyAction],
         inputs:List[DataOrDummy] = None,
         **kwargs) -> dtype.DataType:
     """
     Run the 'action' with given arguments 'inputs'.
     Return the data result.
     """
-    if isinstance(action, wrap.ActionWrapper):
-        action = action.action
+    if isinstance(action, DummyAction):
+        action = action._action_value
     if inputs is None:
         inputs = []
     analysis = Evaluation.make_analysis(action, inputs)

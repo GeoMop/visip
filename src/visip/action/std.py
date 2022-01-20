@@ -128,13 +128,13 @@ def derived_file(f: FileIn, ext:str) -> FileOut:
     return file_out.call(new_file_name)
 
 @decorators.action_def
-def format(format_str: str, *args : Any) -> str:
+def format(format_str: str, *args: Any) -> str:
     return format_str.format(*args)
 
 @decorators.action_def
 def file_from_template(template: dtype.Constant[FileIn],
-                       parameters: Dict,
-                       delimiters:dtype.Constant[str]="<>") -> FileIn:
+                       parameters: dtype.Dict[str, str],
+                       delimiters: dtype.Constant[str]="<>") -> FileIn:
     """
     Substitute for placeholders of format '<name>' from the dict 'params'.
     :param file_in: Template file with extension '.tmpl'.
