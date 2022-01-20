@@ -520,8 +520,8 @@ def test_is_subtype():
 
     assert sub(t, t)
     assert sub(t, dt.Int())
-    assert not sub(dt.Int(), t)
-    assert not sub(t, u)
+    assert sub(dt.Int(), t)
+    assert sub(t, u)
 
 
 def test_common_sub_type():

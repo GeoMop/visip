@@ -450,6 +450,10 @@ def is_subtype_map(type, typeinfo, var_map, restraints, const=False):
         if const:
             return is_subtype_map(type, typeinfo.arg, var_map, restraints, True)
 
+    # if typeinfo is NewType, than call recursively
+    elif isinstance(typeinfo, NewType):
+        return is_subtype_map(type, typeinfo.supertype, var_map, restraints, const)
+
     # if typeinfo is Any, always True
     elif isinstance(typeinfo, Any):
         return True, var_map, restraints
@@ -495,17 +499,12 @@ def is_subtype_map(type, typeinfo, var_map, restraints, const=False):
                     return False, {}, {}
                 return True, _vm_merge(var_map, vm), restraints
 
-    # if typeinfo is NewType, than type must be appropriate NewType or subtype of supertype
+    # if type is NewType, than typeinfo must be appropriate NewType or subtype of supertype
     elif isinstance(type, NewType):
         if typeinfo is type:
             return True, var_map, restraints
         else:
-            b, vm, rest = is_subtype_map(type.supertype, typeinfo, var_map, restraints, const)
-            if b:
-                b, restraints = _restraints_merge(restraints, rest)
-                if not b:
-                    return False, {}, {}
-                return True, _vm_merge(var_map, vm), restraints
+            return is_subtype_map(type.supertype, typeinfo, var_map, restraints, const)
 
     # if type is Int, Float, Str, NoneType, typeinfo must be the same
     elif isinstance(type, (Int, Float, Str, NoneType)):
