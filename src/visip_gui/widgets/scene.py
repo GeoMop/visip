@@ -1,15 +1,13 @@
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtGui import QStaticText, QCursor
-from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsItem, QMessageBox
-
+from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsItem
 from visip.dev.base import _ActionBase
 from visip_gui.graphical_items.g_action_ref import GActionRef
 from visip_gui.graphical_items.g_output_action import GOutputAction
 from visip import _Value
-from visip.action import Value
 from visip.dev.action_instance import ActionCall
-from visip.dev.action_workflow import _SlotCall, _ResultCall, _Slot, _Workflow
+from visip.dev.action_workflow import _SlotCall, _ResultCall, _Slot
 from visip_gui.graphical_items.g_input_action import GInputAction
 from visip_gui.graphical_items.g_action import GAction
 from visip_gui.graphical_items.g_connection import GConnection
@@ -17,7 +15,6 @@ from visip_gui.graphical_items.g_port import GOutputPort
 from visip_gui.graphical_items.action_for_subactions import GActionForSubactions
 from visip_gui.data.g_action_data_model import GActionData
 import random
-import math
 
 from visip_gui.graphical_items.g_tooltip_item import GTooltipItem
 from visip_gui.widgets.base.g_base_model_scene import GBaseModelScene
@@ -65,12 +62,15 @@ class Scene(GBaseModelScene):
         self.parent().center_on_content = True
 
     def draw_action(self, item):
-        action = {**self.workflow.action_call_dict, "__result__": self.workflow._result_call}.get(item.data(GActionData.NAME))
+        action_name = item.data(GActionData.NAME)
+        action = self.workflow.action_call_dict.get(action_name)
         if action is None:
-            action = self.unconnected_actions.get(item.data(GActionData.NAME))
+            action = self.unconnected_actions.get(action_name)
+        assert action is not None, f"Unknown action call name: {action_name}"
 
         if action is None:
-            i=0
+            return
+
         if isinstance(action.action, _Value):
             if isinstance(action.action.value, _ActionBase):
                 self.actions.append(GActionRef(item, action, self.root_item))
@@ -166,10 +166,10 @@ class Scene(GBaseModelScene):
         action = self.available_actions[module][action_name]
 
         if isinstance(action, _Slot):
-            action = _SlotCall("slot")
+            action = _SlotCall("slot", None)
             name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.name)
             action.name = name
-            self.workflow.insert_slot(len(self.workflow.slots), action)
+            self.workflow.insert_slot(len(self.workflow.slots), None, action)
 
         elif action_name in self.available_actions[module]:
             action = ActionCall.create(self.available_actions[module][action_name])
@@ -330,15 +330,17 @@ class Scene(GBaseModelScene):
             self.removeItem(action)
             self.unconnected_actions.pop(action.name)
 
+            action_call = action.w_data_item
+            input_calls = [a.value for a in action_call.arguments if a.value is not None]
+            for a in input_calls:
+                if isinstance(a.action, _Value) and not isinstance(a.action.value, _ActionBase):
+                        self.unconnected_actions.pop(a.name, None)
+
             if isinstance(action, GInputAction):
-                self.workflow.remove_slot(self.workflow.slots.index(action.w_data_item))
+                self.workflow.remove_slot(self.workflow.slots.index(action_call))
                 self.main_widget.toolbox.update_category()
-            action = action.w_data_item
-            for i in range(len(action.arguments)):
-                if action.arguments[i].value is not None:
-                    if      isinstance(action.arguments[i].value.action, _Value) and\
-                            not isinstance(action.arguments[i].value.action.value, _ActionBase):
-                        self.unconnected_actions.pop(action.arguments[i].value.name, None)
+            action.w_data_item = None
+
         else:
             action.setSelected(False)
 
@@ -346,9 +348,9 @@ class Scene(GBaseModelScene):
         action1 = conn.port1.parentItem().w_data_item
         action2 = conn.port2.parentItem().w_data_item
         for i in range(len(action2.arguments)):
-
             if action1 == action2.arguments[i].value:
                 self.workflow.set_action_input(action2, i, None)
+                break
         if isinstance(action1, _Value) and not isinstance(action1.value, _ActionBase):
             self._delete_action(conn.port1.parentItem())
 
@@ -382,4 +384,4 @@ class Scene(GBaseModelScene):
         pass
 
     def update_parameters(self):
-        self.workflow.update_parameters()
+        self.workflow._parameters = self.workflow.signature_from_dag()

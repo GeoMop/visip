@@ -27,6 +27,11 @@ def test_action_returning_action():
     result = evaluation.run(tst_adder)
     assert result == 3
 
+# def test_dynamic_call():
+#     action = Value(2)
+#     action_call = into_action(action)
+#     call = dynamic_call(action_call)
+
 #######################
 
 # @wf.action_def
@@ -63,6 +68,7 @@ def test_if_action():
     assert result == 101
     result = evaluation.run(wf_condition, [False])
     assert result == 100
+
 
 # @wf.action_def
 # def condition(lst:wf.List[float], num:float, end:float) -> bool:

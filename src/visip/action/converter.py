@@ -2,6 +2,7 @@ from typing import *
 from ..dev import base
 from .constructor import Value
 from ..dev import dtype
+from ..dev.extract_signature import  _extract_signature
 
 
 class GetAttribute(base._ActionBase):
@@ -10,7 +11,8 @@ class GetAttribute(base._ActionBase):
     TODO: Do we really need the "configuration" data?
     """
     def __init__(self):
-        super().__init__()
+        signature = _extract_signature(self._evaluate)
+        super().__init__(signature=signature)
 
     def call_format(self, representer, action_name, arg_names, arg_values):
         assert len(arg_names) == 2
@@ -31,7 +33,8 @@ class GetItem(base._ActionBase):
     Note: Possibly we can distinguish GetItem and GetKey and have better typechecking for the index.
     """
     def __init__(self):
-        super().__init__()
+        signature = _extract_signature(self._evaluate)
+        super().__init__(signature=signature)
 
     def call_format(self, representer, action_name, arg_names, arg_values):
         assert len(arg_names) == 2

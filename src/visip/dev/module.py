@@ -1,13 +1,15 @@
 import os
 import sys
 import imp
+# TODO: use importlib instead
 import traceback
-from typing import Callable
+#from typing import Callable
 from types import ModuleType
 from collections import deque
 
 from ..action import constructor
-from ..code import wrap
+#from ..code import wrap
+from ..code.dummy import DummyAction
 from ..code.representer import Representer
 from . import base, action_workflow as wf, dtype as dtype
 from .action_instance import ActionCall
@@ -148,8 +150,8 @@ class Module:
         analysis = []
         for name, obj in self.module.__dict__.items():
             # print(name, type(obj))
-            if isinstance(obj, wrap.ActionWrapper):
-                action = obj.action
+            if isinstance(obj, DummyAction):
+                action = obj._action_value
                 self.insert_definition(action)
                 assert isinstance(action, base._ActionBase)
                 assert name == action.name
@@ -227,8 +229,8 @@ class Module:
                     continue
 
                 alias_name = f"{mod_alias}.{name}".lstrip('.')
-                if isinstance(obj, wrap.ActionWrapper):
-                    obj_mod_name = self.mod_name(obj.action)
+                if isinstance(obj, DummyAction):
+                    obj_mod_name = self.mod_name(obj._action_value)
                 elif type(obj) is ModuleType:
                     module_queue.append((obj, alias_name))
                 elif obj_mod_name[0] == 'typing':
