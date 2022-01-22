@@ -21,8 +21,6 @@ def test_action_call():
     assert len(ac.arguments) == 3
 
 
-    args, kwargs = tools.compose_arguments(ac._id_args_pair, ac.arguments)
-
 def test_action_call_str():
     ac = wf.list(1, 2, 3)
     print("List Action Call: ", str(ac._action_call))

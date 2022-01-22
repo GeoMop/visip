@@ -28,6 +28,15 @@ class DummyAction:
         """
         return Dummy(self._af, self._af._create_static_call(self._action_value, *args, **kwargs))
 
+    def evaluate(self, *args, **kwargs):
+        """
+        Direct (nonlazy) call of the wrapped action.
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        return self._action_value.evaluate(*args, **kwargs)
+
     def call(self, *args, **kwargs):
         """
         Call an action from an action_def, i.e. regular Python function.

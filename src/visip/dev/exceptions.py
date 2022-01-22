@@ -21,6 +21,9 @@ class ExcArgumentBindError(Exception):
 class ExcActionExpected(Exception):
     pass
 
+class ExcConstantKey(Exception):
+    pass
+
 class ExcInvalidCall(Exception):
     pass
 

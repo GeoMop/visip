@@ -2,6 +2,7 @@ import typing
 
 import attr
 from typing import *
+from . import dtype
 import inspect
 
 from . import data
@@ -39,7 +40,7 @@ class ActionParameter:
     VAR_KEYWORD             = inspect.Parameter.VAR_KEYWORD
 
     # Class attribute. Single instance object representing no default value.
-    def __init__(self, name:str, p_type:Any, default: object = no_default, kind=POSITIONAL_OR_KEYWORD):
+    def __init__(self, name:str, p_type:dtype.TypeBase, default: object = no_default, kind=POSITIONAL_OR_KEYWORD):
         self._name : str = name
         # Name of the parameter, None for positional only.
         self._default = default
@@ -135,6 +136,20 @@ class Parameters:
     def return_type_defined(self):
         return self._return_type
 
+    @property
+    def var_positional(self):
+        for p in self:
+            if p.kind == ActionParameter.VAR_POSITIONAL:
+                return p
+        return None
+
+    @property
+    def var_keyword(self):
+        for p in self:
+            if p.kind == ActionParameter.VAR_KEYWORD:
+                return p
+        return None
+
     def __len__(self):
         return len(self._signature.parameters)
 
@@ -179,6 +194,7 @@ class Parameters:
         :return:
         """
         return (p for p in self.parameters if p.kind in self._positional_kinds)
+
 
     def __iter__(self):
         """

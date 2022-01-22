@@ -18,6 +18,9 @@ from typing import Any, List, Dict, Tuple, TypeVar, Callable
 # reusing some Python typehints, before we have own typing schema
 ################################################################################################
 
+class TypeBase:
+    # Future base class of all type hint classes
+    pass
 
 BasicType = typing.Union[bool, int, float, complex, str]
 valid_base_types = (bool, int, float, complex, str)

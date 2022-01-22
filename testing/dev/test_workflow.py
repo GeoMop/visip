@@ -7,15 +7,15 @@ def test_workflow_modification():
     w = wf._Workflow("tst_wf")
 
     ## Slot modifications
-    # insert_slot
-    w.insert_slot(0, wf._SlotCall("a_slot"))
-    w.insert_slot(1, wf._SlotCall("b_slot"))
+    # insert_slotg_data_item
+    w.insert_slot(0, "a_slot", int)
+    w.insert_slot(1, "b_slot", int)
     assert len(w.parameters) == 2
     assert w.parameters.at(0).name == 'a_slot'
     assert w.parameters.at(1).name == 'b_slot'
 
     # move_slot
-    w.insert_slot(2, wf._SlotCall("c_slot"))
+    w.insert_slot(2, "c_slot", int)
     # A B C
     w.move_slot(1, 2)
     # A C B
@@ -30,11 +30,12 @@ def test_workflow_modification():
     # remove_slot
     w.remove_slot(2)
     assert len(w.parameters) == 2
+    assert len(w._slots) == 2
 
     ## ActionCall modifications
     result = w.result_call
     slots = w.slots
-    list_action =  constructor.A_list()
+    list_action = constructor.A_list()
     list_1 = instance.ActionCall.create(list_action)
     res = w.set_action_input(list_1, 0, slots[0])
     assert res == True
@@ -57,11 +58,15 @@ def test_workflow_modification():
 
     # unlink
     w.set_action_input(list_1, 0, None)
-    assert len(list_1.arguments) == 2
-    assert list_1.arguments[0].value is None
+    assert len(list_1.arguments) == 1
+    assert list_1.arguments[0].value is slots[1]
     assert not slots[0]._output_actions
 
+    # shifted 2. argument, setting the 2. do nothing
     w.set_action_input(list_1, 1, None)
+    assert len(list_1.arguments) == 1
+    # removing the remaining argument
+    w.set_action_input(list_1, 0, None)
     assert len(list_1.arguments) == 0
     # w:  (slot0 (B), slot2 (A))  List1 -> result
 

@@ -14,15 +14,12 @@ import os
 from typing import List, Dict, Tuple, Any, Union
 import attr
 import heapq
-import numpy as np
 import time
 
 from . import data, task as task_mod, base, dfs,  dtype as dtype, action_instance as instance
 from .action_workflow import _Workflow
-from .action_instance import ActionCall
-from ..action.constructor import Value
 from ..eval.cache import ResultCache
-from ..code import wrap
+from ..code.unwrap import into_action
 from ..code.dummy import Dummy, DummyAction
 from . import tools
 
@@ -272,15 +269,8 @@ class Evaluation:
         bind_name = 'all_bind_' + action.name
         workflow = _Workflow(bind_name)
 
-        bind_action = instance.ActionCall.create(action)
-        for i, input in enumerate(inputs):
-            if isinstance(input, Dummy):
-                input_action = input._value
-            elif isinstance(input, DummyAction):
-                input_action = input._action_value
-            else:
-                input_action = instance.ActionCall.create(Value(input))
-            workflow.set_action_input(bind_action, i, input_action)
+        args = [into_action(arg) for arg in inputs]
+        bind_action = instance.ActionCall.create(action, *args)
             #assert bind_action.arguments[i].status >= instance.ActionInputStatus.seems_ok
         workflow.set_action_input(workflow.result_call, 0, bind_action)
         return workflow

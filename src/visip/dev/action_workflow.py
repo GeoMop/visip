@@ -1,5 +1,5 @@
 import attr
-from typing import Any
+from typing import Any, Optional
 from ..code.unwrap import into_action
 from ..code.dummy import Dummy
 from . import base
@@ -152,6 +152,9 @@ class _Workflow(meta.MetaAction):
         self._parameters = Parameters([])
         # Signature of the workflow.
         self._slots = []
+        # slots represents the parameters in the DAG of action calls
+        # we should keep slots corresponding to the parameters
+        # however we must preserve their instances so that we do not break action call links
         # no initial parameters, nor slots
         none_value = ActionCall.create(Value(None))
         self._result_call = _ResultCall(none_value, None)
@@ -394,6 +397,31 @@ class _Workflow(meta.MetaAction):
         body.append("{}return {}".format(indent, result_action_call.get_code_instance_name()))
         return "\n".join(body)
 
+    def insert_slot(self, i_slot: int, name: str, p_type: dtype.TypeBase,
+                    default: Any = ActionParameter.no_default, kind: int = ActionParameter.POSITIONAL_OR_KEYWORD) -> None:
+        """
+        Insert a new parameter on i_th position shifting the slots starting form i-th position.
+        """
+        assert len(self._slots) == len(self._parameters)
+        assert 0 <= i_slot < len(self._slots) + 1
+        params = list(self._parameters)
+        self._slots.insert(i_slot, _SlotCall(name, p_type))
+        params.insert(i_slot, ActionParameter(name, p_type, default, kind))
+        self._parameters = Parameters(params, self._parameters.return_type)
+        # no need to update
+
+    def remove_slot(self, i_slot: int) -> None:
+        """
+        Remove parameter at position 'i'.
+        """
+        # TODO: disconnect - use action binding interface
+        for dep_action in self._slots[i_slot]._output_actions:
+            self.set_action_input(dep_action.action_call, dep_action.i_arg, dep_action.key, None)
+        ###
+        self._slots.pop(i_slot)
+        params = list(self._parameters)
+        params.pop(i_slot)
+        self._parameters = Parameters(params, self._parameters.return_type)
 
     def move_slot(self, from_pos, to_pos):
         """
@@ -403,32 +431,19 @@ class _Workflow(meta.MetaAction):
         """
         assert 0 <= from_pos < len(self._slots)
         assert 0 <= to_pos < len(self._slots)
+        params = list(self._parameters)
         from_slot = self._slots[from_pos]
+        from_param = params[from_pos]
         direction = 1 if to_pos > from_pos else -1
+
         for i in range(from_pos, to_pos, direction):
             self._slots[i] = self._slots[i + direction]
+            params[i] = params[i + direction]
         self._slots[to_pos] = from_slot
-        self._parameters = self.signature_from_dag()
+        params[to_pos] = from_param
+        self._parameters = Parameters(params, self._parameters.return_type)
+        # no need to update
 
-
-    def insert_slot(self, i_slot:int, slot: _SlotCall) -> None:
-        """
-        Insert a new slot on i_th position shifting the slot on i-th position and remaining to the right.
-        Change of the name
-        """
-        assert 0 <= i_slot < len(self._slots) + 1
-        self._slots.insert(i_slot, slot)
-        self._parameters = self.signature_from_dag()
-
-
-    def remove_slot(self, i_slot:int) -> None:
-        """
-        Disconnect and remove the i-th slot.
-        """
-        for dep_action, i_arg in self._slots[i_slot]._output_actions:
-            self.set_action_input(dep_action, i_arg, None)
-        self._slots.pop(i_slot)
-        self._parameters = self.signature_from_dag()
 
     # def bind_action_argument(self, action: ActionCall, param_name: str, input_action: ActionCall):
     #     try:
@@ -441,39 +456,82 @@ class _Workflow(meta.MetaAction):
     #         action.bind_argumant(param_name, orig_input)
     #         return False
     #     return True
+    # def _set_ac(self):
+    #     pass
+    #
+    # def _set_arguments(self, action_call, i_arg, argument):
+    #     if action_call.argument[i_arg]
+    #         output_actions = action_call.arguments[i_arg].value._output_actions
+    #         if action_call[i_arg].status == ActionInputStatus.missing:
+    #
+    #     errors = action_call.set_inputs(action_call.args_in, action_call.kwargs_in)
+    #     return self.update()
 
-    def _set_ac(self, action_call):
-        errors = action_call.set_inputs(action_call.args_in, action_call.kwargs_in)
-        return self.update()
-
-    def set_action_input(self, action_call: ActionCall, i_arg:int, input_action: ActionCall) -> bool:
+    def set_action_input(self, action_call: ActionCall, i_arg:int, input_action: Optional[ActionCall], key:str = None) -> bool:
         """
-        Set argument 'i_arg' of the 'action' to the 'input_action'.
+        Set positional or keyword argument (i_arg, key) of the 'action_call' to the 'input_action'.
+        Unset the argument if input_action is None.
+        TODO:
+        - change interface to identify the action by a hash (simpler association with graphical elements)
+        - rename and introduce key binding variant
 
         E.g. wf.set_action_input(list_1, 0, slot_a)
-        The result of the workflow is an action that takes arbitrary number of arguments but
         """
-        if input_action is None and i_arg == len(action_call.args_in) - 1:
-            orig_arg = action_call.args_in.pop()
-            if not self._set_ac(action_call):
-                action_call.args_in[i_arg] = orig_arg
-                assert self._set_ac(action_call)
-                return False
-        try:
-            orig_arg = action_call.args_in[i_arg]
-            action_call.args_in[i_arg] = input_action
-            if not self._set_ac(action_call):
-                action_call.args_in[i_arg] = orig_arg
-                assert self._set_ac(action_call)
-                return False
-        except IndexError:
-            action_call.args_in.append(input_action)
-            if not self._set_ac(action_call):
-                action_call.args_in.pop()
-                assert self._set_ac(action_call)
-                return False
-        return True
+        args, kwargs = action_call.id_args_pair
 
+        if i_arg is not None:
+            # positional argument
+            try:
+                id_arg = args[i_arg]
+            except IndexError:
+                var_param = action_call.parameters.var_positional
+                if var_param is None:
+                    return False # raise IndexError
+                elif input_action is not None:
+                    new_arg = action_call.make_argument(i_arg, var_param, input_action)
+                    id_arg = len(args)
+                    action_call.arguments.insert(id_arg, new_arg)
+            else:
+                param = action_call.arguments[id_arg].parameter
+                if input_action is None and param.kind == ActionParameter.VAR_POSITIONAL:
+                    # remove unset variadic arguments
+                    action_call.arguments.pop(id_arg)
+                    # shift other positional arguments
+                    while id_arg < len(action_call.arguments) and action_call.arguments[id_arg].key is None:
+                        action_call.arguments[id_arg].index -= 1
+                        assert action_call.arguments[id_arg].index == id_arg
+                        id_arg += 1
+
+                else:
+                    # keep all non variadic arguments (marked as missing)
+                    action_call.arguments[id_arg] = action_call.make_argument(i_arg, param, input_action)
+        else:
+            # keyword argument
+            assert key is not None
+            try:
+                id_arg = kwargs[key]
+            except KeyError:
+                var_keyword = action_call.parameters.var_keyword
+                if var_keyword is None:
+                    return False # raise IndexError
+                elif input_action is not None:
+                    new_arg = action_call.make_argument(None, var_keyword, input_action, key=key)
+                    action_call.arguments.append(new_arg)
+            else:
+                param = action_call.arguments[id_arg].parameter
+                if input_action is None and param.kind == ActionParameter.VAR_KEYWORD:
+                    # remove unset variadic arguments
+                    action_call.arguments.pop(id_arg)
+                else:
+                    # keep all non variadic arguments (marked as missing)
+                    action_call.arguments[id_arg] = action_call.make_argument(None, param, input_action, key=key)
+
+        if not self.update():
+            # revert
+            assert self.set_action_input(action_call, i_arg, None, key=key)
+            return False
+        # TODO: if slow, update just old_arg.value._output_actions and new_arg.value._output_actions
+        return True
 
     def set_result_type(self, result_type):
         """
@@ -510,7 +568,7 @@ class _Workflow(meta.MetaAction):
             # TODO: eliminate dict usage, assign a call rank to the action calls
             # TODO: use it to index tasks in the resulting task list 'childs'
             arg_tasks = [childs[arg.value.name] for arg in action_call.arguments]
-            task_binding = TaskBinding(action_call.name, action_call.action, action_call._id_args_pair, arg_tasks)
+            task_binding = TaskBinding(action_call.name, action_call.action, action_call.id_args_pair, arg_tasks)
             task = task_creator(task_binding)
             childs[action_call.name] = task
         return childs.values()

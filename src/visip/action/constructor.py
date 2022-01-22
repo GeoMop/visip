@@ -127,15 +127,12 @@ class ClassActionBase(_ActionBase):
         # module where the data class is defined
 
 
-
-
-
     @property
     def constructor(self):
         return self._data_class
 
-    def _evaluate(self, *args) -> dtype.DataClassBase:
-        return self.constructor(*args)
+    def _evaluate(self, *args, **kwargs) -> dtype.DataClassBase:
+        return self.constructor(*args, **kwargs)
 
     def code_of_definition(self, representer):
         """

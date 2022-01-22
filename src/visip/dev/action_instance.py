@@ -3,12 +3,12 @@ import attr
 from typing import *
 from . import base
 from .parameters import ActionParameter
-from ..action.constructor import Value
-
+from ..action.constructor import Value, A_list, A_dict, A_tuple
 from .type_inspector import TypeInspector
 from enum import IntEnum
 from .tools import decompose_arguments, compose_arguments, ArgsPair
-from .exceptions import ExcTypeBase, ExcArgumentBindError
+from .exceptions import ExcTypeBase, ExcArgumentBindError, ExcConstantKey, ExcActionExpected
+from ..code.dummy import Dummy, DummyAction
 
 class ActionInputStatus(enum.IntEnum):
     error_impl  = -4     # Missing type hint or other error in the action implementation.
@@ -18,22 +18,116 @@ class ActionInputStatus(enum.IntEnum):
                          # TODO: unify error reporting.
     error_type  = -1     # type error
     none        = 0      # not checked yet
-    seems_ok    = 1      # correct input, type not fully specified
-    ok          = 2      # correct input
+    seems_ok    = 1      # correct input, type not fully specified or involving Any
+    ok          = 2      # correct input, possibly involving conversions to Named types
+    exact       = 3      # Named types exact match
+
 
 
 @attr.s(auto_attribs=True)
 class ActionArgument:
-    # TODO: try to remove, parameter and is_deault as it seems to not been used after ActionArgument is created
+    """
+    Represents association of an argument to the parameters of an action.
+    Contain data from usual function call including: the function/action,
+    index or key of the argument binding, the argument itself in terms of connected result of other ActionCall
+    """
+    action_call: 'ActionCall'
+    # identification of the action instance within the workflow
+    # TODO: use hash instead
+    index: int
+    # Position binding, position of a positional argument, None for key binding.
+    key: str
+    # Key binding. None for positional binding.
+    value: 'ActionCall'
+    # identification of the binded argument == action call within the workflow
+    # TODO: use hash
     parameter: ActionParameter
-    value: Optional['ActionCall'] = None
-    is_default: bool = False
+    # reference to associated parameter
+    is_default: bool = None
+    # 'argument' set as Value(default)
     status: ActionInputStatus = ActionInputStatus.missing
+    # binding correctenss status
     type_exception: ExcTypeBase = None
+    # exception or other kind of error specification
+
 
 
 
 class ActionCall:
+    @staticmethod
+    def action_wrap(value: Any) -> 'ActionCall':
+        if isinstance(value, ActionCall):
+            return value
+        else:
+            return ActionCall.create(Value(value))
+
+    @staticmethod
+    def _into_action(value: Any) -> Any:
+        """
+        Recursively unwrap data,
+        :param value:
+        :return:
+        """
+        ti = TypeInspector()
+
+        if isinstance(value, Dummy):
+            action_call = value._value
+            assert isinstance(action_call, ActionCall)
+            return action_call
+        elif isinstance(value, DummyAction):
+            action = value._action_value
+            assert isinstance(action, base._ActionBase)
+            return action
+        elif type(value) is list:
+            args = [ActionCall._into_action(val) for val in value]
+            if any(isinstance(arg, ActionCall) for arg in args):
+                args = [ActionCall.action_wrap(arg) for arg in args]
+                return ActionCall.create(A_list(), *args)
+            else:
+                return args
+        elif type(value) is tuple:
+            args = [ActionCall._into_action(val) for val in value]
+            if any(isinstance(arg, ActionCall) for arg in args):
+                args = [ActionCall.action_wrap(arg) for arg in args]
+                return ActionCall.create(A_tuple(), *args)
+            else:
+                return tuple(args)
+        elif type(value) is dict:
+            kwargs = [(ActionCall._into_action(key), ActionCall._into_action(val)) for key, val in value.items()]
+            for k, v in kwargs:
+                if isinstance(k, ActionCall):
+                    raise ExcConstantKey(str(k))
+            if any(isinstance(arg, ActionCall) for k, arg in kwargs):
+                kwargs = [ActionCall.into_action((k, arg)) for k, arg in kwargs]
+                return ActionCall.create(A_dict(), *kwargs)
+            else:
+                return dict(kwargs)
+        elif value is None \
+                or ti.is_base_type(type(value)) \
+                or ti.is_enum(type(value)) \
+                or ti.is_dataclass(type(value)) :
+            return value
+        elif isinstance(value, ActionCall):
+            return value
+        else:
+            raise ExcActionExpected("Can not wrap into action, value: {}".format(str(value)))
+
+    @staticmethod
+    def into_action(value: Any) -> 'ActionCall':
+        """
+        In value remove recursively all Dummy and DummyAction wrappers.
+        Convert all list, dict, tuple, dataclass having at leas one ActionCall
+        argument into appropriate constructor actions.
+        Wrap data values (without any action calls) into Value action.
+        Wrap the None value as well.
+        Return the ActionCall.
+
+        :param value: Value can be raw value, List, Tuple, Dummy, etc.
+        :return: ActionCall that can be used as the input to other action instance.
+        """
+        unwrapped = ActionCall._into_action(value)
+        return ActionCall.action_wrap(unwrapped)
+
     """
     The call of an action within a workflow. ActionInstance objects are vertices of the
     call graph (DAG).
@@ -50,26 +144,33 @@ class ActionCall:
         self.action = action
         """ The Action (instance of _ActionBase), have defined parameter. """
         
-        self.args_in = [] 
-        self.kwargs_in = {}
+        #self.args_in = []
+        #self.kwargs_in = {}
         # positional and keyword arguments passed to the call
         # only these can be modified, rest is produced by check
-        self._bind_args_dict = {}
+        #self._bind_args_dict = {}
         # dictionary that binds parameter names to arguments after self.bind
-        self._id_args_pair : ArgsPair[int] = None
+        #self._id_args_pair : ArgsPair[int] = None
         # args and kwargs IDs used to pass values,
         # None - not valid ActionCall
         self._arguments : List[ActionArgument] = []
         # input values - connected action calls, avery represented by ActionArgument (action_call, status, param)
 
         """ Inputs connected to the action parameters."""
-        self._output_actions = []
+        self._output_actions :List[ActionArgument] = []
         """ Actions connected to the output. Set during the workflow construction."""
-        # TODO: remove, rather use a set in te DFS if necessart
+        # TODO: remove, rather use a set in te DFS if necessary,
+        # used in: _Workflow.remove_slot
+
+
 
     @property
     def arguments(self):
         return self._arguments
+
+    @property
+    def id_args_pair(self):
+        return self._arg_split(self._arguments)
 
     def return_type_have_attributes(self):
         return TypeInspector().have_attributes(self.action.output_type)
@@ -95,8 +196,6 @@ class ActionCall:
         :param kwargs:
         :return:
         """
-        if not isinstance(action, base._ActionBase):
-            pass
         assert isinstance(action, base._ActionBase), f"{action.__name__}, {action.__class__}"
         instance = ActionCall(action)
         errors = instance.set_inputs(args, kwargs)
@@ -124,7 +223,7 @@ class ActionCall:
     def have_proper_name(self):
         return self._proper_instance_name
 
-    def make_argument(self, param, value: Optional['ActionCall']):
+    def make_argument(self, i_arg: Optional[int], param: ActionParameter, value: Optional['ActionCall'], key:str = None ) -> ActionArgument:
         """
         Make ActionArgument from the ActionParameter and a value or ActionCall.
         - possibly get default value
@@ -133,50 +232,46 @@ class ActionCall:
         :param value: ActionCall connected to this argument
         :return:
         """
-
         is_default = False
         if value is None:
             is_default, value = param.get_default()
             if is_default:
-                value = ActionCall.create(Value(value))
-
+                value = ActionCall.into_action(value)
+        status = ActionInputStatus.seems_ok
         if value is None:
-            return ActionArgument(param, None, False, ActionInputStatus.missing)
+            status = ActionInputStatus.missing
+            #return self._make_argument(i_arg, key, param, None)_ActionArgument(param, None, False, ActionInputStatus.missing)
+        elif param.type is None:
+            status = ActionInputStatus.error_impl
+            #return ActionArgument(param, value, is_default, ActionInputStatus.error_impl)
+        else:
+            assert isinstance(value, ActionCall), type(value)
+            check_type = param.type
 
-        assert isinstance(value, ActionCall), type(value)
-
-        check_type = param.type
-        if param.type is None:
-            return ActionArgument(param, value, is_default, ActionInputStatus.error_impl)
-        if TypeInspector().is_constant(param.type):
-            if isinstance(value, Value):
+            if TypeInspector().is_constant(param.type):
                 check_type = TypeInspector().constant_type(param.type)
+                if not isinstance(value, Value):
+                    status = ActionInputStatus.error_value
+                    #return ActionArgument(param, value, is_default, ActionInputStatus.error_value)
+
+            if TypeInspector().is_subtype(value.output_type, check_type):
+                status = ActionInputStatus.seems_ok
             else:
-                return ActionArgument(param, value, is_default, ActionInputStatus.error_value)
+                status = ActionInputStatus.error_type
 
-        if not TypeInspector().is_subtype(value.output_type, check_type):
-            return  ActionArgument(param, value, is_default, ActionInputStatus.error_type)
-
-        return ActionArgument(param, value, is_default, ActionInputStatus.seems_ok)
+        return ActionArgument(self, i_arg, key, value, param, is_default, status)
 
 
-
-
-    def _arg_split(self, bound_args):
+    @staticmethod
+    def _arg_split(bound_args):
         args = []
         kwargs = {}
-        for k, a in bound_args.items():
-            kind = self.parameters[k].kind
-            if kind in (ActionParameter.POSITIONAL_ONLY, ActionParameter.POSITIONAL_OR_KEYWORD):
-                args.append(a)
-            elif kind == ActionParameter.KEYWORD_ONLY:
-                kwargs[k] = a
-            elif kind == ActionParameter.VAR_POSITIONAL:
-                assert isinstance(a, (list,))
-                args.extend(a)
-            elif kind == ActionParameter.VAR_KEYWORD:
-                assert isinstance(a, (dict,))
-                kwargs.update(a)
+        for ia, a in enumerate(bound_args):
+            if a.index is None:
+                assert a.key is not None
+                kwargs[a.key] = ia
+            else:
+                args.append(ia)
         return args, kwargs
 
     class BindError(IntEnum):
@@ -199,9 +294,9 @@ class ActionCall:
         """
         if kwargs is None:
             kwargs = {}
-        self._bind_args_dict, errors = self.bind(args, kwargs)
-        args_pair = self._arg_split(self._bind_args_dict)
-        self._id_args_pair, self._arguments = decompose_arguments(args_pair)
+        self._arguments, errors = self.bind(args, kwargs)
+        #args_pair = self._arg_split(self._bind_args_dict)
+        #self._id_args_pair, self._arguments = decompose_arguments(args_pair)
         return errors
 
     def bind(self, args, kwargs):
@@ -218,17 +313,17 @@ class ActionCall:
             - remaining keyword (arg, KEYWORD_OVER)
         """
 
-        bound_args = dict()
+        bound_args = list()
         parameters = iter(self.parameters.parameters)
         #parameters_ex = ()
-        arg_vals = iter(args)
+        arg_vals = enumerate(iter(args))
         errors = []
 
         while True:
             # Let's iterate through the positional arguments and corresponding
             # parameters
             try:
-                arg_val = next(arg_vals)
+                i_arg, arg_val = next(arg_vals)
             except StopIteration:
                 break
                 # No more positional arguments
@@ -239,7 +334,7 @@ class ActionCall:
                     param = next(parameters)
                 except StopIteration:
                     args_over = [arg_val]
-                    args_over.extend(arg_vals)
+                    args_over.extend([v for i,v in arg_vals])
                     errors.extend([(av, self.BindError.POSITIONAL_OVER) for av in args_over])
                     break
                 else:
@@ -247,17 +342,18 @@ class ActionCall:
                         # We have an '*args'-like argument, let's fill it with
                         # all positional arguments we have left and move on to
                         # the next phase
-                        values = [arg_val]
+                        values = [(i_arg, arg_val)]
                         values.extend(arg_vals)
-                        values = [self.make_argument(param, v) for v in values]
-                        tuple_args = tuple(values)
-                        bound_args[param.name] = values
+                        for i, v in values:
+                            arg = self.make_argument(i, param, v) # try without parem, getting it from self.parameters
+                            bound_args.append(arg)
                         break
 
                     if param.name in kwargs:
                         errors.append((arg_val, self.BindError.DUPLICATE))
 
-                    bound_args[param.name] = self.make_argument(param, arg_val)
+                    arg = self.make_argument(i_arg, param, arg_val)
+                    bound_args.append(arg)
 
         # Now, we iterate through the remaining parameters to process
         # keyword arguments
@@ -283,20 +379,20 @@ class ActionCall:
                 # if it has a default value, or it is an '*args'-like
                 # parameter, left alone by the processing of positional
                 # arguments.
-                bound_args[param.name] = self.make_argument(param, None)
+                bound_args.append( self.make_argument(None, param, None, key=param.name))
             else:
                 if param.kind == param.POSITIONAL_ONLY:
                     errors.append((arg_val, self.BindError.KEYWORD_FOR_POSITIONAL_ONLY))
                 # KEYWORD or KEYWORD_OR_POSITIONAL
-                bound_args[param.name] = self.make_argument(param, arg_val)
+                bound_args.append(self.make_argument(None, param, arg_val, key=param.name))
 
         # trailing kwargs with no parameters
         if kwargs:
             if kwargs_param is not None:
                 # Process our '**kwargs'-like parameter
                 # can not use wrap.into_action due to circular dependencies
-                kw = {k : self.make_argument(param, v) for k, v in kwargs.items()}
-                bound_args[kwargs_param.name] = kw
+                for k, v in kwargs.items():
+                    bound_args.append(self.make_argument(None, param, v, key=k))
             else:
                 errors.extend([(arg, self.BindError.KEYWORD_OVER) for k, arg in kwargs.items()])
 
