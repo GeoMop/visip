@@ -1,6 +1,4 @@
-import attr
 import typing
-
 from ..dev.base import _ActionBase
 from ..dev import dtype as dtype
 from ..dev.parameters import Parameters, ActionParameter
@@ -26,13 +24,14 @@ class Value(_ActionBase):
 
 class Pass(_ActionBase):
     """
-    Do nothing action. Meant for internal usage in particular.
+    Propagate given single argument. Do nothing action. Meant for internal usage in particular.
     """
     def __init__(self):
-        signature =params = Parameters([])
-        super().__init__()
+        p = ActionParameter('input', typing.Any)
+        signature = Parameters((p,), typing.Any)
+        super().__init__('Pass', signature)
 
-    def _evaluate(self, input: dtype.DataType):
+    def _evaluate(self, input: dtype.DataType) -> dtype.DataType:
         return input
 
 
@@ -117,7 +116,6 @@ class ClassActionBase(_ActionBase):
     """
     Action constructs particular Dataclass given in constructor.
     So the action is parametrized by the 'data_class'.
-    TODO: pass signature as parameter, use static method to extract the signature, use in the action_def decorator
     """
     def __init__(self, data_class, signature):
         super().__init__(data_class.__name__, signature)
@@ -126,13 +124,8 @@ class ClassActionBase(_ActionBase):
         self.__visip_module__ = self._data_class.__module__
         # module where the data class is defined
 
-
-    @property
-    def constructor(self):
-        return self._data_class
-
     def _evaluate(self, *args, **kwargs) -> dtype.DataClassBase:
-        return self.constructor(*args, **kwargs)
+        return self._data_class(*args, **kwargs)
 
     def code_of_definition(self, representer):
         """
