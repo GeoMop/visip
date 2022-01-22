@@ -26,7 +26,7 @@ class DummyAction:
         Check that the value is function/action.
         Perform its call
         """
-        return Dummy(self._af, self._af._create_static_call(self._action_value, *args, **kwargs))
+        return Dummy(self._af, self._af._create(self._action_value, *args, **kwargs))
 
     def evaluate(self, *args, **kwargs):
         """
