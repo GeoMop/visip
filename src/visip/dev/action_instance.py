@@ -105,7 +105,7 @@ class ActionCall:
         elif value is None \
                 or ti.is_base_type(type(value)) \
                 or ti.is_enum(type(value)) \
-                or ti.is_dataclass(type(value)) :
+                or ti.is_dataclass(type(value)):
             return value
         elif isinstance(value, ActionCall):
             return value
@@ -144,49 +144,32 @@ class ActionCall:
         self.action = action
         """ The Action (instance of _ActionBase), have defined parameter. """
         
-        #self.args_in = []
-        #self.kwargs_in = {}
-        # positional and keyword arguments passed to the call
-        # only these can be modified, rest is produced by check
-        #self._bind_args_dict = {}
-        # dictionary that binds parameter names to arguments after self.bind
-        #self._id_args_pair : ArgsPair[int] = None
-        # args and kwargs IDs used to pass values,
-        # None - not valid ActionCall
         self._arguments : List[ActionArgument] = []
         # input values - connected action calls, avery represented by ActionArgument (action_call, status, param)
-
-        """ Inputs connected to the action parameters."""
-        self._output_actions :List[ActionArgument] = []
-        """ Actions connected to the output. Set during the workflow construction."""
-        # TODO: remove, rather use a set in te DFS if necessary,
-        # used in: _Workflow.remove_slot
-
+        # ActionCall is marked invalid by setting _arguments to None
 
 
     @property
     def arguments(self):
+        for arg in self._arguments:
+            if arg.value.is_invalid:
+                arg.value = None
+                arg.status = ActionInputStatus.missing
         return self._arguments
 
     @property
+    def is_invalid(self):
+        return self._arguments is None
+
+    def mark_invalid(self):
+        self._arguments = None
+
+    @property
     def id_args_pair(self):
-        return self._arg_split(self._arguments)
+        return self._arg_split(self.arguments)
 
     def return_type_have_attributes(self):
         return TypeInspector().have_attributes(self.action.output_type)
-
-    # def _fill_args(self):
-    #     """
-    #     Fill unset arguments.
-    #     :return:
-    #     TODO: update for new args
-    #     """
-    #     while len(self.arguments) < len(self.parameters):
-    #         param = self.parameters.at(len(self.arguments))
-    #         if param is None or param.name is None:
-    #             break
-    #         self.arguments.append(self.make_argument(param, None))
-
 
     @staticmethod
     def create(action, *args, **kwargs):
@@ -295,8 +278,6 @@ class ActionCall:
         if kwargs is None:
             kwargs = {}
         self._arguments, errors = self.bind(args, kwargs)
-        #args_pair = self._arg_split(self._bind_args_dict)
-        #self._id_args_pair, self._arguments = decompose_arguments(args_pair)
         return errors
 
     def bind(self, args, kwargs):
@@ -399,29 +380,26 @@ class ActionCall:
         return bound_args, errors
 
 
-    def update_inputs(self, inputs):
-        """
-        API fro GUI, pass new values of the inputs for current self._id_args_pair.
-        Setting any input to None will unbind corresponding parameter.
+    # def update_inputs(self, inputs):
+    #     """
+    #     API fro GUI, pass new values of the inputs for current self._id_args_pair.
+    #     Setting any input to None will unbind corresponding parameter.
+    #
+    #     Inputs are first converted to args, kwargs using self._id_args_pair and then self.set_inputs is used.
+    #
+    #     :param inputs: List of inptus with length of self.arguments
+    #     """
+    #     # TODO: hiw to catch all errors in GUI, yet throw when loading
+    #     # module during evaluation.
+    #     # All errors must set a consistent state before raising an exception
+    #     # all code processing (done during module import) should be without exceptions.
+    #     #
+    #
+    #     assert len(inputs) == len(self._arguments)
+    #     args, kwargs = compose_arguments(self._id_args_pair, inputs)
+    #     errors = self.set_inputs(args, kwargs)
+    #     assert len(errors) == 0, "No remaining arguments allowed for GUI"
 
-        Inputs are first converted to args, kwargs using self._id_args_pair and then self.set_inputs is used.
-
-        :param inputs: List of inptus with length of self.arguments
-        """
-        # TODO: hiw to catch all errors in GUI, yet throw when loading
-        # module during evaluation.
-        # All errors must set a consistent state before raising an exception
-        # all code processing (done during module import) should be without exceptions.
-        #
-
-        assert len(inputs) == len(self._arguments)
-        args, kwargs = compose_arguments(self._id_args_pair, inputs)
-        errors = self.set_inputs(args, kwargs)
-        assert len(errors) == 0, "No remaining arguments allowed for GUI"
-
-    # def set_input(self):
-    #     assert False, "Removed"
-    #     pass
 
     def set_name(self, instance_name: str):
         """

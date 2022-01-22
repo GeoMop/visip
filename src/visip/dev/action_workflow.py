@@ -1,4 +1,5 @@
 import attr
+import enum
 from typing import Any, Optional
 from ..code.unwrap import into_action
 from ..code.dummy import Dummy
@@ -8,7 +9,7 @@ from . import meta
 from . import exceptions
 from . import dtype
 from ..action.action_factory import ActionFactory
-from .action_instance import ActionCall
+from .action_instance import ActionCall, ActionArgument, ActionInputStatus
 from ..action.constructor import _ListBase, Value
 from . parameters import Parameters, ActionParameter
 from .extract_signature import _extract_signature
@@ -122,6 +123,13 @@ class _Workflow(meta.MetaAction):
     - use DAG based signature, but use types from function signature to set them to slots and to the return type.
     - similar functionality should be available from GUI
     """
+    class Status(enum.IntEnum):
+        unknown = 0
+        ok = 1
+        error_type = -1     # contains ActionArgument with ActionInputStatus.missing
+        error_missing = -3  # some missing arguments
+        cycle = -4          # update detected a cycle
+
 
     @classmethod
     def from_source(cls, func):
@@ -159,7 +167,7 @@ class _Workflow(meta.MetaAction):
         none_value = ActionCall.create(Value(None))
         self._result_call = _ResultCall(none_value, None)
         # Result ActionCall, initaliy returning None
-        self._is_valid = False
+        self._status = self.Status.unknown
         # Result of last update()
 
         #######################
@@ -185,7 +193,13 @@ class _Workflow(meta.MetaAction):
 
     @property
     def is_valid(self) -> bool:
-        return self._is_valid
+        assert self._status != self.Status.unknown
+        return self._status == self.Status.ok
+
+    @property
+    def status(self):
+        # TODO: consider automatic update call
+        return self._status
 
     def initialize_from_function(self, func):
         try:
@@ -207,7 +221,8 @@ class _Workflow(meta.MetaAction):
         output_action = into_action(func(*func_args))
         self._result_call = _ResultCall(output_action, func_signature.return_type)
         self._parameters = func_signature
-        self.update()
+        if self.update() != self.Status.ok:
+            raise exceptions.ExcInvalidWorkflow(f"Workflow status: {self.status}")
 
 
     def update(self):
@@ -220,15 +235,15 @@ class _Workflow(meta.MetaAction):
         :param result_instance: the result action
         :return: True in the case of sucessfull update, False - detected cycle
         """
-        self._is_valid = False
+        self._status = self.Status.ok
         actions = set()
         topology_sort = []
         instance_names = {}
-        # clear output_actions
-        for action in self._action_calls:
-            action._output_actions = []
 
         def construct_postvisit(action_call):
+            #
+            # remove obsolate slots
+
             # get instance name proposal
             if action_call.name is None:
                 name_base = action_call.action_name
@@ -244,35 +259,25 @@ class _Workflow(meta.MetaAction):
                 action_call.name = name_base
                 instance_names[name_base] = 0
 
-            # handle slots
-            #if isinstance(action, Slot):
-            #    assert action is self._slots[action.rank]
             actions.add(action_call)
             topology_sort.append(action_call)
 
-        # def edge_visit(previous, action, i_arg):
-        #     return previous.output_actions.append((action, i_arg))
+        def check_argument(arg: ActionArgument) -> ActionCall:
+            if arg.status < ActionInputStatus.error_type:
+                # TODO: force strong type check when types are ready
+                self._status = min(self._status, arg.status)
+                return None
+            return arg.value
 
-        is_dfs = dfs.DFS(neighbours=lambda action_call: (arg.value for arg in action_call.arguments),
+        good_dfs = dfs.DFS(neighbours=lambda action_call: (check_argument(arg) for arg in action_call.arguments),
                          postvisit=construct_postvisit).run([self._result_call])
-        if not is_dfs:
-            return False
+        if not good_dfs:
+            self._status = self.Status.cycle
 
         self._action_calls = actions
         self._sorted_calls = topology_sort
-        # set backlinks
-        for action in self._action_calls:
-            for i_arg, arg in enumerate(action.arguments):
-                if arg.value is not None:
-                    arg.value._output_actions.append((action, i_arg))
 
-        self._is_valid = True
-        return True
-
-    # def evaluate(self, input):
-    #     pass
-
-
+        return self.status
 
     def dependencies(self):
         """
@@ -414,14 +419,17 @@ class _Workflow(meta.MetaAction):
         """
         Remove parameter at position 'i'.
         """
-        # TODO: disconnect - use action binding interface
-        for dep_action in self._slots[i_slot]._output_actions:
-            self.set_action_input(dep_action.action_call, dep_action.i_arg, dep_action.key, None)
-        ###
-        self._slots.pop(i_slot)
+        slot = self._slots.pop(i_slot)
+        slot.mark_invalid()
+
         params = list(self._parameters)
         params.pop(i_slot)
         self._parameters = Parameters(params, self._parameters.return_type)
+
+    def remove_action(self, action_call: ActionCall) -> '_Workflow.Status':
+        # TODO: check here and for other actions, that they are part of the workflow
+        action_call.mark_invalid()
+        return self.update()
 
     def move_slot(self, from_pos, to_pos):
         """
@@ -444,28 +452,6 @@ class _Workflow(meta.MetaAction):
         self._parameters = Parameters(params, self._parameters.return_type)
         # no need to update
 
-
-    # def bind_action_argument(self, action: ActionCall, param_name: str, input_action: ActionCall):
-    #     try:
-    #         orig_input = action.arguments[param_name].value
-    #     except KeyError:
-    #         return False
-    #     action.bind_argument(param_name, input_action)
-    #     is_correct = self.update()
-    #     if not is_correct:
-    #         action.bind_argumant(param_name, orig_input)
-    #         return False
-    #     return True
-    # def _set_ac(self):
-    #     pass
-    #
-    # def _set_arguments(self, action_call, i_arg, argument):
-    #     if action_call.argument[i_arg]
-    #         output_actions = action_call.arguments[i_arg].value._output_actions
-    #         if action_call[i_arg].status == ActionInputStatus.missing:
-    #
-    #     errors = action_call.set_inputs(action_call.args_in, action_call.kwargs_in)
-    #     return self.update()
 
     def set_action_input(self, action_call: ActionCall, i_arg:int, input_action: Optional[ActionCall], key:str = None) -> bool:
         """
@@ -526,11 +512,13 @@ class _Workflow(meta.MetaAction):
                     # keep all non variadic arguments (marked as missing)
                     action_call.arguments[id_arg] = action_call.make_argument(None, param, input_action, key=key)
 
-        if not self.update():
+        if self.update() == self.Status.cycle:
             # revert
             assert self.set_action_input(action_call, i_arg, None, key=key)
+            # return False only in the case of cycle, otherwise keep going
+            # as this method is meant for the GUI use
             return False
-        # TODO: if slow, update just old_arg.value._output_actions and new_arg.value._output_actions
+
         return True
 
     def set_result_type(self, result_type):
@@ -555,7 +543,8 @@ class _Workflow(meta.MetaAction):
 
             In particular slots are named by corresponding parameter name and result task have name '__result__'
         """
-        self.update()
+        if self.update() != self.Status.ok:
+            raise exceptions.ExcInvalidWorkflow
         childs = {}
         assert len(self._slots) == len(task.inputs)
         for slot, input in zip(self._slots, task.inputs):

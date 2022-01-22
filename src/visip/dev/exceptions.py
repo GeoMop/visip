@@ -34,3 +34,6 @@ class ExcNoType(Exception):
 class ExcTypeBase(Exception):
     # catch typechecking errors, provide suitable details
     pass
+
+class ExcInvalidWorkflow(Exception):
+    pass
