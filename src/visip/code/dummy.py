@@ -1,15 +1,4 @@
 from typing import *
-from ..dev import base as base, action_instance as instance
-# from ..action.converter import GetAttribute, GetItem
-# from ..action.constructor import Value
-# from ..dev.action_instance import ActionCall
-# from ..dev import dtype
-# from ..dev import exceptions
-# from ..dev import meta
-# from ..code import wrap
-
-# def is_underscored(s:Any) -> bool:
-#     return type(s) is str and s[0] == '_'
 
 class DummyAction:
     """
@@ -26,7 +15,7 @@ class DummyAction:
         Check that the value is function/action.
         Perform its call
         """
-        return Dummy(self._af, self._af._create(self._action_value, *args, **kwargs))
+        return Dummy(self._af, self._af.create(self._action_value, *args, **kwargs))
 
     def evaluate(self, *args, **kwargs):
         """
@@ -53,22 +42,10 @@ class Dummy:
     appropriate implicit actions.
     """
 
-    # @classmethod
-    # def wrap(cls, action: Union['Dummy', base._ActionBase]):
-    #     if isinstance(action, Dummy):
-    #         return action
-    #     else:
-    #         return Dummy(action)
-    #
-
-
     def __init__(self, af: 'ActionFactory', value: Any) -> None:
         self._af = af
         self._value = value
 
-        #assert isinstance(action_call, instance.ActionCall)
-        #self._action_call = action_call
-        """Dummy pretend the data object of the action.output_type."""
 
     def __getattr__(self, key: str):
         try:
@@ -76,20 +53,11 @@ class Dummy:
             return Dummy(self._af, self._af.GetAttribute(key, self._value))
         except AttributeError or AssertionError:
             raise AttributeError
-        # if key == '__action':
-        #     return self.__dict__['__action']
         # TODO: update the type to know that it is a dataclass containing 'key'
         # TODO: check that type is dataclass
-        #assert not is_underscored(key)
-        #key_wrap = ActionCall.create(Value(key))
-        #action_call = ActionCall.create(GetAttribute(), key_wrap, self._action_call)
-        #return Dummy.wrap(action_call)
 
     def __getitem__(self, idx: int):
         return Dummy(self._af, self._af.GetItem(self._value, idx))
-        #idx_wrap = ActionCall.create(Value(idx))
-        #action_call = ActionCall.create(GetItem(), self._action_call, idx_wrap)
-        #return Dummy.wrap(action_call)
 
     def __call__(self, *args, **kwargs):
         """
@@ -97,18 +65,9 @@ class Dummy:
         Check that the value is function/action.
         Perform its call
         """
-        return Dummy(self._af, self._af._create_dynamic_call(self._value, *args, **kwargs))
-        #print("Dummy called.")
-        #dynamic_action = self._action_call
-        #ti = dtype.TypeInspector()
-        #TODO: we should consistently check the types of a workflow connections
-        #So this is probably not a right place to do the check
+        return Dummy(self._af, self._af.create_dynamic_call(self._value, *args, **kwargs))
 
-        #if True: #ti.is_callable(self._action_call.output_type):
-        #    dynamic_call = wrap.ActionWrapper(meta.DynamicCall())
-        #    return dynamic_call(dynamic_action, *args, **kwargs)
-        #else:
-        #    raise exceptions.ExcInvalidCall(str(self._action_call))
+
     # Binary
     # Operators
     #

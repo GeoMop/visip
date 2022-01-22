@@ -43,9 +43,9 @@ class ActionFactory:
     #     return lambda *args, **kwargs : self._create(action, *args, **kwargs)
 
     def _lazy_action(self, action):
-        return lambda *args, **kwargs: self._create(action, *args, **kwargs)
+        return lambda *args, **kwargs: self.create(action, *args, **kwargs)
 
-    def _create(self, action, *args, **kwargs):
+    def create(self, action, *args, **kwargs):
         """
         Recursively unwrap arguments,
         create action_call for action and given arguments.
@@ -55,9 +55,9 @@ class ActionFactory:
         ac_kwargs = { key: into_action(val) for key, val in kwargs.items() }
         return ActionCall.create(action, *ac_args, **ac_kwargs)
 
-    def _create_dynamic_call(self, value, *args, **kwargs):
+    def create_dynamic_call(self, value, *args, **kwargs):
         assert isinstance(value, ActionCall)
         # dynamic call
         assert True #ti.is_callable(value.return_type):
         dynamic_action = value
-        return self._create(DynamicCall(), dynamic_action, *args, **kwargs)
+        return self.create(DynamicCall(), dynamic_action, *args, **kwargs)
