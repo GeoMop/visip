@@ -6,7 +6,6 @@ from .parameters import ActionParameter
 from ..action.constructor import Value, A_list, A_dict, A_tuple
 from .type_inspector import TypeInspector
 from enum import IntEnum
-from .tools import decompose_arguments, compose_arguments, ArgsPair
 from .exceptions import ExcTypeBase, ExcArgumentBindError, ExcConstantKey, ExcActionExpected
 from ..code.dummy import Dummy, DummyAction
 
@@ -380,27 +379,6 @@ class ActionCall:
         return bound_args, errors
 
 
-    # def update_inputs(self, inputs):
-    #     """
-    #     API fro GUI, pass new values of the inputs for current self._id_args_pair.
-    #     Setting any input to None will unbind corresponding parameter.
-    #
-    #     Inputs are first converted to args, kwargs using self._id_args_pair and then self.set_inputs is used.
-    #
-    #     :param inputs: List of inptus with length of self.arguments
-    #     """
-    #     # TODO: hiw to catch all errors in GUI, yet throw when loading
-    #     # module during evaluation.
-    #     # All errors must set a consistent state before raising an exception
-    #     # all code processing (done during module import) should be without exceptions.
-    #     #
-    #
-    #     assert len(inputs) == len(self._arguments)
-    #     args, kwargs = compose_arguments(self._id_args_pair, inputs)
-    #     errors = self.set_inputs(args, kwargs)
-    #     assert len(errors) == 0, "No remaining arguments allowed for GUI"
-
-
     def set_name(self, instance_name: str):
         """
         Set name of the action instance. Used for code representation
@@ -415,8 +393,6 @@ class ActionCall:
             return "{}(...)".format(self.action_name)
         else:
             return self.name
-        #code = self.code(representer.Representer())
-        #return code.final_string()
 
     def get_code_instance_name(self):
         if self._proper_instance_name:
@@ -439,18 +415,10 @@ class ActionCall:
         """
         Return a representation of the action instance.
         This is generic representation code that calls the constructor.
-
-        Two
-
-        :param inputs: Dictionary assigning strings to the Action's parameters.
-        :param config: String used for configuration, call serialization of the configuration by default.
-        :return:
-        ( format, [instance names used in format])
         """
         arg_names = [arg.value.get_code_instance_name() for arg in self.arguments]
         arg_values = [arg.value for arg in self.arguments]
 
         full_action_name = representer.make_rel_name(self.action.__module__, self.action.__name__)
-        #print(self.action)
         expr_format = self.action.call_format(representer, full_action_name, arg_names, arg_values)
         return expr_format
