@@ -1,29 +1,7 @@
-import typing
-
-import attr
 from typing import *
-from . import dtype
 import inspect
-
+from . import dtype
 from . import data
-
-
-# class NoDefault:
-#     """
-#     Mark no default value of the parameter.
-#     Can not use None, as it is valid default value.
-#     In order to make various comparisons consistent we need a single instance of this class.
-#     """
-#     pass
-
-
-# @attr.s(auto_attribs=True)
-# class ConfigDefault:
-#     """
-#     Mark a configuration parameter, that must be provided as a constant.
-#     """
-#     value: Any
-#     # Optional default value of the configuration parameter.
 
 
 class ActionParameter:
@@ -40,7 +18,7 @@ class ActionParameter:
     VAR_KEYWORD             = inspect.Parameter.VAR_KEYWORD
 
     # Class attribute. Single instance object representing no default value.
-    def __init__(self, name:str, p_type:dtype.TypeBase, default: object = no_default, kind=POSITIONAL_OR_KEYWORD):
+    def __init__(self, name:str, p_type: dtype.TypeBase, default: object = no_default, kind=POSITIONAL_OR_KEYWORD):
         self._name : str = name
         # Name of the parameter, None for positional only.
         self._default = default
@@ -61,7 +39,7 @@ class ActionParameter:
     @property
     def type(self):
         if self._type is None:
-            return typing.Any
+            return Any
         else:
             return self._type
 
@@ -77,12 +55,6 @@ class ActionParameter:
     def kind(self):
         return self._kind
 
-    # @property
-    # def idx(self):
-    #     # Enforce the parameter index to be read-only.
-    #     # TODO: posibly not necessary after using inspect.BoudArguments for the binding
-    #     return self._idx
-
     def get_default(self) -> Tuple[bool, Any]:
         if self.default == ActionParameter.no_default:
             return False, None
@@ -91,44 +63,31 @@ class ActionParameter:
 
     def hash(self):
         p_hash = data.hash(self.name)
-        # TODO: possibly remove type spec from hashing, as it doesn't influance evaluation
         p_hash = data.hash(str(self.type), previous=p_hash)
         p_hash = data.hash(self.default, previous=p_hash)
-        p_hash = data.hash(self._idx, previous=p_hash)
-        #p_hash = data.hash(self.config_param, previous=p_hash)
+        p_hash = data.hash(self.kind, previous=p_hash)
         return p_hash
 
     def __str__(self):
-        return str(self._parameter)
+        return f"Parameter: {self.name}: {self.type} = {self.default}"
 
 class Parameters:
     no_default = ActionParameter.no_default
     # For convenience when operating on the Parameters instance.
 
-
     def __init__(self, params, return_type=None, had_self=False):
-        # if return_type is None:
-        #     self._return_type = Parameters.no_default
-        #     rt = Parameters.no_default
-        # else:
-        #     self._return_type = return_type
-        #     rt = str(return_type)
         if return_type == ActionParameter.no_default:
             return_type = None
         self._return_type = return_type
-        rt = str(return_type)
-
-        self._signature = inspect.Signature(params, return_annotation=rt)
-        # List of Action Parameters and the return type
-        # TODO: just use own dict, finaly we do not use signature.bind, and have own modified version fo that code
+        self._signature = {p.name: p for p in params}
         self.had_self = had_self
-        # True if we have removed the special parameter self (in case fo worflow)
+        # True if we have removed the special parameter self (in case fo workflow)
 
     @property
     def return_type(self):
         rt = self._return_type
         if rt is None:
-            return typing.Any
+            return Any
         else:
             return rt
 
@@ -151,10 +110,10 @@ class Parameters:
         return None
 
     def __len__(self):
-        return len(self._signature.parameters)
+        return len(self._signature)
 
     def __getitem__(self, name):
-        return self._signature.parameters.get(name, None)
+        return self._signature.get(name, None)
 
     _positional_kinds = [ActionParameter.POSITIONAL_ONLY, ActionParameter.POSITIONAL_OR_KEYWORD]
 
@@ -184,9 +143,9 @@ class Parameters:
     @property
     def parameters(self):
         """
-        Generator of parameter values (names are part of the parmeters itself).
+        Generator of parameter values (names are part of the parameters itself).
         """
-        return self._signature.parameters.values()
+        return self._signature.values()
 
     def positional(self):
         """
@@ -201,4 +160,4 @@ class Parameters:
         For backward compatibility.
         :return:
         """
-        return iter(self._signature.parameters.values())
+        return iter(self._signature.values())

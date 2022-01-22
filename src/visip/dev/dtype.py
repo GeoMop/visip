@@ -34,18 +34,16 @@ DataType = typing.Union[BasicType, typing.List['DataType'], typing.Dict['DataTyp
 ConstantValueType = typing.TypeVar('ConstantValueType')
 
 class Constant(typing.Generic[ConstantValueType]):
-    """enum,
+    """
     Wrapper for constant values. I.e. values that are not results of other actions.
-    TODO: Why and how to implement inner type.
+    TODO: Why and how to implement inner type method.
     """
     def __init__(self, val: ConstantValueType):
         self._value: ConstantValueType = val
 
-
     @property
     def value(self):
         return self._value
-
 
     # @classmethod
     # def inner_type(cls):
