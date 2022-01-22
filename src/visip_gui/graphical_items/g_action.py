@@ -81,10 +81,12 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.progress = 0
 
     def has_const_params(self):
-        if len(self.w_data_item.parameters.parameters) > 0:
-            return self.w_data_item.parameters.parameters[-1].name is not None
-        else:
-            return True
+        params = self.w_data_item.parameters
+        return params.var_positional is None and params.var_keyword is None
+        # if len(self.w_data_item.parameters.parameters) > 0:
+        #     return self.w_data_item.parameters.hparameters[-1].name is not None
+        # else:
+        #     return True
 
     def update_ports(self):
         if len(self.w_data_item.parameters.parameters) > 0:

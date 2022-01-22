@@ -151,7 +151,7 @@ class ActionCall:
     @property
     def arguments(self):
         for arg in self._arguments:
-            if arg.value.is_invalid:
+            if arg.value is not None and arg.value.is_invalid:
                 arg.value = None
                 arg.status = ActionInputStatus.missing
         return self._arguments

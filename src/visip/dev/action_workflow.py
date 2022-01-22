@@ -172,7 +172,7 @@ class _Workflow(meta.MetaAction):
 
         #######################
         # internal structures
-        self._action_calls = set()
+        self._action_calls = {self._result_call}
         # Dict:  unique action instance name -> action instance.
         self._sorted_calls = []
         # topologically sorted action instance names
