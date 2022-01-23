@@ -116,9 +116,9 @@ def test_workflow_types():
 
 
     # workflows, typing error
-    @wf_check_type_error
-    def wf_int_srt(a):
-        return inc(str_con(a))
+    # @wf_check_type_error
+    # def wf_int_srt(a):
+    #     return inc(str_con(a))
 
     return
 

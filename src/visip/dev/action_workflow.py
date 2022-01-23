@@ -225,16 +225,17 @@ class _Workflow(meta.MetaAction):
                 continue
 
             for arg in call.arguments:
+                type_var_map_back = self._type_var_map
+                type_var_restraints_back = self._type_var_restraints
                 b, self._type_var_map, self._type_var_restraints = dtype_new.is_subtype_map(
                     arg.value.actual_output_type, arg.actual_type, self._type_var_map, self._type_var_restraints)
                 if not b:
                     types_ok = False
-                    break
-            if not types_ok:
-                break
+                    self._type_var_map = type_var_map_back
+                    self._type_var_restraints = type_var_restraints_back
 
-        if not types_ok:
-            raise TypeError("Error in workflow typing.")
+        # if not types_ok:
+        #     raise TypeError("Error in workflow typing.")
 
         self._type_var_map = dtype_new.expand_var_map(self._type_var_map)
 
