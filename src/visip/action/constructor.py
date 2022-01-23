@@ -2,7 +2,7 @@ import attr
 import typing
 
 from ..dev.base import _ActionBase
-from ..dev import dtype as dtype
+from ..dev import dtype as dtype, dtype_new
 from ..dev.parameters import Parameters, ActionParameter, extract_func_signature
 from ..dev import data
 
@@ -11,11 +11,13 @@ class Value(_ActionBase):
     def __init__(self, value):
         super().__init__()
         self.value = value
+        self._parameters = Parameters()
+        self._output_type = dtype_new.from_typing(type(value))
 
     def action_hash(self):
         return data.hash(self.value)
 
-    def _evaluate(self) -> typing.Any:
+    def _evaluate(self) -> typing.TypeVar("T"):
         return self.value
 
     def call_format(self, representer, action_name, arg_names, arg_values):
@@ -47,10 +49,11 @@ class _ListBase(_ActionBase):
     def __init__(self, action_name):
         super().__init__(action_name)
         self._parameters = Parameters()
+        t = dtype_new.TypeVar("T")
         self._parameters.append(
-            ActionParameter(name=None, type=typing.Any,
+            ActionParameter(name=None, type=t,
                                        default=ActionParameter.no_default))
-        self._output_type = typing.Any
+        self._output_type = dtype_new.List(t)
 
 
 class A_list(_ListBase):
@@ -123,7 +126,7 @@ class ClassActionBase(_ActionBase):
         # module where the data class is defined
 
         self._parameters, _ = extract_func_signature(data_class.__init__, skip_self=True)
-        self._output_type = data_class
+        self._output_type = dtype_new.from_typing(data_class)
         # Initialize parameters of the action.
 
 

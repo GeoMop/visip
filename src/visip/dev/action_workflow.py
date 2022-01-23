@@ -1,5 +1,4 @@
 import attr
-from typing import Any
 
 from . import base
 from . import dfs
@@ -19,18 +18,21 @@ Implementation of the Workflow composed action.
 
 
 class _Slot(base._ActionBase):
-    def __init__(self):
+    def __init__(self, output_type=None):
         super().__init__("_Slot")
         self._parameters = Parameters()
-        self._output_type = Any
+        if output_type is None:
+            self._output_type = dtype_new.Any()
+        else:
+            self._output_type = output_type
 
 class _SlotCall(ActionCall):
-    def __init__(self, slot_name):
+    def __init__(self, slot_name, output_type=None):
         """
         Auxiliary action to connect to a named input slot of the workflow.
         :param slot_name: Slot name gives also name of appropriate Workflow's parameter.
         """
-        super().__init__(_Slot(), slot_name)
+        super().__init__(_Slot(output_type), slot_name)
         self.arguments = []
         # self.rank = i_slot
         # """ Slot rank. """
@@ -57,13 +59,14 @@ class _Result(_ListBase):
      Workflow decorator automatically connects all Save actions to the ignored result inputs.
 
     """
-    def __init__(self):
+    def __init__(self, type):
         super().__init__(action_name='result')
         self._parameters = Parameters()
-        self._parameters.append(ActionParameter(name="result", type=Any, default=ActionParameter.no_default))
+        self._parameters.append(ActionParameter(name="result", type=type, default=ActionParameter.no_default))
         # The return value, there should be always some return value, as we want to use "functional style".
-        self._parameters.append(ActionParameter(name=None, type=Any, default=ActionParameter.no_default))
+        self._parameters.append(ActionParameter(name=None, type=dtype_new.TypeVar("U"), default=ActionParameter.no_default))
         # The "side effects" of the workflow.
+        self._output_type = type
 
 
     def evaluate(self, inputs):
@@ -74,8 +77,8 @@ class _Result(_ListBase):
 
 class _ResultCall(ActionCall):
     """ Auxiliary result action instance, used to treat the result connecting in the consistnet way."""
-    def __init__(self):
-        super().__init__(_Result(), "__result__")
+    def __init__(self, type):
+        super().__init__(_Result(type), "__result__")
 
 
 
@@ -105,7 +108,7 @@ class _Workflow(meta.MetaAction):
         super().__init__(name)
         self.__visip_module__ = None
         # Name of the module were the workflow is defined.
-        self._result_call = _ResultCall()
+        self._result_call = _ResultCall(None)
         # Result ActionCall
         self._slots = []
         # Definition of the workspace parameters ?
@@ -137,6 +140,7 @@ class _Workflow(meta.MetaAction):
         Used by the workflow decorator to setup the instance.
         """
         self._slots = slots
+        self._result_call = _ResultCall(output_type)
         self._result_call.set_single_input(0, output_action)
         self._result_call.action._output_type = output_type
 

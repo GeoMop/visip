@@ -4,6 +4,9 @@ from .constructor import Value
 from ..dev import dtype
 
 
+var_type_t = TypeVar("T")
+
+
 class GetAttribute(base._ActionBase):
     """
     Return a class attribute for given fixed key.
@@ -37,7 +40,7 @@ class GetItem(base._ActionBase):
         assert len(arg_names) == 2
         return representer.format(representer.token(arg_names[0]), "[", representer.token(arg_names[1]), "]")
 
-    def _evaluate(self, data_list: List[Any], idx: int) -> Any:
+    def _evaluate(self, data_list: List[var_type_t], idx: int) -> var_type_t:
         return data_list[idx]
 
 

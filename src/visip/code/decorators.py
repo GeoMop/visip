@@ -5,7 +5,7 @@ from ..dev import base
 from ..dev import action_workflow as wf
 from ..action import constructor
 from ..dev.parameters import ActionParameter, Parameters
-from ..dev import exceptions
+from ..dev import exceptions, dtype_new
 
 class _Variables:
     """
@@ -37,8 +37,14 @@ def workflow(func):
     if param_names and param_names[0] == 'self':
         func_args.append(variables)
         param_names = param_names[1:]
+        new_params = Parameters()
+        for i in range(1, params.size()):
+            new_params.append(params.get_index(i))
+        params = new_params
 
-    slots = [wf._SlotCall(name) for i, name in enumerate(param_names)]
+    output_type = output_type if output_type is not None else dtype_new.TypeVar("T")
+
+    slots = [wf._SlotCall(name, param.type if param.type is not None else dtype_new.TypeVar("T")) for name, param in zip(param_names, params)]
     dummies = [dummy.Dummy(slot) for slot in slots]
     func_args.extend(dummies)
     #print(func)
