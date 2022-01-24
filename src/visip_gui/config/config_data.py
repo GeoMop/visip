@@ -2,53 +2,20 @@ import json
 import os
 from pathlib import Path
 
-class ConfigData(object):
+from PyQt5.QtCore import QSettings, QVariant
 
-    __instance = None
 
-    if 'APPDATA' in os.environ:
-        __config_dir__ = os.path.join(os.environ['APPDATA'], 'VISIP')
-    else:
-        __config_dir__ = os.path.join(os.environ['HOME'], '.visip')
-
-    FILENAME = "config.json"
-    FILE_PATH = os.path.join(__config_dir__, FILENAME)
-
-    def __new__(cls):
-        if not cls.__instance:
-            cls.__instance = object.__new__(cls)
-            cls.__instance.__init()
-        return cls.__instance
-
-    def __init(self):
-        self.cwd = str(Path.home())
-        self._last_opened_directory = self.cwd
-        self._module_root_directory = self.cwd
-        if not os.path.exists(self.__config_dir__):
-            os.mkdir(self.__config_dir__)
-        if os.path.exists(self.FILE_PATH):
-            self.load()
-
-    @property
-    def module_root_directory(self):
-        return self._module_root_directory
+class ConfigData(QSettings):
+    def __init__(self):
+        super(ConfigData, self).__init__("GeoPax", "ViSiP")
 
     @property
     def last_opened_directory(self):
-        return self._last_opened_directory
+        return self.value("last_opened_directory", "")
 
     @last_opened_directory.setter
     def last_opened_directory(self, directory: str):
-        self._last_opened_directory = directory
+        self.setValue("last_opened_directory", directory)
 
-
-    def save(self):
-        with open(self.FILE_PATH, "w") as cfg_file:
-            json.dump(self.__dict__, cfg_file)
-
-    def load(self):
-        with open(self.FILE_PATH, "r") as cfg_file:
-            obj = json.load(cfg_file)
-            self.__dict__.update(obj)
 
 

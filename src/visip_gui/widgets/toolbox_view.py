@@ -1,13 +1,16 @@
-from PyQt5.QtCore import QMimeData, QPoint
+from PyQt5.QtCore import QMimeData, QPoint, QByteArray
 from PyQt5.QtGui import QDrag
 from PyQt5.QtWidgets import QLabel
 from PyQt5.QtCore import Qt
 
 
 class ToolboxView(QLabel):
-    def __init__(self, item, parent):
+    def __init__(self, item, parent, insert_index=None):
         super(ToolboxView, self).__init__(parent)
-        parent.addWidget(self)
+        if insert_index is None:
+            parent.add_widget(self)
+        else:
+            parent.insert_widget(insert_index, self)
         self.item = item
         self.pixmap = item.paint_pixmap()
 
@@ -24,8 +27,8 @@ class ToolboxView(QLabel):
         self.selected = True
         drag = QDrag(self)
         mime = QMimeData()
-        print(self.item.w_data_item.action.module + "." + self.item.w_data_item.action_name)
-        mime.setText(self.item.w_data_item.action.module + "." + self.item.w_data_item.action_name)
+        #print(self.item.w_data_item.action.module + "." + self.item.w_data_item.action_name)
+        mime.setData("ActionDrag", QByteArray((parent.name + "." + self.item.w_data_item.action_name).encode("utf-8")))
         drag.setMimeData(mime)
         drag.setPixmap(self.pixmap)
         drag.setHotSpot(QPoint( drag.pixmap().width()/2,

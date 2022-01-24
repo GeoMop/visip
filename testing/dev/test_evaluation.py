@@ -16,8 +16,8 @@ def test_evaluation(src_file):
     wf_test_class = mod.get_action(name='test_class')
     assert sorted(list(wf_test_class.action_call_dict.keys())) == ['Point_1', 'Value_1', 'Value_2', '__result__', 'a', 'a_x', 'b', 'b_y']
     Point = mod.get_action(name='Point')
-    pa = Point.constructor(x=0, y=1)
-    pb = Point.constructor(x=2, y=3)
+    pa = Point.evaluate(x=0, y=1)
+    pb = Point.evaluate(x=2, y=3)
 
     # TODO: support for argument binding in the code wrapper.
     # Implement it as a function that creates a bind workflow consisting of the

@@ -10,7 +10,7 @@ test_data = { 'key1': 'value1',
               'another key2' : 'another value2'} }
 
 class CompositeTypeView(QTreeWidget):
-    def __init__(self, data=test_data, title="Data", parent = None):
+    def __init__(self, data="No Data", title="Data", parent = None):
         super(CompositeTypeView, self).__init__(parent)
         self.setHeaderHidden(True)
         self.data = data
@@ -39,7 +39,6 @@ class CompositeTypeView(QTreeWidget):
             child = QTreeWidgetItem([str(text)])
             if text not in ("[dict]", "[list]", "[tuple]"):
                 pass
-                #child.setFlags(child.flags() | Qt.ItemIsEditable)
             parent.addChild(child)
 
             return child

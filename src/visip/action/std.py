@@ -1,5 +1,7 @@
 import os
 import io
+import sys
+
 import attr
 import subprocess
 
@@ -26,7 +28,7 @@ class FileIn(dtype.DataClassBase):
     two as separate types.
     """
     path: str
-    hash: int
+    hash: bytes
 
     def __str__(self):
         return self.path
@@ -98,7 +100,10 @@ def system(arguments: Command, stdout: Redirection = None, stderr: Redirection =
         args = [str(arg) for arg in arguments]
         stdout = _subprocess_handle(stdout)
         stderr = _subprocess_handle(stderr)
-        result = subprocess.run(args, stdout=stdout, stderr=stderr)
+        if sys.platform == 'win32':
+            result = subprocess.run(args, stdout=stdout, stderr=stderr, shell=True) # solution from https://stackoverflow.com/questions/24306205/file-not-found-error-when-launching-a-subprocess-containing-piped-commands
+        else:
+            result = subprocess.run(args, stdout=stdout, stderr=stderr)
         exec_result = ExecResult(
             args=args,
             return_code=result.returncode,
@@ -123,13 +128,13 @@ def derived_file(f: FileIn, ext:str) -> FileOut:
     return file_out.call(new_file_name)
 
 @decorators.action_def
-def format(format_str: str, *args : Any) -> str:
+def format(format_str: str, *args: Any) -> str:
     return format_str.format(*args)
 
 @decorators.action_def
 def file_from_template(template: dtype.Constant[FileIn],
-                       parameters: Dict,
-                       delimiters:dtype.Constant[str]="<>") -> FileIn:
+                       parameters: dtype.Dict[str, str],
+                       delimiters: dtype.Constant[str]="<>") -> FileIn:
     """
     Substitute for placeholders of format '<name>' from the dict 'params'.
     :param file_in: Template file with extension '.tmpl'.

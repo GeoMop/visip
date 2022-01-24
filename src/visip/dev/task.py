@@ -4,7 +4,7 @@ from ..action import constructor
 from . import data
 from . import base
 from ..eval import cache
-
+from .tools import compose_arguments, TaskBinding
 
 
 class Status(enum.IntEnum):
@@ -23,10 +23,11 @@ class _TaskBase:
 
     no_value = cache.ResultCache.NoValue
 
-    def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'],
-                 parent: '_TaskBase', task_name: str):
-        self.action = action
+    def __init__(self, parent: '_TaskBase', task_binding: TaskBinding):
+        self.action = task_binding.action
         # Action (like function definition) of the task (like function call).
+        self.id_args_pair = task_binding.id_args_pair
+        # binding of inputs to args and kwargs to be passed to actual evaluation function
         self.inputs = []
         # Input tasks for the action's arguments.
         self.outputs: List['Atomic'] = []
@@ -39,7 +40,7 @@ class _TaskBase:
         # name of current task within parent
         self.id = int
         # unique task hash
-        self._set_id(parent, task_name)
+        self._set_id(parent, task_binding.child_name)
 
         self.status = Status.none
         # Status of the task, possibly need not to be stored explicitly.
@@ -54,12 +55,13 @@ class _TaskBase:
         self.eval_time = 0
 
         # Connect to inputs.
-        for input in inputs:
+        for input in task_binding.inputs:
             assert isinstance(input, _TaskBase)
             self.inputs.append(input)
             input.outputs.append(self)
 
-
+    def inputs_to_args(self, data_inputs):
+        return compose_arguments(self.id_args_pair, data_inputs)
 
     def action_hash(self):
         return self.action.action_hash()
@@ -125,15 +127,16 @@ class _TaskBase:
         return self.priority < other.priority
 
     @staticmethod
-    def _create_task(action, input_tasks, parent_task, child_name):
+    def _create_task(parent_task, task_binding):
         """
         Create task from the given action and its input tasks.
         """
-        task_type = action.task_type
+        task_type = task_binding.action.task_type
         if task_type == base.TaskType.Atomic:
-            child = Atomic(action, input_tasks, parent_task, child_name)
+            child = Atomic(parent_task, task_binding)
         elif task_type == base.TaskType.Composed:
-            child = Composed(action, input_tasks, parent_task, child_name)
+            task_binding.id_args_pair = ([0], {}) # for final auxiliary action
+            child = Composed(parent_task, task_binding)
         else:
             assert False
         return child
@@ -174,8 +177,9 @@ class Atomic(_TaskBase):
 #     def create(cls, i, input_task, parent, name):
 #         if name is None:
 #             name = "__head_{}".format(i)
-#         return cls(constructor.Pass(), [input_task], parent, name)
-#
+        #task_binding = TaskBinding(name, constructor.Pass(), ([0], {}), [input_task])
+        #return cls(parent, task_binding)
+        
 #     @property
 #     def result(self):
 #         return self.inputs[0].result
@@ -193,14 +197,16 @@ class Composed(Atomic):
     through the expanded task. So the expansion doesn't break existing task dependencies.
     """
 
-    def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'],
-                 parent: '_TaskBase', task_name: str):
-        params = action.parameters
-        assert params.size() == len(inputs)
-        # heads = [ComposedHead.create(i, input, parent, param.name)
+    def __init__(self, parent: '_TaskBase', task_binding: TaskBinding):
+        params = task_binding.action.parameters
+        #assert params.size() == len(inputs)
+        # TODO: modify Task.create to accept input binding in form of id_args_pair
+
         #                                 for (i, input), param in zip(enumerate(inputs), params)]
-        # super().__init__(action, heads, parent, task_name)
-        super().__init__(action, inputs, parent, task_name)
+        #heads = [ComposedHead.create(i, input, parent, param.name)
+                                        for (i, input), param in zip(enumerate(task_binding.inputs), params)]
+        #task_binding.inputs = inputs
+        super().__init__(parent, task_binding)
         self.time_estimate = 0
         # estimate of the start time, used as expansion priority
         self.childs: Atomic = None
@@ -234,8 +240,8 @@ class Composed(Atomic):
         return self.childs is not None
 
 
-    def create_child_task(self, name, action, inputs):
-        return _TaskBase._create_task(action, inputs, self, name)
+    def create_child_task(self, task_binding: TaskBinding):
+        return _TaskBase._create_task(self, task_binding)
 
     def expand(self):
         """
@@ -281,7 +287,8 @@ class Composed(Atomic):
         """
         assert self.is_ready()
         assert len(self.inputs) == 1
-        return lambda x: x[0]
+
+        return lambda *args: args[0]
 
 
 

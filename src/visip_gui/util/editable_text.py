@@ -33,11 +33,7 @@ class EditableLabel(QtWidgets.QGraphicsTextItem):
                     if not len(self.toPlainText()):
                         self.setTextWidth(self.parentItem().inner_area().width())
                 else:
-                    msg1 = "Object name has to be unique and at least one character long!"
-                    msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,
-                                                "Duplicate object name", msg1,
-                                                QtWidgets.QMessageBox.Ok)
-                    msg.exec_()
+                    self.parentItem()._msg_box.exec_()
                     self._editing = True
                     self.setFocus(QtCore.Qt.MouseFocusReason)
                     self.setSelected(True)

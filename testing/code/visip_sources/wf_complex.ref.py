@@ -8,7 +8,7 @@ def read_file(input:wf.FileIn) -> int:
 
 
 @wf.workflow
-def gmsh_run(self, geometry, mesh_step):
+def gmsh_run(self, geometry: wf.FileIn, mesh_step: float) -> wf.FileIn:
     self.mesh_file_out = wf.derived_file(f=geometry, ext='.msh')
     Value_5 = '{:8.2g}'
     list_1 = ['../gmsh.sh', geometry, '-2', '-clscale', wf.format(Value_5, mesh_step), '-format', 'msh2', '-o', self.mesh_file_out]
@@ -20,7 +20,7 @@ def gmsh_run(self, geometry, mesh_step):
 
 
 @wf.workflow
-def simple_wf(self, mesh_step):
+def simple_wf(self, mesh_step) -> wf.ExecResult:
     file_in_1 = wf.file_in(path='darcy_flow.yaml.tmpl', workspace='')
     self.geometry = wf.file_in(path='square.geo', workspace='')
     self.mesh = gmsh_run(geometry=self.geometry, mesh_step=mesh_step)

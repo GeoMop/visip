@@ -3,8 +3,6 @@ View of currently running evaluation.
 @author: Tomáš Blažek
 @contact: tomas.blazek@tul.cz
 """
-from PyQt5 import QtGui, QtCore
-
 from visip_gui.widgets.base.g_base_model_view import GBaseModelView
 from visip_gui.widgets.evaluation_scene import EvaluationScene
 

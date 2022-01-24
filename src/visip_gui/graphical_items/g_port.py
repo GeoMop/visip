@@ -4,9 +4,12 @@ Representation of ports to which a connection can be attached.
 @contact: tomas.blazek@tul.cz
 """
 from PyQt5 import QtWidgets, QtCore, QtGui
-from PyQt5.QtCore import QPoint
-from PyQt5.QtGui import QColor
+from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtWidgets import QApplication
+
+#from visip.dev.action_instance import ActionArgument
+from visip_gui.graphical_items.g_tooltip_item import GTooltipItem
+#from visip_gui.graphical_items.g_tooltip_base import GTooltipBase
 
 
 class GPort(QtWidgets.QGraphicsPathItem):
@@ -15,13 +18,15 @@ class GPort(QtWidgets.QGraphicsPathItem):
     BORDER = 2
     SIZE = RADIUS * 2 + BORDER * 2
 
-    def __init__(self, index, pos=QPoint(0,0), name="", parent=None):
+    def __init__(self, index, argument, pos=QPoint(0,0), name="", parent=None):
         """Initializes class.
         :param pos: Position of this action inside parent action.
         :param parent: This port will be part of parent action.
         """
         super(GPort, self).__init__(parent)
+        self.argument = argument
         self.name = name
+        self.constant = False
         if pos is not None:
             self.setPos(pos)
         self.connections = []
@@ -32,14 +37,16 @@ class GPort(QtWidgets.QGraphicsPathItem):
         self.setPen(QtCore.Qt.black)
         self.setBrush(QtCore.Qt.white)
         self.connections = []
-        #self.setAcceptHoverEvents(True)
+        self.setAcceptHoverEvents(True)
         self.setZValue(1.0)
         self.setFlag(self.ItemSendsGeometryChanges)
 
-        self.setToolTip("Type")
+        self.tool_tip = GTooltipItem(self)
 
         self.index = index
         self.setCursor(QtCore.Qt.ArrowCursor)
+
+
 
     @property
     def appending_port(self):
@@ -55,16 +62,18 @@ class GPort(QtWidgets.QGraphicsPathItem):
         self.default = b
         self.setPath(self.draw_port_path())
 
+    def set_constant(self, b):
+        self.constant = b
+
     def draw_port_path(self):
+        p = QtGui.QPainterPath()
         if self.appending_port:
-            p = QtGui.QPainterPath()
             p.addEllipse(QtCore.QRectF(0, 0, self.RADIUS * 2, self.RADIUS * 2))
             p.moveTo(self.RADIUS - 3, self.RADIUS)
             p.lineTo(self.RADIUS + 3, self.RADIUS)
             p.moveTo(self.RADIUS, self.RADIUS - 3)
             p.lineTo(self.RADIUS, self.RADIUS + 3)
         else:
-            p = QtGui.QPainterPath()
             p.addEllipse(QtCore.QRectF(0, 0, self.RADIUS * 2, self.RADIUS * 2))
         return p
 
@@ -84,7 +93,16 @@ class GPort(QtWidgets.QGraphicsPathItem):
     def mousePressEvent(self, event):
         """If the port is pressed create a connection."""
         if event.button() == QtCore.Qt.LeftButton:
-            self.scene().add_connection(self)
+            if self.constant:
+                self.tool_tip.set_text("Cannot connect to constant parameter!")
+                self.tool_tip.tooltip_request(self.boundingRect().center(), Qt.red, 0)
+                #self.tool_tip.show_tooltip(Qt.red)
+
+            else:
+                self.scene().add_connection(self)
+
+    def hoverLeaveEvent(self, event):
+        super(GPort, self).hoverLeaveEvent(event)
 
     def get_connection_point(self):
         """Return scene coordinates to draw connection."""
@@ -99,12 +117,12 @@ class GPort(QtWidgets.QGraphicsPathItem):
 
 class GInputPort(GPort):
     """Class for input data."""
-    def __init__(self, index, pos=QPoint(0,0), name="", parent=None):
+    def __init__(self, index, argument, pos=QPoint(0,0), name="", parent=None):
         """Initializes class.
         :param pos: Position of this action inside parent action.
         :param parent: This port will be part of parent action.
         """
-        super(GInputPort, self).__init__(index, pos, name, parent)
+        super(GInputPort, self).__init__(index, argument, pos, name, parent)
 
     def mousePressEvent(self, event):
         if not self.connections:
@@ -119,4 +137,4 @@ class GOutputPort(GPort):
         :param pos: Position of this action inside parent action.
         :param parent: This port will be part of parent action.
         """
-        super(GOutputPort, self).__init__(index, pos, name, parent)
+        super(GOutputPort, self).__init__(index, None, pos, name, parent)

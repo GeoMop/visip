@@ -12,10 +12,10 @@ class ResultCache:
         pass
 
     def __init__(self):
-        self.cache: Dict[int, Any] = {}
+        self.cache: Dict[bytes, Any] = {}
 
-    def value(self, hash_int:int) -> Any:
-        return self.cache.get(hash_int, ResultCache.NoValue)
+    def value(self, hash: bytes) -> Any:
+        return self.cache.get(hash, ResultCache.NoValue)
 
-    def insert(self, hash_int, value):
-        self.cache[hash_int] = value
+    def insert(self, hash, value):
+        self.cache[hash] = value

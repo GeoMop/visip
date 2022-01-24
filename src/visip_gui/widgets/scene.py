@@ -1,13 +1,13 @@
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtCore import QPoint, Qt
-from PyQt5.QtGui import QStaticText
-from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsItem, QMessageBox
-
+from PyQt5.QtGui import QStaticText, QCursor
+from PyQt5.QtWidgets import QGraphicsSimpleTextItem, QGraphicsItem
+from visip.dev.base import _ActionBase
+from visip_gui.graphical_items.g_action_ref import GActionRef
 from visip_gui.graphical_items.g_output_action import GOutputAction
 from visip import _Value
-from visip.action import Value
 from visip.dev.action_instance import ActionCall
-from visip.dev.action_workflow import _SlotCall, _ResultCall
+from visip.dev.action_workflow import _SlotCall, _ResultCall, _Slot
 from visip_gui.graphical_items.g_input_action import GInputAction
 from visip_gui.graphical_items.g_action import GAction
 from visip_gui.graphical_items.g_connection import GConnection
@@ -15,8 +15,8 @@ from visip_gui.graphical_items.g_port import GOutputPort
 from visip_gui.graphical_items.action_for_subactions import GActionForSubactions
 from visip_gui.data.g_action_data_model import GActionData
 import random
-import math
 
+from visip_gui.graphical_items.g_tooltip_item import GTooltipItem
 from visip_gui.widgets.base.g_base_model_scene import GBaseModelScene
 
 
@@ -49,8 +49,12 @@ class Scene(GBaseModelScene):
 
     def initialize_workspace_from_workflow(self):
         for action_name, action in {**self.workflow.action_call_dict, "__result__": self.workflow._result_call}.items():
-            if not isinstance(action.action, _Value):
+            if isinstance(action.action, _Value):
+                if issubclass(type(action.action.value), _ActionBase):
+                    self._add_action(QPoint(0.0, 0.0), action_name)
+            else:
                 self._add_action(QPoint(0.0, 0.0), action_name)
+
 
         self.update_scene()
         self.order_diagram()
@@ -58,24 +62,30 @@ class Scene(GBaseModelScene):
         self.parent().center_on_content = True
 
     def draw_action(self, item):
-        action = {**self.workflow.action_call_dict, "__result__":self.workflow._result_call}.get(item.data(GActionData.NAME))
+        action_name = item.data(GActionData.NAME)
+        action = self.workflow.action_call_dict.get(action_name)
+        if action is None:
+            action = self.unconnected_actions.get(action_name)
+        assert action is not None, f"Unknown action call name: {action_name}"
 
         if action is None:
-            action = self.unconnected_actions.get(item.data(GActionData.NAME))
+            return
 
-        if not isinstance(action.action, _Value):
-            if isinstance(action, _SlotCall):
+        if isinstance(action.action, _Value):
+            if isinstance(action.action.value, _ActionBase):
+                self.actions.append(GActionRef(item, action, self.root_item))
+        else:
+            if isinstance(action.action, _Slot):
                 self.actions.append(GInputAction(item, action, self.root_item))
                 self.workflow.is_analysis = False
+                self.main_widget.toolbox.update_category()
             elif isinstance(action, _ResultCall):
                 self.actions.append(GOutputAction(item, action, self.root_item))
             elif isinstance(action, ActionCall):
                 self.actions.append(GAction(item, action, self.root_item))
 
-            for child in item.children():
-                self.draw_action(child)
-
-            self.update()
+        for child in item.children():
+            self.draw_action(child)
 
     def drawForeground(self, painter, rectf):
         super(Scene, self).drawForeground(painter, rectf)
@@ -153,12 +163,13 @@ class Scene(GBaseModelScene):
         module = action_type[:index]
         action_name = action_type[index + 1:]
 
-        if action_type == "wf._Slot":
-            action = _SlotCall("slot")
+        action = self.available_actions[module][action_name]
+
+        if isinstance(action, _Slot):
+            action = _SlotCall("slot", None)
             name = self.action_model.add_item(new_action_pos.x(), new_action_pos.y(), 50, 50, action.name)
             action.name = name
-            self.workflow.insert_slot(len(self.workflow.slots), action)
-            self.main_widget.tab_widget.current_module_view().workspace_changed()
+            self.workflow.insert_slot(len(self.workflow.slots), None, action)
 
         elif action_name in self.available_actions[module]:
             action = ActionCall.create(self.available_actions[module][action_name])
@@ -167,11 +178,23 @@ class Scene(GBaseModelScene):
 
         else:
             assert False, "Action isn't supported by scene!"
-            return
-
-
 
         self.unconnected_actions[name] = action
+
+    def change_action_to_callable(self):
+        actions = self.selectedItems()
+        if len(actions) == 1:
+            g_action = actions[0]
+            base_action = g_action.w_data_item.action
+            if not (isinstance(base_action, _Value) and isinstance(base_action.value, _ActionBase)):
+                g_data = g_action.g_data_item._item_data
+                action_call = ActionCall.create(_Value(base_action))
+                action_call.name = g_action.w_data_item.name
+                self.delete_items()
+                self.action_model.add_item(*g_data[1:], g_data[0])
+
+                self.unconnected_actions[action_call.name] = action_call
+
     '''
     def add_while_loop(self):
         [parent, pos] = self.find_top_afs(self.new_action_pos)
@@ -205,15 +228,17 @@ class Scene(GBaseModelScene):
             else:
                 self.enable_ports(True, False)
             self.new_connection = GConnection(port)
+            self.new_connection.tool_tip.disable()
             self.new_connection.unsetCursor()
             self.addItem(self.new_connection)
             self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, False)
+            self.new_connection.set_port2_pos(self.views()[0].mapToScene(self.views()[0].mapFromGlobal(QCursor.pos())))
         else:
             if isinstance(port, GOutputPort):
                 self.enable_ports(True, True)
             else:
                 self.enable_ports(False, True)
-
+            orig_port = self.new_connection.port1
             self.new_connection.set_port2(port)
 
             port1 = self.new_connection.port1
@@ -222,8 +247,8 @@ class Scene(GBaseModelScene):
             port2.connections.append(self.new_connection)
             action1 = port1.parentItem().w_data_item
             action2 = port2.parentItem().w_data_item
-            self.workflow.set_action_input(action2, port2.index, action1)
-            if True: #self.is_graph_acyclic():
+
+            if self.workflow.set_action_input(action2, port2.index, action1):
                 self.new_connection.setFlag(QtWidgets.QGraphicsPathItem.ItemIsSelectable, True)
                 self.new_connection.setCursor(Qt.ArrowCursor)
                 self.new_connection = None
@@ -234,6 +259,8 @@ class Scene(GBaseModelScene):
                     port1.appending_port = False
 
                 def update_unconected(action):
+                    if action is None:
+                        return
                     self.unconnected_actions.pop(action.name, None)
                     for argument in action.arguments:
                         update_unconected(argument.value)
@@ -249,13 +276,12 @@ class Scene(GBaseModelScene):
 
 
             else:
-                msg = "Pipeline cannot be cyclic!"
-                msg = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,
-                                            "Cyclic diagram", msg,
-                                            QtWidgets.QMessageBox.Ok)
-                msg.exec_()
+                self.tooltip = GTooltipItem(port)
+                self.tooltip.set_text("This connection would create cycle.\nThis is not allowed!")
+                self.tooltip.tooltip_request(port.boundingRect().center(), Qt.red, 0)
                 self._delete_connection(self.new_connection)
                 self.new_connection = None
+                self.add_connection(orig_port)
 
     def enable_ports(self, in_ports, enable):
         for action in self.actions:
@@ -267,7 +293,8 @@ class Scene(GBaseModelScene):
                     port.setEnabled(enable)
 
     def keyPressEvent(self, key_event):
-        if key_event.key() == Qt.Key_Escape:
+        super(Scene, self).keyPressEvent(key_event)
+        if key_event.key() == Qt.Key_Escape and not key_event.isAccepted():
             if self.detached_port:
                 self.add_connection(self.detached_port)
             else:
@@ -303,13 +330,17 @@ class Scene(GBaseModelScene):
             self.removeItem(action)
             self.unconnected_actions.pop(action.name)
 
+            action_call = action.w_data_item
+            input_calls = [a.value for a in action_call.arguments if a.value is not None]
+            for a in input_calls:
+                if isinstance(a.action, _Value) and not isinstance(a.action.value, _ActionBase):
+                        self.unconnected_actions.pop(a.name, None)
+
             if isinstance(action, GInputAction):
-                self.workflow.remove_slot(self.workflow.slots.index(action.w_data_item))
-            action = action.w_data_item
-            for i in range(len(action.arguments)):
-                if action.arguments[i].value is not None:
-                    if isinstance(action.arguments[i].value.action, Value):
-                        self.unconnected_actions.pop(action.arguments[i].value.name, None)
+                self.workflow.remove_slot(self.workflow.slots.index(action_call))
+                self.main_widget.toolbox.update_category()
+            action.w_data_item = None
+
         else:
             action.setSelected(False)
 
@@ -317,10 +348,10 @@ class Scene(GBaseModelScene):
         action1 = conn.port1.parentItem().w_data_item
         action2 = conn.port2.parentItem().w_data_item
         for i in range(len(action2.arguments)):
-
             if action1 == action2.arguments[i].value:
                 self.workflow.set_action_input(action2, i, None)
-        if isinstance(action1, Value):
+                break
+        if isinstance(action1, _Value) and not isinstance(action1.value, _ActionBase):
             self._delete_action(conn.port1.parentItem())
 
         def put_all_actions_to_unconnected(action):
@@ -351,3 +382,6 @@ class Scene(GBaseModelScene):
 
     def load_item(self):
         pass
+
+    def update_parameters(self):
+        self.workflow._parameters = self.workflow.signature_from_dag()

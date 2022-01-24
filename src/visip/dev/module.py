@@ -1,12 +1,15 @@
 import os
 import sys
 import imp
+# TODO: use importlib instead
 import traceback
-from typing import Callable
+#from typing import Callable
 from types import ModuleType
+from collections import deque
 
 from ..action import constructor
-from ..code import wrap
+#from ..code import wrap
+from ..code.dummy import DummyAction
 from ..code.representer import Representer
 from . import base, action_workflow as wf, dtype as dtype
 from .action_instance import ActionCall
@@ -33,7 +36,6 @@ class sys_path_append:
             pass
 
 
-
 def my_exec(cmd, globals=None, locals=None, description='source string'):
     try:
         exec(cmd, globals, locals)
@@ -51,9 +53,6 @@ def my_exec(cmd, globals=None, locals=None, description='source string'):
 
         traceback.print_exception(etype, exc, tb)
         raise InterpreterError("%s at line %d of %s: %s" % (error_class, line_number, description, detail))
-    #else:
-    #    return
-
 
 
 class Module:
@@ -73,22 +72,6 @@ class Module:
 
     Captured object are stored in the list self.definitions which can be
     """
-
-
-    # @staticmethod
-    # def catch_object(name, object):
-    #     """
-    #     Predicate to identify Analysis definitions in the modlue dict.
-    #     TODO: possibly catch without decorators
-    #     Currently:
-    #     - ignore underscored names
-    #     - ignore non-classes
-    #     - ignore classes not derived from _ActionBase
-    #     - print all non-underscore ignored names
-    #     """
-    #     pass
-
-
 
     def __init__(self, module_path:str) -> None:
         """
@@ -111,10 +94,16 @@ class Module:
 
         self.imported_modules = []
         # List of imported modules.
-        self._full_name_dict = {}
-        #  Map the full module name to the alias and the module object (e.g. numpy.linalg to np)
-        self._visip_objs = {}
-        # Map of full names to the names with alias for the visip module.
+        # self._module_name_dict = {}
+        #  Map the full module name to the alias and the module object (e.g. numpy.linalg to la)
+
+        self._object_names = {}
+        # Map from the (obj.__module__, obj.__name__) of an object to
+        # the correct referencing of the object in this module.
+        # This is necessary in particular for actions defined through 'action_def', for the imported modules
+        # and also for the actions of the visip library.
+        # Note: id(obj) can not be used since a type hint of a decorated class does not undergo the decoration
+
         # TODO: generalize for other 'rebranding' packages.
 
         self.ignored_definitions = []
@@ -122,6 +111,14 @@ class Module:
         # If there are any we can not reproduce the source.
 
         self.extract_definitions()
+
+
+    @classmethod
+    def mod_name(cls, obj):
+        return (getattr(obj, "__module__", None), getattr(obj, "__name__", None))
+
+    def object_name(self, obj):
+        return self._object_names.get(self.mod_name(obj), None)
 
     @classmethod
     def load_module(cls, file_path: str) -> ModuleType:
@@ -153,8 +150,8 @@ class Module:
         analysis = []
         for name, obj in self.module.__dict__.items():
             # print(name, type(obj))
-            if isinstance(obj, wrap.ActionWrapper):
-                action = obj.action
+            if isinstance(obj, DummyAction):
+                action = obj._action_value
                 self.insert_definition(action)
                 assert isinstance(action, base._ActionBase)
                 assert name == action.name
@@ -163,9 +160,11 @@ class Module:
 
             else:
                 if type(obj) is ModuleType:
-                    self.insert_imported_module(obj, name)
+                    self.imported_modules.append(obj)
                 elif name[0] == '_':
                     self.ignored_definitions.append((name, obj))
+
+        self.create_object_names(self.module, "")
 
         assert len(analysis) <= 1
         if analysis:
@@ -175,33 +174,70 @@ class Module:
         else:
             self.analysis = None
 
-    def insert_imported_module(self, obj, name):
-        full_name = obj.__name__
-        self.imported_modules.append(obj)
-        self._full_name_dict[full_name] = name
-
-        if full_name == 'visip':
-            """
-            Temporary hack only for the visip package.
-            TODO: consistent approach to the objects imported through an intermediary package/module.
-            Either change __module__ when exporting (dangerous) or have a map for the whole object names
-            from the full name to the aliased name.
-            """
-            self.make_visip_objs(obj, name)
+    def insert_imported_module(self, mod_obj, alias):
+        self.imported_modules.append(mod_obj)
+        self.create_object_names(mod_obj, alias)
+        self._object_names[(None, mod_obj.__name__)] = alias
 
 
-    def make_visip_objs(self, visip_module, alias):
-        for name, obj in visip_module.__dict__.items():
-            #print("OBJ: ", name, obj)
-            try:
-                if isinstance(obj, wrap.ActionWrapper):
-                    obj = obj.action
-                full_name = ".".join([obj.__module__, name])
-                alias_name = ".".join([alias, name])
-                #print("ALIAS: ", full_name, alias_name)
-                self._visip_objs[full_name] = alias_name
-            except:
-                pass
+    def _set_object_names(self, mod_name, alias):
+        # Internal _object_names setter to simplify debugging.
+
+        # print("Map: ", mod_name, alias)
+        self._object_names.setdefault(mod_name, alias)
+
+
+    def create_object_names(self, mod_obj, alias):
+        """
+        Collect (module, name) -> reference name map self._object_names.
+
+        This is done by BFS through the tree of imported modules and processing
+        their dictionaries. These names are used to define 'reference names'
+        (module, name) keys are retrieved from the objects __module__ and __name__
+        attributes.
+        During code representation we can not, however, use the same mechanism as
+        1. actions are instances and these do not have __name__attribute. So we add this attribute consistently
+        possibly modifying __module__ of the instance as well.
+        2. type hints of the classes do not undergo decoration so the object processed in `create_object_names`
+        is not the same as the type hint object of the class used in an annotation. However we are able to
+        retrieve the same (module, name) key. This is reason why we can not use simply `id(obj)` as the key.
+        3. The generic type hints from `typing` module do not have __name__ attribute since Python 3.7 so we use
+        the name from the module dictionary.
+        4. We only process modules from the `visip` package and the modules importing the `visip` modules.
+        """
+        # TODO: use BFS to find minimal reference, use aux dist or set to mark visited objects
+        module_queue  = deque()     # queue of (module, alias_module_name)
+        module_queue.append( (mod_obj, alias) )
+        while module_queue:
+
+            mod_obj, mod_alias = module_queue.popleft()
+            print("Processing module: ", mod_obj.__name__, mod_alias)
+
+            # process new module
+            package = mod_obj.__name__.split('.')[0]
+            # process only for visip modules and for
+            # modules importing visip
+            attr_names = {attr.__name__ for attr in mod_obj.__dict__.values() if hasattr(attr, '__name__')}
+            if not (package == 'visip' or 'visip' in attr_names):
+                continue
+
+            for name, obj in mod_obj.__dict__.items():
+                obj_mod_name = self.mod_name(obj)
+                if obj_mod_name in self._object_names:
+                    continue
+                if name.startswith('__'):
+                    continue
+
+                alias_name = f"{mod_alias}.{name}".lstrip('.')
+                if isinstance(obj, DummyAction):
+                    obj_mod_name = self.mod_name(obj._action_value)
+                elif type(obj) is ModuleType:
+                    module_queue.append((obj, alias_name))
+                elif obj_mod_name[0] == 'typing':
+                    # for Python >= 3.7 the typing generic instances have no attribute __name__
+                    obj_mod_name = ('typing', name)
+                self._set_object_names(obj_mod_name, alias_name)
+
 
     def insert_definition(self, action: base._ActionBase, pos:int=None):
         """
@@ -232,25 +268,21 @@ class Module:
         else:
             assert False, "Only workflow and classes can be renamed."
 
-        #dclass._evaluate
 
-
-    def relative_name(self, module, name):
+    def relative_name(self, obj_module, obj_name):
         """
         Construct the action class name for given set of imported modules.
         :param module_dict: A dict mapping the full module path to its imported alias.
         :return: The action name using the alias instead of the full module path.
         """
-        alias = self._full_name_dict.get(module, module)
-        if alias in {'builtins', self.name}:
-            return name
-        full_name = "{}.{}".format(alias, name)
-        alias_name = self._visip_objs.get(full_name, full_name)
-        #print(full_name, alias_name, module)
-        return alias_name
-
-
-
+        if obj_module == 'builtins':
+            return obj_name
+        mod_name = (obj_module, obj_name)
+        reference_name = self._object_names.get(mod_name, None)
+        if reference_name is None:
+            print("Undef reference for:", mod_name)
+            return None
+        return reference_name
 
 
     @property
@@ -267,12 +299,12 @@ class Module:
         source = []
         # make imports
         for impr in self.imported_modules:
-            full_name = impr.__name__
-            alias = self._full_name_dict.get(full_name, None)
-            if alias:
-                import_line = "import {full} as {alias}".format(full=full_name, alias=alias)
+
+            alias = self.object_name(impr)
+            if alias == impr.__name__:
+                import_line = f"import {impr.__name__}"
             else:
-                import_line = "import {full}".format(full=full_name)
+                import_line = f"import {impr.__name__} as {alias}"
             source.append(import_line)
 
         # make definitions
@@ -320,32 +352,11 @@ class Module:
         """
         return self._name_to_def[name]
 
-    def get_dataclass(self, name:str) -> Callable[..., dtype.DataClassBase]:
-        """
-        ??? Not clear why this should exist.
-        """
-        assert False
-        #dclass = self._name_to_def[name]
-        #return dclass._evaluate
+    # def get_dataclass(self, name:str) -> Callable[..., dtype.DataClassBase]:
+    #     """
+    #     ??? Not clear why this should exist.
+    #     """
+    #     assert False
+    #     #dclass = self._name_to_def[name]
+    #     #return dclass._evaluate
 
-"""
-Object progression:
-- Actions (implementation)
-
-- Syntactic sugger classes
-- ActionInstances - connection into WorkFlow
-  This needs to be in close relation to previous since we want GUI - Python bidirectional conversions.
-  
-- Tasks - execution DAG
-- Jobs
-"""
-
-
-"""
-TODO:
-1. first implement Class action with _name config parameter
-2. Config parameters or impl. parameters - used to set some metadata of action.
-3. Implement action decorator.
-4. Implement evaluation mechanism - conversion to tasks, scheduler, evaluation of tasks by calling action evaluate methods.
-5. Implement Evaluation class - keeping data from tasks and evaluation progress - close realtion to MJ, need concept of Resources.
-"""

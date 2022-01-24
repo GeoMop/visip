@@ -23,3 +23,19 @@ def test_operations():
     print(c)
     assert c.find("class Rectangle")
     assert c.find("def yflip")
+
+
+def test_insert_imported_module():
+    source = os.path.join(script_dir, "..", "code", "visip_sources", "import_user_defs_in.py")
+    mod = module.Module(source)
+
+    filename = os.path.join(script_dir, "..", "code", "visip_sources", "analysis_in.py")
+    alias = "test"
+
+
+    new_module = module.Module.load_module(filename)
+    mod.insert_imported_module(new_module, alias)
+    print(f'key for _object_names: {((getattr(new_module, "__module__", None), getattr(new_module, "__name__", None)))}')
+    print(f"alias: {alias}")
+    print(f"returned name: {mod.object_name(new_module)}")
+    assert mod.object_name(new_module) == alias
