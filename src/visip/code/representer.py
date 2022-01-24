@@ -1,4 +1,4 @@
-from ..dev import dtype as dtype
+from ..dev.type_inspector import TypeInspector
 from ..dev import dtype_new
 from . import formating
 from ..dev import parameters
@@ -31,7 +31,7 @@ class Representer:
         return self.type_code_inner(dtype_new.to_typing(type_hint))
 
     def type_code_inner(self, type_hint):
-        ti = dtype.TypeInspector()
+        ti = TypeInspector()
         if type_hint is None:
             # TODO: represent None as no type annotation, but it should be forbidden.
             return 'None'
@@ -50,8 +50,8 @@ class Representer:
                 code = "{}[{}]".format(origin_name, args_code)
                 return code
             else:
-                print("No code representation for the type: {}"
-                      .format(str(type_hint)))
+                raise Exception(f"No code representation for the type: {type_hint}")
+
 
     def value_code(self, value):
         if hasattr(value, '__code__'):

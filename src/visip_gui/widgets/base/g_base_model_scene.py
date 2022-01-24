@@ -19,7 +19,7 @@ from visip_gui.data.g_action_data_model import GActionDataModel
 from visip_gui.graphical_items.g_action import GAction
 from visip_gui.graphical_items.g_connection import GConnection
 from visip_gui.graphical_items.root_action import RootAction
-
+from visip.dev import type_inspector as ti
 
 class GBaseModelScene(QGraphicsScene):
     def __init__(self, workflow, parent=None):
@@ -75,7 +75,7 @@ class GBaseModelScene(QGraphicsScene):
                     status = action_argument.status
                     if action_argument.parameter.type is not None:
                         if hasattr(action_argument.parameter.type, '__name__'):
-                            if dtype.TypeInspector().is_constant(action_argument.parameter.type):
+                            if ti.TypeInspector().is_constant(action_argument.parameter.type):
                             #if action_argument.parameter.type.__name__ == "Constant":  # hacky way, but the only one that I found
                                 g_action = self.get_action(action_name)
                                 port = g_action.in_ports[i]

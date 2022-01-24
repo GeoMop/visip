@@ -1,65 +1,75 @@
 import enum
 import inspect
-from ..code import dummy, wrap
+import typing
+import attr
+#from ..code import wrap
+from ..dev import dtype
 from ..dev import base
 from ..dev import action_workflow as wf
 from ..action import constructor
-from ..dev.parameters import ActionParameter, Parameters
+from ..action.action_factory import ActionFactory
+from ..dev.extract_signature import unwrap_type, _extract_signature, ActionParameter
 from ..dev import exceptions
+from .dummy import DummyAction, Dummy
 
-class _Variables:
+def public_action(action: base._ActionBase):
     """
-    Helper class to store local variables of the workflow and use
-    their names as instance names for the assigned actions, i.e.
-    variables.x = action_y(...)
-    will set the instance name of 'action_y' to 'x'. This allows to
-    use 'x' as the variable name in subsequent code generation. Otherwise
-    a Python variable name is not accessible at runtime.
+    Decorator makes a wrapper function for an action that should be used explicitly in a workflow.
+    A wrapper is called instead of the action constructor in order to:
+    1. preprocess arguments
+    2. return constructed ActionCall wrapped into a Dummy object.
+    :param action: Instance of _ActionBase.
     """
-    def __setattr__(self, key, value):
-        value = wrap.into_action(value)
-        value = value.set_name(key)
-        self.__dict__[key] = dummy.Dummy(value)
+
+    return DummyAction(ActionFactory.instance(), action)
 
 
 
-
-def workflow(func):
+def workflow(func) -> DummyAction:
     """
     Decorator to crate a Workflow class from a function.
     """
-    workflow_name = func.__name__
-
-    params, output_type = base.extract_func_signature(func, skip_self=False)
-    param_names = [param.name for param in params]
-    func_args = []
-    variables = _Variables()
-    if param_names and param_names[0] == 'self':
-        func_args.append(variables)
-        param_names = param_names[1:]
-
-    slots = [wf._SlotCall(name) for i, name in enumerate(param_names)]
-    dummies = [dummy.Dummy(slot) for slot in slots]
-    func_args.extend(dummies)
-    #print(func)
-    output_action = wrap.into_action(func(*func_args))
-    new_workflow = wf._Workflow(workflow_name)
-    new_workflow.set_from_source(slots, output_type, output_action)
-    new_workflow.__module__ = func.__module__
-    new_workflow.__name__ = func.__name__
-    return wrap.public_action(new_workflow)
+    new_workflow = wf._Workflow.from_source(func)
+    return public_action(new_workflow)
 
 
 def analysis(func):
     """
     Decorator for the main analysis workflow of the module.
     """
-    w: wrap.ActionWrapper = workflow(func)
-    assert isinstance(w.action, wf._Workflow)
-    assert len(w.action._slots) == 0
-    w.action.is_analysis = True
+    w: DummyAction = workflow(func)
+    assert isinstance(w._action_value, wf._Workflow)
+    workflow_action = w._action_value
+    assert len(workflow_action._slots) == 0
+    workflow_action.is_analysis = True
     return w
 
+
+def _dataclass_from_params(name: str, params: typing.List[ActionParameter], module=None):
+    attributes = {}
+    for param in params:
+        attributes[param.name] = attr.ib(default=param.default, type=param.type)
+    # 'yaml_tag' is not processed by attr.s and thus ignored by visip code representer.
+    # however it allows correct serialization to yaml
+    # Note: replaced by the DataClassBase classproperty 'yaml_tag'.
+    #attributes['yaml_tag'] = u'!{}'.format(name)
+    data_class = type(name, (dtype.DataClassBase,), attributes)
+    if module:
+        data_class.__module__ = module
+
+    return attr.s(data_class)
+
+
+def _construct_from_params(name: str, params: typing.List[ActionParameter], module=None):
+    """
+    Use Params to consturct the data_class and then instance of ClassActionBase.
+    :param name: name of the class
+    :param params: instance of Parameters
+    :return:
+    """
+    data_class = _dataclass_from_params(name, params, module)
+    signature = _extract_signature(data_class.__init__, omit_self=True)
+    return constructor.ClassActionBase(data_class, signature)
 
 def Class(data_class):
     """
@@ -75,19 +85,19 @@ def Class(data_class):
     The resulting constructor action is wrapped into a function in order to convert passed parameters
     to the connected actions.
     """
-    params = Parameters()
+    params = []
     for name, ann in data_class.__annotations__.items():
         try:
-            attr_type = wrap.unwrap_type(ann)
-        except TypeError:
+            attr_type = unwrap_type(ann)
+        except exceptions.ExcTypeBase:
             raise exceptions.ExcNoType(
                 f"Missing type for attribute '{name}' of the class '{data_class.__name__}'.")
-        attr_default = data_class.__dict__.get(name, params.no_default)
+        attr_default = data_class.__dict__.get(name, ActionParameter.no_default)
         # Unwrapping of default value and type checking should be part of the Action creation.
         params.append(ActionParameter(name, attr_type, attr_default))
-    dataclass_action = constructor.ClassActionBase.construct_from_params(data_class.__name__, params, module=data_class.__module__)
+    dataclass_action = _construct_from_params(data_class.__name__, params, module=data_class.__module__)
     dataclass_action.__module__ = data_class.__module__
-    return wrap.public_action(dataclass_action)
+    return public_action(dataclass_action)
 
 def Enum(enum_cls):
     items = {key: val for key,val in inspect.getmembers(enum_cls) if not key.startswith("__") and not key.endswith("__")}
@@ -107,14 +117,17 @@ def action_def(func):
     Action name is given by the nama of the function.
     Input types are given by the type hints of the function params.
     """
+    try:
+        signature = _extract_signature(func)
+    except exceptions.ExcTypeBase as e:
+        raise exceptions.ExcTypeBase(f"Wrong signature of action:  {func.__module__}.{func.__name__}") from e
     action_name = func.__name__
     action_module = func.__module__  # attempt to fix imported modules, but it brakes chained (successive) imports
-    action = base._ActionBase(action_name, action_module)
+    action = base._ActionBase(action_name, signature)
     action.__module__ = func.__module__
     action.__name__ = func.__name__
     action._evaluate = func
-    action._extract_input_type()
-    return wrap.public_action(action)
+    return public_action(action)
 
 
 

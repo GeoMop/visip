@@ -14,6 +14,6 @@ def false_body(self):
 
 
 @wf.workflow
-def wf_condition(self, cond):
+def wf_condition(self, cond: int) -> int:
     If_1 = wf.If(condition=cond, true_body=true_body, false_body=false_body)
     return If_1
