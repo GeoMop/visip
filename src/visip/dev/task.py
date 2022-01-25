@@ -204,7 +204,7 @@ class Composed(Atomic):
 
         #                                 for (i, input), param in zip(enumerate(inputs), params)]
         #heads = [ComposedHead.create(i, input, parent, param.name)
-                                        for (i, input), param in zip(enumerate(task_binding.inputs), params)]
+        #                                for (i, input), param in zip(enumerate(task_binding.inputs), params)]
         #task_binding.inputs = inputs
         super().__init__(parent, task_binding)
         self.time_estimate = 0
@@ -265,8 +265,9 @@ class Composed(Atomic):
         #     head.outputs = []
         # Generate and connect body tasks.
         childs = self.action.expand(self, self.create_child_task)
-        if childs is not None:
-            self.childs = {task.child_id: task for task in childs}
+        if len(childs) > 0:
+            self.childs = childs #{task.child_id: task for task in childs}
+            #self.childs.expand({})
             result_task = self.childs['__result__']
             assert len(result_task.outputs) == 0
             result_task.outputs.append(self)

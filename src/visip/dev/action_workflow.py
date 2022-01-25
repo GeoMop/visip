@@ -551,8 +551,8 @@ class _Workflow(meta.MetaAction):
         assert len(self._slots) == len(task.inputs)
         for slot, input in zip(self._slots, task.inputs):
             # shortcut the slots
-            task = task_creator(slot.name, Pass(), [input])
-            childs[slot.name] = task
+            #task = task_creator(slot.name, Pass(), [input])
+            childs[slot.name] = input
         for action_call in self._sorted_calls:
             if isinstance(action_call, _SlotCall):
                 continue
@@ -562,7 +562,7 @@ class _Workflow(meta.MetaAction):
             task_binding = TaskBinding(action_call.name, action_call.action, action_call.id_args_pair, arg_tasks)
             task = task_creator(task_binding)
             childs[action_call.name] = task
-        return childs.values()
+        return childs
 
 
 

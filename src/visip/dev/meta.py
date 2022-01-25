@@ -2,15 +2,40 @@
 Implementation of meta actions other then Workflow.
 
 We need syntax for inline workflow definitions.
-
 Like Lambda(x=a, y=b, x[0] + y[1])
 
-result = If(cond, true_res, false_res)
-# possibly detect expressions as minimum independent chains
 
-result = If(cond, true_wf, false_wf)(input)
+TODO:
+1. Try to implement partial as it provides most of the needed functionality with
+simples SPI for the implementation as it is a regular function call in Python.
 
-While(body_
+2. Test recursion.
+
+2. We can introduce sort of free parameter placeholder and then define the lambda like:
+
+a = Slot('X') + 1
+b = Slot('Y')
+f = Lambda(foo, a , b , 3)
+
+So that is better then partial as you can specify free positional arguments.
+However this way the Signature of the resulting function is not clear with that `+ 1`.
+Other possibility is:
+
+a = Slot('X') + 5
+b = a + Slot('Y')
+f = Lambda(b, alpha='Y', beta='X')
+
+equivalent to:
+def f(alpha, beta):
+    a = beta + 5
+    b = a + alpha
+    return b
+
+So that Lambda collects all free slots and prescribes the signature of the resulting function.
+
+Try also if we can manage to define new workflow inside other workflow as that is more natural way
+how to define a more complex closure funcitons.
+
 
 
 """
@@ -22,7 +47,7 @@ from . import dtype
 from ..code.dummy import DummyAction
 from ..dev import tools
 from .action_instance import ActionCall, ActionInputStatus
-
+from ..action.constructor import Pass
 class MetaAction(base._ActionBase):
     """
     Common ancestor of the meta actions.
@@ -80,6 +105,7 @@ Partial TODO:
 
 2. Not clear how current expansion make actual task dependent on its childs.
 4. Implement Partial expanding to preliminary evaluation returning the closure complex action containing the captured input tasks X.
+   Partial inputs needs not to be finished at the expansion. 
 5. Implement the closure complex action:
    - have dynamically determined parameters Y
    - expand to the task of closure action conected to both X and Y tasks  
@@ -147,23 +173,23 @@ class Partial(MetaAction):
     def __init__(self):
         """
         Partial argument binding, creates a closure.
-        TODO: support kwargs in visip, necessary for perfect forwarding
         """
         super().__init__("Partial")
-        self._parameters = Parameters()
-        PartialReturnType = dtype.TypeVar('PartialReturnType')
+        params = [
+            ActionParameter("function", dtype.Any), #Callable[..., PartialReturnType]))
+            ActionParameter('args', dtype.Any, default=ActionParameter.no_default, kind=ActionParameter.VAR_POSITIONAL),
+            ActionParameter('kwargs', dtype.Any, default=ActionParameter.no_default,
+                            kind=ActionParameter.VAR_KEYWORD)
+        ]
+        self._parameters = Parameters(params, dtype.Any)
+        #PartialReturnType = dtype.TypeVar('PartialReturnType')
 
-        self._parameters.append(
-            ActionParameter(name="function", type=dtype.Callable[..., PartialReturnType]))
-        self._parameters.append(
-            ActionParameter(name=None, type=dtype.Any, default=ActionParameter.no_default))
         # self._parameters.append(
-        #     ActionParameter(name=None, type=dtype.Any, default=ActionParameter.no_default))
-        # TODO: Support for kwargs forwarding.
+        #     ActionParameter(name=None, type=dtype.Any, default=ActionParameter.no_default)
         # TODO: Match 'function' parameters and given arguments.
         #self._parameters.append(
         #    ActionParameter(name=None, type=typing.Any, default=ActionParameter.no_default))
-        self._output_type = dtype.Callable[..., PartialReturnType]
+        #self._output_type = dtype.Callable[..., PartialReturnType]
 
 
     def expand(self, task, task_creator):
@@ -182,7 +208,7 @@ class Partial(MetaAction):
             closure = _PartialClosure(action, task.inputs[1], task.inputs[2])
             task.finish(closure, task.lazy_hash()) # ?? May not work.
 
-            return [task_creator('__result__', constructor.Pass(), [task])]
+            return {'__result__' : task_creator('__result__', Pass(), [task])}
         else:
             return None
 
@@ -236,7 +262,8 @@ class DynamicCall(MetaAction):
             args, kwargs = tools.compose_arguments(task.id_args_pair, task.inputs)
             action = self.dynamic_action(args[0])
             task_binding = tools.TaskBinding('__result__', action, task.id_args_pair, task.inputs[1:])
-            return [task_creator(task_binding)]
+            task = task_creator(task_binding)
+            return {'__result__': task}
         else:
             return None
 
@@ -271,7 +298,7 @@ class _If(MetaAction):
             else:
                 action = self.dynamic_action(task.inputs[2])
             task_binding = tools.TaskBinding('__result__', action, ([], {}), [])
-            return [task_creator(task_binding)]
+            return {'__result__': task_creator(task_binding)}
 
         else:
             return None

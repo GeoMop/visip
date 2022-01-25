@@ -219,12 +219,12 @@ class ActionCall:
             is_default, value = param.get_default()
             if is_default:
                 value = ActionCall.into_action(value)
-                if dtype.TypeInspector().is_subtype(value.output_type, param.type):
-        
-                    return ActionArgument(param, value, ActionInputStatus.default)
-                else:
-                    return ActionArgument(param, value, is_default, ActionInputStatus.error_default)
-            status = ActionInputStatus.seems_ok
+                # if TypeInspector().is_subtype(value.output_type, param.type):
+                #     status = ActionInputStatus.default
+                #
+                # else:
+                #     return ActionArgument(param, value, is_default, ActionInputStatus.error_default)
+        status = ActionInputStatus.seems_ok
         if value is None:
             status = ActionInputStatus.missing
             #return self._make_argument(i_arg, key, param, None)_ActionArgument(param, None, False, ActionInputStatus.missing)
