@@ -265,7 +265,8 @@ class Composed(Atomic):
         #     head.outputs = []
         # Generate and connect body tasks.
         childs = self.action.expand(self, self.create_child_task)
-        if len(childs) > 0:
+        if childs is not None:
+            assert len(childs) > 0
             self.childs = childs #{task.child_id: task for task in childs}
             #self.childs.expand({})
             result_task = self.childs['__result__']
@@ -280,7 +281,7 @@ class Composed(Atomic):
         #     # No expansion: reconnect heads
         #     for head in heads:
         #         head.outputs = [self]
-        return self.childs
+        return childs
 
     def evaluate_fn(self):
         """
