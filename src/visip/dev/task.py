@@ -24,22 +24,21 @@ class _TaskBase:
     no_value = cache.ResultCache.NoValue
 
     def __init__(self, parent: '_TaskBase', task_binding: TaskBinding):
-        self.action = task_binding.action
+        self._task_binding = task_binding
+        #self.action = task_binding.action
         # Action (like function definition) of the task (like function call).
-        self.id_args_pair = task_binding.id_args_pair
+        #self.id_args_pair = task_binding.id_args_pair
         # binding of inputs to args and kwargs to be passed to actual evaluation function
-        self.inputs = []
+        #self.inputs = []
         # Input tasks for the action's arguments.
         self.outputs: List['Atomic'] = []
         # List of tasks dependent on the result. (Try to not use and eliminate.)
-        self.id: int = 0
-        # Task is identified by the hash of the hash of its parent task and its name within the parent.
         self.parent: Optional['Composed'] = parent
         # parent task
         self.child_id = None
         # name of current task within parent
-        self.id = int
-        # unique task hash
+        self.id: int = 0
+        # Task is identified by the hash of the hash of its parent task and its name within the parent.
         self._set_id(parent, task_binding.child_name)
 
         self.status = Status.none
@@ -54,11 +53,23 @@ class _TaskBase:
         self.end_time = -1
         self.eval_time = 0
 
+        self._inputs = task_binding.inputs # reset in Workflow to its result, but we yet keep original in the task_binding
         # Connect to inputs.
         for input in task_binding.inputs:
             assert isinstance(input, _TaskBase)
-            self.inputs.append(input)
             input.outputs.append(self)
+
+    @property
+    def action(self):
+        return self._task_binding.action
+
+    @property
+    def id_args_pair(self):
+        return self._task_binding.id_args_pair
+
+    @property
+    def inputs(self):
+        return self._inputs
 
     def inputs_to_args(self, data_inputs):
         return compose_arguments(self.id_args_pair, data_inputs)
@@ -274,7 +285,7 @@ class Composed(Atomic):
             result_task = self.childs['__result__']
             assert len(result_task.outputs) == 0
             result_task.outputs.append(self)
-            self.inputs = [result_task]
+            self._inputs = [result_task]
             # After expansion the composed task is just a dummy task dependent on the previoous result.
             # This works with Workflow, see how it will work with other composed actions:
             # if, reduce (for, while)
