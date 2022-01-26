@@ -9,7 +9,7 @@ from collections import deque
 
 from ..action import constructor
 #from ..code import wrap
-from ..code.dummy import DummyAction
+from ..code.dummy import DummyAction, DummyWorkflow
 from ..code.representer import Representer
 from . import base, action_workflow as wf, dtype as dtype
 from .action_instance import ActionCall
@@ -150,7 +150,7 @@ class Module:
         analysis = []
         for name, obj in self.module.__dict__.items():
             # print(name, type(obj))
-            if isinstance(obj, DummyAction):
+            if isinstance(obj, (DummyAction, DummyWorkflow)):
                 action = obj._action_value
                 self.insert_definition(action)
                 assert isinstance(action, base._ActionBase)
@@ -229,7 +229,7 @@ class Module:
                     continue
 
                 alias_name = f"{mod_alias}.{name}".lstrip('.')
-                if isinstance(obj, DummyAction):
+                if isinstance(obj, (DummyAction, DummyWorkflow)):
                     obj_mod_name = self.mod_name(obj._action_value)
                 elif type(obj) is ModuleType:
                     module_queue.append((obj, alias_name))

@@ -1,10 +1,14 @@
 from ..dev.action_instance  import ActionCall
 from ..dev.base import _ActionBase
+from ..dev.action_workflow import _Workflow
 from typing import *
 from ..code.unwrap import into_action
 from .constructor import Value, A_list, A_dict, A_tuple, ClassActionBase
 from .converter import GetAttribute, GetItem
 from ..dev.meta import DynamicCall
+from .slots import actioncalls_from_function
+
+
 
 
 class ActionFactory:
@@ -61,3 +65,9 @@ class ActionFactory:
         assert True #ti.is_callable(value.return_type):
         dynamic_action = value
         return self.create(DynamicCall(), dynamic_action, *args, **kwargs)
+
+    def create_workflow_from_source(self, func):
+        return _Workflow.from_source(func)
+
+    def actioncalls_from_function(self, func, params):
+        return actioncalls_from_function(self, func, params)

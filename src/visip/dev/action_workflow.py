@@ -1,56 +1,23 @@
 import attr
 import enum
 from typing import Any, Optional
-from ..code.unwrap import into_action
-from ..code.dummy import Dummy
 from . import base
 from . import dfs
 from . import meta
 from . import exceptions
 from . import dtype
-from ..action.action_factory import ActionFactory
 from .action_instance import ActionCall, ActionArgument, ActionInputStatus
 from ..action.constructor import _ListBase, Value
-from . parameters import Parameters, ActionParameter
+from .parameters import Parameters, ActionParameter
 from .extract_signature import _extract_signature
 from ..dev.tools import TaskBinding
-
+from ..action.slots import _SlotCall, _Slot   # provide to GUI
 
 """
 Implementation of the Workflow composed action.
 - creating the 
 """
 
-
-class _Slot(base._ActionBase):
-    def __init__(self, param_type=None):
-        super().__init__("_Slot")
-        self._parameters = Parameters([], return_type=param_type)
-
-
-
-class _SlotCall(ActionCall):
-    def __init__(self, slot_name, param_type):
-        """
-        Auxiliary action to connect to a named input slot of the workflow.
-        :param slot_name: Slot name gives also name of appropriate Workflow's parameter.
-        """
-        super().__init__(_Slot(param_type), slot_name)
-        self._arguments = []
-        # self.rank = i_slot
-        # """ Slot rank. """
-        self.type = param_type
-        """ Slot type. None - slot not used. """
-
-
-    # def is_used(self):
-    #     return bool(self.output_actions)
-
-    def code_substitution_probability(self):
-        return 1.0
-
-    def code(self, representer):
-        return None
 
 class _Result(_ListBase):
     """
@@ -62,18 +29,19 @@ class _Result(_ListBase):
      Workflow decorator automatically connects all Save actions to the ignored result inputs.
 
     """
+
     def __init__(self, out_type):
         super().__init__(action_name='result')
 
         params = []
         params.append(ActionParameter(name="result", p_type=out_type, default=ActionParameter.no_default))
         # The return value, there should be always some return value, as we want to use "functional style".
-        params.append(ActionParameter(name='args', p_type=Any, default=ActionParameter.no_default, kind=ActionParameter.VAR_POSITIONAL))
+        params.append(ActionParameter(name='args', p_type=Any, default=ActionParameter.no_default,
+                                      kind=ActionParameter.VAR_POSITIONAL))
         self._parameters = Parameters(params, return_type=out_type)
         # The "side effects" of the workflow.
         # TODO: Do we realy need this? We should rather introduce an action Head(*args): return args[0], that way one can do desired efect explicitly
         # TODO: suport multiple return values ( better in GUI)
-
 
     def _evaluate(self, *args, **kwargs):
         return args[0]
@@ -81,35 +49,14 @@ class _Result(_ListBase):
     def call_format(self, representer, action_name, arg_names, arg_values):
         return representer.format("return", representer.token(arg_names[0]))
 
+
 class _ResultCall(ActionCall):
     """ Auxiliary result action instance, used to treat the result connecting in the consistnet way."""
+
     def __init__(self, output_action, out_type):
         super().__init__(_Result(out_type), "__result__")
         self.set_inputs([output_action])
 
-
-
-
-class _Variables:
-    """
-    Helper class to store local variables of the workflow and use
-    their names as instance names for the assigned actions, i.e.
-
-    self.x = action_y(...)
-    other_action(self.x)
-
-    Without `self` the variable name is not accessible at runtime.
-    therefore
-
-    x = action_y(...)
-    other_action(x)
-
-    works, but the name `x` is not preserved during code representation.
-    """
-    def __setattr__(self, key, value):
-        value = into_action(value)
-        value = value.set_name(key)
-        self.__dict__[key] = Dummy(ActionFactory.instance(), value)
 
 class _Workflow(meta.MetaAction):
     """
@@ -125,18 +72,21 @@ class _Workflow(meta.MetaAction):
     - use DAG based signature, but use types from function signature to set them to slots and to the return type.
     - similar functionality should be available from GUI
     """
+
     class Status(enum.IntEnum):
         unknown = 0
         ok = 1
-        error_type = -1     # contains ActionArgument with ActionInputStatus.missing
+        error_type = -1  # contains ActionArgument with ActionInputStatus.missing
         error_missing = -3  # some missing arguments
-        cycle = -4          # update detected a cycle
-
+        cycle = -4  # update detected a cycle
+        no_result = -10  # uncomplete initialization from function
 
     @classmethod
     def from_source(cls, func):
+        # Returns instance with setup signature, but missing actions.
+        # _Workflow.initialize_from_function(func) has to be called to full initialization
         new_workflow = cls(func.__name__, func.__module__)
-        new_workflow.initialize_from_function(func)
+        new_workflow.set_signature_from_function(func)
         return new_workflow
 
     def __init__(self, name, module=None):
@@ -166,11 +116,13 @@ class _Workflow(meta.MetaAction):
         # we should keep slots corresponding to the parameters
         # however we must preserve their instances so that we do not break action call links
         # no initial parameters, nor slots
-        none_value = ActionCall.create(Value(None))
-        self._result_call = _ResultCall(none_value, None)
-        # Result ActionCall, initaliy returning None
         self._status = self.Status.unknown
         # Result of last update()
+
+        self._result_call = None
+        self.set_result_action(ActionCall.create(Value(None)), self._slots)
+        # Result ActionCall, initaliy returning None
+        # calls self.update()
 
         #######################
         # internal structures
@@ -178,7 +130,6 @@ class _Workflow(meta.MetaAction):
         # Dict:  unique action instance name -> action instance.
         self._sorted_calls = []
         # topologically sorted action instance names
-        self.update()
 
 
     @property
@@ -187,7 +138,7 @@ class _Workflow(meta.MetaAction):
 
     @property
     def action_call_dict(self):
-        return {ac.name : ac for ac in self._action_calls}
+        return {ac.name: ac for ac in self._action_calls}
 
     @property
     def slots(self):
@@ -200,32 +151,27 @@ class _Workflow(meta.MetaAction):
 
     @property
     def status(self):
-        # TODO: consider automatic update call
         return self._status
 
-    def initialize_from_function(self, func):
+    def set_signature_from_function(self, func):
         try:
             func_signature = _extract_signature(func, omit_self=True)
         except exceptions.ExcTypeBase as e:
             raise exceptions.ExcTypeBase(f"Wrong signature of workflow:  {func.__module__}.{func.__name__}") from e
-
-        func_args = []
-        _self = _Variables()
-        if func_signature.had_self:
-            func_args.append(_self)
-
-        self._slots = []
-        for p in func_signature:
-            slot = _SlotCall(p.name, p.type)
-            self._slots.append(slot)
-        dummies = [Dummy(ActionFactory.instance(), slot) for slot in self._slots]
-        func_args.extend(dummies)
-        output_action = into_action(func(*func_args))
-        self._result_call = _ResultCall(output_action, func_signature.return_type)
         self._parameters = func_signature
-        if self.update() != self.Status.ok:
-            raise exceptions.ExcInvalidWorkflow(f"Workflow status: {self.status}")
 
+        self._status = self.Status.no_result
+
+    def set_result_action(self, action_call, slots):
+        if action_call is None:
+            self._result_call = None
+            self._status = self.Status.no_result
+        else:
+            self._slots = slots
+            self._result_call = _ResultCall(action_call, self.parameters.return_type)
+            self._status = self.Status.unknown
+            if self.update() != self.Status.ok:
+                raise exceptions.ExcInvalidWorkflow(f"Workflow status: {self.status}")
 
     def update(self):
         """
@@ -237,6 +183,9 @@ class _Workflow(meta.MetaAction):
         :param result_instance: the result action
         :return: True in the case of sucessfull update, False - detected cycle
         """
+        if self._status == self.Status.no_result:
+            return self.Status.no_result
+
         self._status = self.Status.ok
         actions = set()
         topology_sort = []
@@ -263,6 +212,8 @@ class _Workflow(meta.MetaAction):
 
             actions.add(action_call)
             topology_sort.append(action_call)
+            # TODO: check if the Action call is _slot, check that it is in self._slots
+            # outer slots
 
         def check_argument(arg: ActionArgument) -> ActionCall:
             if arg.status < ActionInputStatus.error_type:
@@ -272,7 +223,7 @@ class _Workflow(meta.MetaAction):
             return arg.value
 
         good_dfs = dfs.DFS(neighbours=lambda action_call: (check_argument(arg) for arg in action_call.arguments),
-                         postvisit=construct_postvisit).run([self._result_call])
+                           postvisit=construct_postvisit).run([self._result_call])
         if not good_dfs:
             self._status = self.Status.cycle
 
@@ -300,7 +251,7 @@ class _Workflow(meta.MetaAction):
                 return 0.0
             else:
                 return self.subst_prob
-    
+
     def code_of_definition(self, representer):
         """
         Represent workflow by its source.
@@ -318,12 +269,11 @@ class _Workflow(meta.MetaAction):
         decorator = 'analysis' if self.is_analysis else 'workflow'
         params = [base._VAR_]
         for i, param in enumerate(self.parameters):
-            assert(param.name == self._slots[i].name)
+            assert (param.name == self._slots[i].name)
             if param.type_defined is None:
                 type_hint = ""
             else:
                 type_hint = ": {}".format(representer.type_code(param.type_defined))
-
 
             param_def = "{}{}".format(param.name, type_hint)
             params.append(param_def)
@@ -369,7 +319,6 @@ class _Workflow(meta.MetaAction):
                     else:
                         break
 
-
         # Substitute into multi arg actions
         for full_inst in reversed(inst_order):
             if full_inst in inst_exprs:
@@ -405,7 +354,8 @@ class _Workflow(meta.MetaAction):
         return "\n".join(body)
 
     def insert_slot(self, i_slot: int, name: str, p_type: dtype.TypeBase,
-                    default: Any = ActionParameter.no_default, kind: int = ActionParameter.POSITIONAL_OR_KEYWORD) -> None:
+                    default: Any = ActionParameter.no_default,
+                    kind: int = ActionParameter.POSITIONAL_OR_KEYWORD) -> None:
         """
         Insert a new parameter on i_th position shifting the slots starting form i-th position.
         """
@@ -454,8 +404,8 @@ class _Workflow(meta.MetaAction):
         self._parameters = Parameters(params, self._parameters.return_type)
         # no need to update
 
-
-    def set_action_input(self, action_call: ActionCall, i_arg:int, input_action: Optional[ActionCall], key:str = None) -> bool:
+    def set_action_input(self, action_call: ActionCall, i_arg: int, input_action: Optional[ActionCall],
+                         key: str = None) -> bool:
         """
         Set positional or keyword argument (i_arg, key) of the 'action_call' to the 'input_action'.
         Unset the argument if input_action is None.
@@ -474,7 +424,7 @@ class _Workflow(meta.MetaAction):
             except IndexError:
                 var_param = action_call.parameters.var_positional
                 if var_param is None:
-                    return False # raise IndexError
+                    return False  # raise IndexError
                 elif input_action is not None:
                     new_arg = action_call.make_argument(i_arg, var_param, input_action)
                     id_arg = len(args)
@@ -501,7 +451,7 @@ class _Workflow(meta.MetaAction):
             except KeyError:
                 var_keyword = action_call.parameters.var_keyword
                 if var_keyword is None:
-                    return False # raise IndexError
+                    return False  # raise IndexError
                 elif input_action is not None:
                     new_arg = action_call.make_argument(None, var_keyword, input_action, key=key)
                     action_call.arguments.append(new_arg)
@@ -531,8 +481,6 @@ class _Workflow(meta.MetaAction):
         """
         self.result_call.output_type = result_type
 
-
-
     def expand(self, task, task_creator):
         """
         Expansion of the composed task with given data inputs (possibly None if not evaluated yet).
@@ -551,7 +499,7 @@ class _Workflow(meta.MetaAction):
         assert len(self._slots) == len(task.inputs)
         for slot, input in zip(self._slots, task.inputs):
             # shortcut the slots
-            #task = task_creator(slot.name, Pass(), [input])
+            # task = task_creator(slot.name, Pass(), [input])
             childs[slot.name] = input
         for action_call in self._sorted_calls:
             if isinstance(action_call, _SlotCall):
@@ -560,21 +508,6 @@ class _Workflow(meta.MetaAction):
             # TODO: use it to index tasks in the resulting task list 'childs'
             arg_tasks = [childs[arg.value.name] for arg in action_call.arguments]
             task_binding = TaskBinding(action_call.name, action_call.action, action_call.id_args_pair, arg_tasks)
-            task = task_creator(task_binding)
-            childs[action_call.name] = task
+            child_task = task_creator(task_binding)
+            childs[action_call.name] = child_task
         return childs
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

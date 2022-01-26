@@ -35,6 +35,54 @@ class DummyAction:
         """
         return self._action_value.evaluate(*args, **kwargs)
 
+
+class DummyWorkflow:
+    """
+    In order to allow recursive workflows we have to postpone its construction to the first call.
+    """
+    def __init__(self, af: 'ActionFactory', workflow_func) -> None:
+        self._af = af
+        self._workflow_func = workflow_func
+        self._workflow = None
+
+    @property
+    def workflow(self):
+        """
+        Create and return the workflow instance.
+        :return:
+        """
+        if self._workflow is None:
+            self._workflow = self._af.create_workflow_from_source(self._workflow_func)
+            # here recursion occures, but now 'self._workflow' is set, so it just creates the action call
+            output_call, slots  = self._af.actioncalls_from_function(self._workflow_func, self._workflow.parameters)
+            self._workflow.set_result_action(output_call, slots)
+        return self._workflow
+
+    @property
+    def _action_value(self):
+        return self.workflow
+
+    def __call__(self, *args, **kwargs):
+        """
+        Catch call of the function values.
+        Check that the value is function/action.
+        Perform its call
+        """
+        return Dummy(self._af, self._af.create(self.workflow, *args, **kwargs))
+
+    def evaluate(self, *args, **kwargs):
+        """
+        Direct (nonlazy) call of the wrapped action.
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        assert False, "Not implemented yet."
+        #wf = self._af.create_workflow_from_source(self._workflow_func)
+        #return self._action_value.evaluate(*args, **kwargs)
+
+
+
 class Dummy:
     """
     Dummy object for wrapping action as its output value.

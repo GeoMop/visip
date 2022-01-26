@@ -241,6 +241,8 @@ class Composed(Atomic):
 
 
     def create_child_task(self, task_binding: TaskBinding):
+        args, kwargs = task_binding.id_args_pair
+        assert len(args) + len(kwargs) == len(task_binding.inputs)
         return _TaskBase._create_task(self, task_binding)
 
     def expand(self):

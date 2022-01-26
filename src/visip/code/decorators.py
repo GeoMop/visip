@@ -10,7 +10,7 @@ from ..action import constructor
 from ..action.action_factory import ActionFactory
 from ..dev.extract_signature import unwrap_type, _extract_signature, ActionParameter
 from ..dev import exceptions
-from .dummy import DummyAction, Dummy
+from .dummy import DummyAction, Dummy, DummyWorkflow
 
 def public_action(action: base._ActionBase):
     """
@@ -29,19 +29,20 @@ def workflow(func) -> DummyAction:
     """
     Decorator to crate a Workflow class from a function.
     """
-    new_workflow = wf._Workflow.from_source(func)
-    return public_action(new_workflow)
+    return DummyWorkflow(ActionFactory.instance(), func)
 
 
 def analysis(func):
     """
     Decorator for the main analysis workflow of the module.
     """
-    w: DummyAction = workflow(func)
-    assert isinstance(w._action_value, wf._Workflow)
-    workflow_action = w._action_value
-    assert len(workflow_action._slots) == 0
-    workflow_action.is_analysis = True
+    w: DummyWorkflow = workflow(func)
+    # analysis have no parameters so it can not be resursive
+    # we make workflow instance.
+    wflow = w.workflow
+    assert isinstance(wflow, wf._Workflow)
+    assert len(wflow._slots) == 0
+    wflow.is_analysis = True
     return w
 
 

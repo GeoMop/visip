@@ -20,7 +20,7 @@ from . import data, task as task_mod, base, dfs,  dtype as dtype, action_instanc
 from .action_workflow import _Workflow
 from ..eval.cache import ResultCache
 from ..code.unwrap import into_action
-from ..code.dummy import Dummy, DummyAction
+from ..code.dummy import Dummy, DummyAction, DummyWorkflow
 from . import tools
 
 
@@ -471,6 +471,8 @@ def run(action: Union[base._ActionBase, DummyAction],
     """
     if isinstance(action, DummyAction):
         action = action._action_value
+    if isinstance(action, DummyWorkflow):
+        action = action.workflow
     if inputs is None:
         inputs = []
     analysis = Evaluation.make_analysis(action, inputs)

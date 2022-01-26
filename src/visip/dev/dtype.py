@@ -25,6 +25,7 @@ class TypeBase:
 BasicType = typing.Union[bool, int, float, complex, str]
 valid_base_types = (bool, int, float, complex, str)
 
+
 DataType = typing.Union[BasicType, typing.List['DataType'], typing.Dict['DataType', 'DataType'], typing.Tuple['DataType', ...], 'DataClassBase']
 # All valid data types that can be passed between VISIP actions.
 # TODO: check that all type check methods work with this definition.
@@ -86,7 +87,7 @@ class DataClassBase:
     def to_yaml(self):
         pass
 
-
+valid_data_types = (*valid_base_types, list, dict, DataClassBase)
 
 
 def closest_common_ancestor(*cls_list):

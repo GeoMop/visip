@@ -55,21 +55,88 @@ def test_if_action():
     assert result == 100
 
 
-#######################
+# simpler if
+@wf.action_def
+def foo(x):
+    return x + 1
 
-# @wf.action_def
-# def add(a: float, b: float) -> float:
-#     return a + b
+@wf.workflow
+def wf_condition(cond: int) -> int:
+    return wf.If(cond, foo(100), 100)
+
+
+def test_if_action():
+    result = evaluation.run(wf_condition, [True])
+    assert result == 101
+    result = evaluation.run(wf_condition, [False])
+    assert result == 100
+
+
+#######################
+# Test Partial meta action.
+# No control over free positional arguments, must use keyword arguments instead.
+
+
+
+#####
+# test recursion
+
+@wf.action_def
+def equal(a:int, b:int) -> bool:
+    return a == b
+
+@wf.action_def
+def mult(a, b):
+    return a * b
+
+@wf.action_def
+def sub(a, b):
+    return a - b
+
+# @wf.workflow
+# def true_fac(i:int):
+#     return 1
+
+@wf.action_def
+def make_fac(i: int) -> wf.Any:
+    """
+    Example of an action producing action.
+    :param left_operand:
+    :return:
+    """
+    def add() -> int:
+        return fac(i)
+    return wf.action_def(add)
+
+@wf.workflow
+def fac(i:int):
+    i_1 = sub(i, 1)
+    zero = equal(i, 0)
+    fac_action = make_fac(i_1)
+    fac_1 = wf.If(zero, 1, fac_action)
+    return mult(i, fac_1)
+
+@pytest.mark.skip
+def test_recursion():
+    result = evaluation.run(fac, [4])
+    assert result == 24
+
+#########################################################
 #
-# @wf.analysis
-# def tst_partial_adder() -> float:
-#     adder_val = wf.partial(add, 7)
-#     return adder_val(2)
-#
-# @pytest.mark.skip
-# def test_partial():
-#     result = evaluation.run(tst_partial_adder)
-#     assert result == 9
+
+@wf.workflow
+def outer_wf(i: int):
+    @wf.workflow
+    def nested():
+        return i
+
+    return nested()
+
+# nested workflow def yet to be implemented
+@pytest.mark.skip
+def test_nested_wf():
+    result = evaluation.run(outer_wf, [4])
+    assert result == 4
 
 
 # @wf.action_def

@@ -7,7 +7,7 @@ from ..action.constructor import Value, A_list, A_dict, A_tuple
 from .type_inspector import TypeInspector
 from enum import IntEnum
 from .exceptions import ExcTypeBase, ExcArgumentBindError, ExcConstantKey, ExcActionExpected
-from ..code.dummy import Dummy, DummyAction
+from ..code.dummy import Dummy, DummyAction, DummyWorkflow
 
 class ActionInputStatus(enum.IntEnum):
     error_default =  -5  # Invalid default value.
@@ -73,7 +73,7 @@ class ActionCall:
             action_call = value._value
             assert isinstance(action_call, ActionCall)
             return action_call
-        elif isinstance(value, DummyAction):
+        elif isinstance(value, (DummyAction, DummyWorkflow)):
             action = value._action_value
             assert isinstance(action, base._ActionBase)
             return action
