@@ -17,10 +17,17 @@ from . import tools
 from typing import Any, List, Dict, Tuple, TypeVar, Callable
 # reusing some Python typehints, before we have own typing schema
 ################################################################################################
+class _ActionBase:
+    pass
 
 class TypeBase:
     # Future base class of all type hint classes
     pass
+
+class _Empty(_ActionBase):
+    pass
+empty = _Empty()
+# Singleton value marking empty arguments of the Lazy action
 
 BasicType = typing.Union[bool, int, float, complex, str]
 valid_base_types = (bool, int, float, complex, str)

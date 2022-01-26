@@ -1,5 +1,5 @@
 from ..dev.action_instance  import ActionCall
-from ..dev.base import _ActionBase
+from ..dev import dtype
 from ..dev.action_workflow import _Workflow
 from typing import *
 from ..code.unwrap import into_action
@@ -27,7 +27,7 @@ class ActionFactory:
             cls.af = ActionFactory(actions)
         return cls.af
 
-    def __init__(self, actions: List[_ActionBase]):
+    def __init__(self, actions: List[dtype._ActionBase]):
         # actions are instances of the classes
         self._actions = {a.__name__: a() for a in actions}
         pass
@@ -54,7 +54,7 @@ class ActionFactory:
         Recursively unwrap arguments,
         create action_call for action and given arguments.
         """
-        assert isinstance(action, _ActionBase)
+        assert isinstance(action, dtype._ActionBase)
         ac_args = [into_action(arg) for arg in args]
         ac_kwargs = { key: into_action(val) for key, val in kwargs.items() }
         return ActionCall.create(action, *ac_args, **ac_kwargs)

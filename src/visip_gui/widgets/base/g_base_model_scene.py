@@ -8,13 +8,10 @@ import math
 from PyQt5 import QtCore
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtWidgets import QGraphicsScene
-from visip.dev.action_workflow import _Workflow
 
 from visip import _Value
-from visip.dev import dtype
 from visip.dev.action_instance import ActionInputStatus
-from visip.dev.base import _ActionBase
-from visip.dev.dtype import Constant, ConstantValueType
+from visip.dev import dtype
 from visip_gui.data.g_action_data_model import GActionDataModel
 from visip_gui.graphical_items.g_action import GAction
 from visip_gui.graphical_items.g_connection import GConnection
@@ -84,7 +81,7 @@ class GBaseModelScene(QGraphicsScene):
                         if not isinstance(action_argument.value.action, _Value):
                             self.make_connection(action_name, action_argument.value, i, status)
                         else:
-                            if isinstance(action_argument.value.action.value, _ActionBase):
+                            if isinstance(action_argument.value.action.value, dtype._ActionBase):
                                 self.make_connection(action_name, action_argument.value, i, status)
                             else:
                                 g_action = self.get_action(action_name)
@@ -108,7 +105,7 @@ class GBaseModelScene(QGraphicsScene):
         g_action = self.get_action(action_name)
         port2 = g_action.in_ports[arg_index]
         conn = GConnection(port1, port2, arg_status, self.root_item)
-        if isinstance(arg_value.action, _Value) and isinstance(arg_value.action.value, _ActionBase):
+        if isinstance(arg_value.action, _Value) and isinstance(arg_value.action.value, dtype._ActionBase):
             conn.setPen(conn.dash_pen)
 
 

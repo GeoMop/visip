@@ -73,10 +73,24 @@ def test_if_action():
 
 
 #######################
-# Test Partial meta action.
+# Test lazy meta action.
 # No control over free positional arguments, must use keyword arguments instead.
 
+@wf.action_def
+def lazy_action(i:int, j:float, *args, a:bool, b:str, **kwargs):
+    return f"{i} {j} {args} {a} {b} {kwargs}"
 
+@wf.workflow
+def lazy_wf():
+    partial = wf.lazy(wf.empty, 1, a=2, c=3)
+    closure = wf.lazy(100,101,102, a='a', b='b', d='d')
+    a = partial(4, 5, a=6, b=7)
+    b =closure()
+    return (a, b)
+
+def test_lazy():
+    result = evaluation.run(lazy_wf, [])
+    print(result)
 
 #####
 # test recursion

@@ -8,9 +8,11 @@ Problematic are actions generated from special constructs by the 'code' package:
 from . import constructor
 from ..code.decorators import public_action
 from ..dev import meta
+from ..dev import dtype
 
 dict = public_action(constructor.A_dict())
 list = public_action(constructor.A_list())
 tuple = public_action(constructor.A_tuple())
 If = public_action(meta._If())
 lazy = public_action(meta._Lazy())
+empty = dtype.empty

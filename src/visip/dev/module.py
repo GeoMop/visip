@@ -153,7 +153,7 @@ class Module:
             if isinstance(obj, (DummyAction, DummyWorkflow)):
                 action = obj._action_value
                 self.insert_definition(action)
-                assert isinstance(action, base._ActionBase)
+                assert isinstance(action, dtype._ActionBase)
                 assert name == action.name
                 if action.is_analysis:
                     analysis.append(action)
@@ -239,7 +239,7 @@ class Module:
                 self._set_object_names(obj_mod_name, alias_name)
 
 
-    def insert_definition(self, action: base._ActionBase, pos:int=None):
+    def insert_definition(self, action: dtype._ActionBase, pos:int=None):
         """
         Insert a new definition of the 'action' to given position 'pos'.
         :param action: An action class (including dataclass construction actions).
@@ -248,7 +248,7 @@ class Module:
         """
         if pos is None:
             pos = len(self.definitions)
-        assert isinstance(action, base._ActionBase)
+        assert isinstance(action, dtype._ActionBase)
         self.definitions.insert(pos, action)
         self._name_to_def[action.name] = action
 

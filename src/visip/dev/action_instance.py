@@ -8,6 +8,7 @@ from .type_inspector import TypeInspector
 from enum import IntEnum
 from .exceptions import ExcTypeBase, ExcArgumentBindError, ExcConstantKey, ExcActionExpected
 from ..code.dummy import Dummy, DummyAction, DummyWorkflow
+from . import dtype
 
 class ActionInputStatus(enum.IntEnum):
     error_default =  -5  # Invalid default value.
@@ -75,8 +76,10 @@ class ActionCall:
             return action_call
         elif isinstance(value, (DummyAction, DummyWorkflow)):
             action = value._action_value
-            assert isinstance(action, base._ActionBase)
+            assert isinstance(action, dtype._ActionBase)
             return action
+        elif value is dtype.empty:
+            return value
         elif type(value) is list:
             args = [ActionCall._into_action(val) for val in value]
             if any(isinstance(arg, ActionCall) for arg in args):
@@ -131,7 +134,7 @@ class ActionCall:
     The call of an action within a workflow. ActionInstance objects are vertices of the
     call graph (DAG).
     """
-    def __init__(self, action : base._ActionBase, name : str = None) -> None:
+    def __init__(self, action: dtype._ActionBase, name : str = None) -> None:
         self.name = name
         """ The instance name. (i.e. name of variable containing this instance.)
             This also seerves as a unique id within the workflow.
@@ -178,7 +181,7 @@ class ActionCall:
         :param kwargs:
         :return:
         """
-        assert isinstance(action, base._ActionBase), f"{action.__name__}, {action.__class__}"
+        assert isinstance(action, dtype._ActionBase), f"{action.__name__}, {action.__class__}"
         instance = ActionCall(action)
         errors = instance.set_inputs(args, kwargs)
         if errors:

@@ -51,7 +51,7 @@ from ..action.constructor import Pass
 from typing import *
 
 
-class MetaAction(base._ActionBase):
+class MetaAction(base.ActionBase):
     """
     Common ancestor of the meta actions.
 
@@ -100,7 +100,7 @@ class MetaAction(base._ActionBase):
             action = action._action_value
         elif isinstance(action, Dummy):
             action = action._value
-        if isinstance(action, base._ActionBase):
+        if isinstance(action, dtype._ActionBase):
             pass
         elif isinstance(action, dtype.valid_data_types):
             action = Value(action)
@@ -149,7 +149,7 @@ class _Closure(MetaAction):
     """
     def __init__(self, action, args, kwargs):
         super().__init__("PartialClosure")
-        self._action : base._ActionBase = action
+        self._action : dtype._ActionBase = action
         self._args : List['_TaskBase'] = args
         self._kwargs : Dict[str, '_TaskBase'] = kwargs
         # TODO: get callable type and check given arguments against signature
@@ -184,10 +184,6 @@ class _Closure(MetaAction):
 
 
 
-class _Empty:
-    pass
-empty = _Empty()
-# Singleton value marking empty arguments of the Lazy action
 
 class _Lazy(MetaAction):
     """

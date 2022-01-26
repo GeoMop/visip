@@ -3,7 +3,7 @@ from ..dev.parameters import Parameters
 from ..code.dummy import Dummy
 from ..dev.action_instance import ActionCall, ActionArgument, ActionInputStatus
 
-class _Slot(base._ActionBase):
+class _Slot(base.ActionBase):
     def __init__(self, param_type=None):
         super().__init__("_Slot")
         self._parameters = Parameters([], return_type=param_type)

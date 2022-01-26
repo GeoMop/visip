@@ -257,7 +257,7 @@ class Evaluation:
     :return: List of all tasks.
     """
     @staticmethod
-    def make_analysis(action: base._ActionBase, inputs:List[DataOrDummy]):
+    def make_analysis(action: dtype._ActionBase, inputs:List[DataOrDummy]):
         """
         Bind values 'inputs' as parameters of the action using the Value action wrappers,
         returns a workflow without parameters.
@@ -462,7 +462,7 @@ class Evaluation:
             print(e)
 
 
-def run(action: Union[base._ActionBase, DummyAction],
+def run(action: Union[dtype._ActionBase, DummyAction],
         inputs:List[DataOrDummy] = None,
         **kwargs) -> dtype.DataType:
     """

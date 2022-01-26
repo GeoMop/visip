@@ -1,11 +1,11 @@
 import typing
-from ..dev.base import _ActionBase
+from ..dev.base import ActionBase
 from ..dev import dtype as dtype
 from ..dev.parameters import Parameters, ActionParameter
 from ..dev import data
 
 
-class Value(_ActionBase):
+class Value(ActionBase):
     def __init__(self, value):
         name = "Value"
         params = Parameters([], typing.Any)
@@ -22,7 +22,7 @@ class Value(_ActionBase):
         return representer.value_code(self.value)
 
 
-class Pass(_ActionBase):
+class Pass(ActionBase):
     """
     Propagate given single argument. Do nothing action. Meant for internal usage in particular.
     """
@@ -39,7 +39,7 @@ class Pass(_ActionBase):
 
 
 
-class _ListBase(_ActionBase):
+class _ListBase(ActionBase):
     """
     Base action class for actions accepting any number of unnamed parameters.
     """
@@ -80,7 +80,7 @@ class A_tuple(_ListBase):
         return tuple(inputs)
 
 
-class A_dict(_ActionBase):
+class A_dict(ActionBase):
     def __init__(self):
         p =  ActionParameter(name='args', p_type=typing.Tuple[typing.Any, typing.Any],
                             default=ActionParameter.no_default, kind=ActionParameter.VAR_POSITIONAL)
@@ -95,7 +95,7 @@ class A_dict(_ActionBase):
         # Todo: check that inputs are pairs, extract key/value
         #return format.Format.list("{", "}", [(None, arg) for arg in arg_names])
 
-        return _ActionBase.call_format(self, representer, action_name, arg_names, arg_values)
+        return ActionBase.call_format(self, representer, action_name, arg_names, arg_values)
 
     def _evaluate(self, *inputs) -> typing.Any:
         return {key: val for key, val in inputs}
@@ -111,7 +111,7 @@ TODO:
 
 
 
-class ClassActionBase(_ActionBase):
+class ClassActionBase(ActionBase):
     base_data_type = dtype.DataClassBase
     """
     Action constructs particular Dataclass given in constructor.
