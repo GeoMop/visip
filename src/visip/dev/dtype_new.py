@@ -410,99 +410,99 @@ def is_equaltype(type, other):
     return False
 
 
-def is_subtype(type, typeinfo):
-    b, _ = is_subtype_map(type, typeinfo, {})
+def is_subtype(subtype, type):
+    b, _ = is_subtype_map(subtype, type, {})
     return b
 
 
-def is_subtype_map(type, typeinfo, var_map, const=False):
-    # if type is Const, call recursively with const=True
-    if isinstance(type, Const):
-        return is_subtype_map(type.arg, typeinfo, var_map, True)
+def is_subtype_map(subtype, type, var_map, const=False):
+    # if subtype is Const, call recursively with const=True
+    if isinstance(subtype, Const):
+        return is_subtype_map(subtype.arg, type, var_map, True)
 
-    # if typeinfo is Const, check if const==True then call recursively
-    elif isinstance(typeinfo, Const):
+    # if type is Const, check if const==True then call recursively
+    elif isinstance(type, Const):
         if const:
-            return is_subtype_map(type, typeinfo.arg, var_map, True)
+            return is_subtype_map(subtype, type.arg, var_map, True)
 
-    # if typeinfo is Any, always True
-    elif isinstance(typeinfo, Any):
+    # if type is Any, always True
+    elif isinstance(type, Any):
         return True, var_map
 
-    # if typeinfo is TypeVar, always True
-    elif isinstance(typeinfo, TypeVar):
-        return True, _vm_merge(var_map, {typeinfo: Union([type])})
+    # if type is TypeVar, always True
+    elif isinstance(type, TypeVar):
+        return True, _vm_merge(var_map, {type: Union([subtype])})
 
-    # if type is Union, must be satisfied for all args
-    elif isinstance(type, Union):
-        for arg in type.args:
-            b, vm = is_subtype_map(arg, typeinfo, var_map, const)
+    # if subtype is Union, must be satisfied for all args
+    elif isinstance(subtype, Union):
+        for arg in subtype.args:
+            b, vm = is_subtype_map(arg, type, var_map, const)
             if not b:
                 return False, {}
             var_map = _vm_merge(var_map, vm)
         return True, var_map
 
-    # if typeinfo is Union, must be satisfied for at least one arg
-    elif isinstance(typeinfo, Union):
-        for arg in typeinfo.args:
-            b, vm = is_subtype_map(type, arg, var_map, const)
+    # if type is Union, must be satisfied for at least one arg
+    elif isinstance(type, Union):
+        for arg in type.args:
+            b, vm = is_subtype_map(subtype, arg, var_map, const)
             if b:
                 return True, _vm_merge(var_map, vm)
 
-    # if typeinfo is NewType, than type must be appropriate NewType or subtype of supertype
-    elif isinstance(type, NewType):
-        if typeinfo is type:
+    # if type is NewType, than subtype must be appropriate NewType or subtype of supertype
+    elif isinstance(subtype, NewType):
+        if type is subtype:
             return True, var_map
         else:
-            b, vm = is_subtype_map(type.supertype, typeinfo, var_map, const)
+            b, vm = is_subtype_map(subtype.supertype, type, var_map, const)
             if b:
                 return True, _vm_merge(var_map, vm)
 
-    # if type is Int, Float, Str, NoneType, typeinfo must be the same
-    elif isinstance(type, (Int, Float, Str, NoneType)):
-        if typeinfo is type:
+    # if subtype is Int, Float, Str, NoneType, type must be the same
+    elif isinstance(subtype, (Int, Float, Str, NoneType)):
+        if type is subtype:
             return True, var_map
 
-    # if type is Bool, typeinfo must be Bool or Int
-    elif isinstance(type, Bool):
-        if isinstance(typeinfo, (Bool, Int)):
+    # if subtype is Bool, type must be Bool or Int
+    elif isinstance(subtype, Bool):
+        if isinstance(type, (Bool, Int)):
             return True, var_map
 
-    # if type is Class, typeinfo must be Class and type.origin_type must be subclass of typeinfo.origin_type
-    elif isinstance(type, Class):
-        if isinstance(typeinfo, Class) and issubclass(type.origin_type, typeinfo.origin_type):
+    # if subtype is Class, type must be Class and subtype.origin_type must be subclass of type.origin_type
+    elif isinstance(subtype, Class):
+        if isinstance(type, Class) and issubclass(subtype.origin_type, type.origin_type):
             return True, var_map
 
-    # if type is Enum, typeinfo must be Enum and type.origin_type must be subclass of typeinfo.origin_type or typeinfo must be Int
-    elif isinstance(type, Enum):
-        if isinstance(typeinfo, Enum) and issubclass(type.origin_type, typeinfo.origin_type) \
-                or isinstance(typeinfo, Int):
+    # if subtype is Enum, type must be Enum and subtype.origin_type must be subclass of type.origin_type or type must be Int
+    elif isinstance(subtype, Enum):
+        if isinstance(type, Enum) and issubclass(subtype.origin_type, type.origin_type) \
+                or isinstance(type, Int):
             return True, var_map
 
-    # if type is Tuple, typeinfo must be Tuple and all args must be subtype
-    elif isinstance(type, Tuple):
-        if isinstance(typeinfo, Tuple) and len(type.args) == len(typeinfo.args):
-            for arg, arginfo in zip(type.args, typeinfo.args):
+    # if subtype is Tuple, type must be Tuple and all args must be subtype
+    elif isinstance(subtype, Tuple):
+        if isinstance(type, Tuple) and len(subtype.args) == len(type.args):
+            for arg, arginfo in zip(subtype.args, type.args):
                 b, vm = is_subtype_map(arg, arginfo, var_map, const)
                 if not b:
                     return False, {}
                 var_map = _vm_merge(var_map, vm)
             return True, var_map
 
-    # if type is List, typeinfo must be List and args must be subtype
-    elif isinstance(type, List):
-        if isinstance(typeinfo, List):
-            b, vm = is_subtype_map(type.arg, typeinfo.arg, var_map, const)
+    # if subtype is List, type must be List and args must be subtype
+    elif isinstance(subtype, List):
+        if isinstance(type, List):
+            b, vm = is_subtype_map(subtype.arg, type.arg, var_map, const)
             if b:
                 return True, _vm_merge(var_map, vm)
 
-    # if type is Dict, typeinfo must be Dict and keys, values must be subtype
-    elif isinstance(type, Dict):
-        if isinstance(typeinfo, Dict):
-            b, vm = is_subtype_map(type.key, typeinfo.key, var_map, const)
+    # if subtype is Dict, type must be Dict and keys, values must be subtype
+    elif isinstance(subtype, Dict):
+        if isinstance(type, Dict):
+            b, vm = is_subtype_map(subtype.key, type.key, var_map, const)
             if b:
                 var_map = _vm_merge(var_map, vm)
-                b, vm = is_subtype_map(type.value, typeinfo.value, var_map, const)
+                b, vm = is_subtype_map(subtype.value, type.value, var_map, const)
                 if b:
                     var_map = _vm_merge(var_map, vm)
                     return True, var_map
