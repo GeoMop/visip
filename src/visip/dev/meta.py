@@ -148,7 +148,8 @@ class _Closure(MetaAction):
     TODO: Make DynamicCall special case of _Closure.
     """
     def __init__(self, action, args, kwargs):
-        super().__init__("PartialClosure")
+        super().__init__("Closure")
+        self.task_type = base.TaskType.Closure
         self._action : dtype._ActionBase = action
         self._args : List['_TaskBase'] = args
         self._kwargs : Dict[str, '_TaskBase'] = kwargs
@@ -159,30 +160,38 @@ class _Closure(MetaAction):
         # Always expand create the task with merged inputs.
         # TODO: merge new inputs to partial_args
         # TODO: How to match inputs to unbinded args.
-
-        args = [*self._args, *task.inputs]
-        self._kwargs.update(task._kw_inputs)
-
-
-
-        ac = ActionCall(self.dynamic_action(task.inputs[0]), "_closure_")
-        self._inputs.expand(task.inputs)
-        self._kw_inputs.update(task._kw_inputs)
-        ac = ActionCall(self._function, '_closure_')
-        ac.set_inputs([self.task_value(ii) for ii in self._inputs],
-                      {k: self.task_value(ii) for k, ii in self._kw_inputs.items()}
-                      )
-        arg_tasks = [arg.value.input for arg in ac.arguments]
-        # TODO: How the args and kw_args will work in action call, here and in workflow expansion
-        # a bit complicated. 
-        task = task_creator('__result__', self._function, arg_tasks)
-        return [task]
+        # unbinded args marked as Value task with empty argument
+        assert task.action is self
+        def is_empty(task_in):
+            try:
+                return task_in.action.value is dtype.empty
+            except AttributeError:
+                raise AttributeError(f"{task.action}")
 
 
+        new_args, new_kwargs = tools.compose_arguments(task.id_args_pair, task.inputs)
+        it_new_args = iter(new_args)
+        args = []
+        for t in self._args:
+            if is_empty(t):
+                try:
+                    add = next(it_new_args)
+                except StopIteration:
+                    raise exceptions.ExcArgumentBindError(f"Missing positional argument, in closure of {self._action}")
+            else:
+                add = t
+            args.append(add)
+        args.extend(it_new_args)
+        kwargs = self._kwargs
+        kwargs.update(new_kwargs)
+        id_args_pair, inputs = tools.decompose_arguments( (args, kwargs) )
 
+        # TODO: Abstart ActionCall.bind and use it here and in DynamicCall to check bindindg errors
+        #
 
-
-
+        task_binding = tools.TaskBinding('__result__', self._action, id_args_pair, inputs)
+        task = task_creator(task_binding)
+        return {'__result__': task}
 
 
 class _Lazy(MetaAction):
@@ -212,18 +221,32 @@ class _Lazy(MetaAction):
         # No need to wait for finised tasks, quite contrarly even action may be yet unfinished as it could be
         # result of other Closure.
 
-        assert len(task.inputs) == self._parameters.size()
+
+
         if task.inputs[0].is_finished():
-            # Create the closure and mark the Partial task finished
+            # TODO:
+            # - wrap actions into Closure action in order to prevent storing actions into DB
+            # - check task is the ClosureTask
+            # - get task._result.parameters check against connected inputs
+            # - Workflow typechecking should be able to derive types of callables, but need a help
+            #   as the type propagation through Lazy is complicated
+
+            # Create the closure and Lazy task finished
             # independently on the status of the enclosed intputs.
             # ac = ActionCall(self.dynamic_action(task.inputs[0]), "_closure_")
             # args = [ActionCall.create(constructor.Value(TaskValue(value))) for value in ]
             # ac.set_inputs(args, {})
-            action = self.dynamic_action(task.inputs[0])
-            closure = _Closure(action, task.inputs[1], task.inputs[2])
-            task.finish(closure, task.lazy_hash())  # ?? May not work.
+            args, kwargs = tools.compose_arguments(task.id_args_pair, task.inputs)
+            action = self.dynamic_action(args[0])
 
-            return {'__result__': task_creator('__result__', Pass(), [task])}
+
+            closure = _Closure(action, args[1:], kwargs)
+            task.finish(closure)
+            # empty task to proceed
+            task_binding = tools.TaskBinding('__result__', Pass(), ([0], {}), [task])
+            pass_task = task_creator(task_binding)
+
+            return {'__result__': pass_task}
         else:
             return None
 
@@ -277,7 +300,10 @@ class DynamicCall(MetaAction):
         if task.inputs[0].is_finished():
             args, kwargs = tools.compose_arguments(task.id_args_pair, task.inputs)
             action = self.dynamic_action(args[0])
-            task_binding = tools.TaskBinding('__result__', action, task.id_args_pair, task.inputs[1:])
+            id_args, id_kwargs = task.id_args_pair
+            id_args = [i - 1 for i in id_args[1:]]
+            id_kwargs = {k: (i-1) for k, i in id_kwargs.items()}
+            task_binding = tools.TaskBinding('__result__', action, (id_args, id_kwargs), task.inputs[1:])
             task = task_creator(task_binding)
             return {'__result__': task}
         else:

@@ -180,17 +180,18 @@ class ActionCall:
         :param args:
         :param kwargs:
         :return:
+        TODO: Make a global error buffer, report errors there so that
+        all parsing can proceed, possibly we can stop at given number of errors.
+        Then we can remove create_and_check
         """
         assert isinstance(action, dtype._ActionBase), f"{action.__name__}, {action.__class__}"
         instance = ActionCall(action)
-        errors = instance.set_inputs(args, kwargs)
-        if errors:
+        instance.errors = instance.set_inputs(args, kwargs)
+        if instance.errors:
             # TODO: report also missing arguments, possibly in _arg_split
-            arg, err = errors[0]
-
+            arg, err = instance.errors[0]
             raise ExcArgumentBindError(f"Action {str(action)}, binding error: {str(err)}, for argument: {arg}.")
         return instance
-
 
     @property
     def parameters(self):
@@ -269,6 +270,7 @@ class ActionCall:
         DUPLICATE = 2
         POSITIONAL_OVER = 3
         KEYWORD_OVER = 4
+        MISSING = 5
 
     InputDict = Dict[str, 'ActionCall']
     InputList = List['ActionCall']
@@ -348,6 +350,8 @@ class ActionCall:
         kwargs_param = None
         #for param in itertools.chain(parameters_ex, parameters):
         for param in parameters:
+            if param.kind == param.POSITIONAL_ONLY:
+                errors.append( (arg, self.BindError.MISSING_POSSITIONAL) )
 
             if param.kind == param.VAR_KEYWORD:
                 # Memorize that we have a '**kwargs'-like parameter
@@ -385,6 +389,14 @@ class ActionCall:
                 errors.extend([(arg, self.BindError.KEYWORD_OVER) for k, arg in kwargs.items()])
 
         return bound_args, errors
+
+    def check_arguments(self):
+        errors = []
+        assert len(self.arguments) == len(self.action.parameters)
+        for a in self.arguments:
+            if a.status < ActionInputStatus.error_type:
+                errors.append((a, self.BindError.MISSING))
+        return errors
 
 
     def set_name(self, instance_name: str):

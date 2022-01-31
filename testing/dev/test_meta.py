@@ -1,6 +1,6 @@
-import os
 import visip as wf
 from visip.dev import evaluation
+from visip.dev import exceptions
 import pytest
 # script_dir = os.path.dirname(os.path.realpath(__file__))
 
@@ -78,19 +78,33 @@ def test_if_action():
 
 @wf.action_def
 def lazy_action(i:int, j:float, *args, a:bool, b:str, **kwargs):
-    return f"{i} {j} {args} {a} {b} {kwargs}"
+    return f"lazy_action({i} {j} {args} {a} {b} {kwargs})"
 
 @wf.workflow
 def lazy_wf():
-    partial = wf.lazy(wf.empty, 1, a=2, c=3)
-    closure = wf.lazy(100,101,102, a='a', b='b', d='d')
-    a = partial(4, 5, a=6, b=7)
-    b =closure()
+    closure = wf.lazy(lazy_action, 100, 101, 102, a='a', b='b', d='d')
+    b = closure()
+    partial_1 = wf.lazy(lazy_action, wf.empty, 1, a=2, c=3)
+    a1 = wf.lazy(partial_1, wf.empty, 5, b=7)
+    a = a1(4)
     return (a, b)
 
 def test_lazy():
+    #result = evaluation.run(lazy_wf, [], plot_expansion=True)
     result = evaluation.run(lazy_wf, [])
-    print(result)
+    assert result[0] == "lazy_action(4 1 (5,) 2 7 {'c': 3})"
+    assert result[1] == "lazy_action(100 101 (102,) a b {'d': 'd'})"
+
+
+@wf.workflow
+def lazy_wf_err_1():
+    partial = wf.lazy(lazy_action, wf.empty, 1, a=2, c=3)
+    return partial(4, 5, a=6, b=7)
+
+@pytest.mark.skip
+def test_lazy_errors():
+    with pytest.raises(exceptions.ExcArgumentBindError) as e:
+        result = evaluation.run(lazy_wf_err_1, [])
 
 #####
 # test recursion
@@ -134,6 +148,13 @@ def fac(i:int):
 def test_recursion():
     result = evaluation.run(fac, [4])
     assert result == 24
+
+# TODO:
+# - remove explicit setting of outputs, update them in the scheduler DFS
+# - result, Value, composed action, immediate evaluation by Scheduler
+# - remove task ids, use just hashes
+# - link tasks indirectly through hashes, no need for Pass() result tasks, can
+
 
 #########################################################
 #

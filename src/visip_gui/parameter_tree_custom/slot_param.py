@@ -23,7 +23,7 @@ class SlotParam(parametertree.parameterTypes.GroupParameter):
         self.arg = arg
         opts['type'] = 'str'
         if arg is not None and arg.value is not None:
-            if not isinstance(arg.value.action, _Value):
+            if not isinstance(arg.value.action, Value):
                 opts['name'] = self.get_label()
                 opts['readonly'] = True
             elif isinstance(self.arg.value.action.value, dtype._ActionBase):

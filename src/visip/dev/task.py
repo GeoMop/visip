@@ -5,7 +5,7 @@ from . import data
 from . import base
 from ..eval import cache
 from .tools import compose_arguments, TaskBinding
-
+from .meta import _Closure
 
 class Status(enum.IntEnum):
     none = 0
@@ -100,13 +100,15 @@ class _TaskBase:
             task_hash = data.hash(input.result_hash, previous=task_hash)
         return task_hash
 
-    def finish(self, result, task_hash):
+    def finish(self, result, task_hash=None):
         """
         Store the result of the action.
         :param result: The result value.
         :param task_hash: The hash of lazy evaluation of the value (hash of the action chain)
         :return:
         """
+        if task_hash is None:
+            task_hash = self.lazy_hash()
         assert result is not self.no_value
         self.status = Status.finished
         self._result = result
@@ -146,15 +148,16 @@ class _TaskBase:
         if task_type == base.TaskType.Atomic:
             child = Atomic(parent_task, task_binding)
         elif task_type == base.TaskType.Composed:
-            task_binding.id_args_pair = ([0], {}) # for final auxiliary action
+            #task_binding.id_args_pair = ([0], {}) # for final auxiliary action
             child = Composed(parent_task, task_binding)
+        elif task_type == base.TaskType.Closure:
+            child = ClosureTask(parent_task, task_binding)
         else:
             assert False
         return child
 
 
 class Atomic(_TaskBase):
-
 
     def is_ready(self):
         """
@@ -165,7 +168,7 @@ class Atomic(_TaskBase):
             is_ready = all([task.is_finished() for task in self.inputs])
             if is_ready:
                 self.status = Status.ready
-        return self.status == Status.ready
+        return self.status >= Status.ready
 
     def evaluate_fn(self):
         """
@@ -175,6 +178,8 @@ class Atomic(_TaskBase):
         """
         assert self.is_ready()
         return self.action.evaluate
+
+
 
 
 
@@ -269,7 +274,7 @@ class Composed(Atomic):
             Dictionary of child tasks (action_instance_name -> task)
             Empty dict is valid result, used to indicate end of a loop e.g. in the case of ForEach and While actions.
         """
-        assert self.action.task_type == base.TaskType.Composed
+        assert self.action.task_type in (base.TaskType.Composed, base.TaskType.Closure)
         assert hasattr(self.action, 'expand')
 
         # Disconnect composed task heads.
@@ -285,6 +290,7 @@ class Composed(Atomic):
             result_task = self.childs['__result__']
             assert len(result_task.outputs) == 0
             result_task.outputs.append(self)
+            self._task_binding.id_args_pair = ([0],{})
             self._inputs = [result_task]
             # After expansion the composed task is just a dummy task dependent on the previoous result.
             # This works with Workflow, see how it will work with other composed actions:
@@ -307,3 +313,8 @@ class Composed(Atomic):
 
 
 
+class ClosureTask(Composed):
+    def __init__(self, parent: '_TaskBase', task_binding: TaskBinding):
+        super().__init__(parent, task_binding)
+        assert isinstance(task_binding.action, _Closure)
+        #self.finish(task_binding.action)
