@@ -1,7 +1,7 @@
 from visip import dev
 from visip.dev import dtype, evaluation, dtype_new
 import visip.action as action
-from visip.code import wrap
+#from visip.code import wrap
 from visip.dev.parameters import Parameters
 from visip.dev.extract_signature import _extract_signature, unwrap_type
 import typing

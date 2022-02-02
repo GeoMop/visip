@@ -8,6 +8,7 @@ from .type_inspector import TypeInspector
 from enum import IntEnum
 from .exceptions import ExcTypeBase, ExcArgumentBindError, ExcConstantKey, ExcActionExpected
 from ..code.dummy import Dummy, DummyAction
+from ..dev import dtype_new
 
 class ActionInputStatus(enum.IntEnum):
     error_impl  = -4     # Missing type hint or other error in the action implementation.
@@ -168,7 +169,7 @@ class ActionCall:
         return self._arg_split(self.arguments)
 
     def return_type_have_attributes(self):
-        return TypeInspector().have_attributes(self.action.output_type)
+        return dtype_new.TypeInspector().have_attributes(self.action.output_type)
 
     @staticmethod
     def create(action, *args, **kwargs):

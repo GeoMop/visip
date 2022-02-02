@@ -26,22 +26,22 @@ def test_types():
     dt = dtype_new
 
     # Union
-    t = dt.Union([dt.Int(), dt.Union([dt.Str()])])
+    t = dt.Union(dt.Int(), dt.Union(dt.Str()))
     assert len(t.args) == 2
     assert isinstance(t.args[0], dt.Int)
     assert isinstance(t.args[1], dt.Str)
 
-    t = dt.Union([dt.Int(), dt.Const(dt.Union([dt.Str()]))])
+    t = dt.Union(dt.Int(), dt.Const(dt.Union(dt.Str())))
     assert len(t.args) == 2
     assert isinstance(t.args[0], dt.Int)
     assert isinstance(t.args[1], dt.Const)
     assert isinstance(t.args[1].arg, dt.Str)
 
-    t = dt.Union([dt.Int(), dt.Int()])
+    t = dt.Union(dt.Int(), dt.Int())
     assert len(t.args) == 1
     assert isinstance(t.args[0], dt.Int)
 
-    t = dt.Union([dt.Int(), dt.Union([dt.Int()])])
+    t = dt.Union(dt.Int(), dt.Union(dt.Int()))
     assert len(t.args) == 1
     assert isinstance(t.args[0], dt.Int)
 
@@ -49,14 +49,14 @@ def test_types():
     u = dt.TypeVar("U")
 
     try:
-        dt.Union([t, u])
+        dt.Union(t, u)
     except TypeError:
         pass
     else:
         assert False
 
     try:
-        dt.Union([t, dt.Const(u)])
+        dt.Union(t, dt.Const(u))
     except TypeError:
         pass
     else:
@@ -173,7 +173,7 @@ def test_to_typing():
     assert isinstance(nt, typing.TypeVar)
     assert nt.__name__ == t.name
 
-    tt = dtype_new.Tuple([t, dtype_new.List(t)])
+    tt = dtype_new.Tuple(t, dtype_new.List(t))
     nt = dtype_new.to_typing(tt)
     args = typing_inspect.get_args(nt, evaluate=True)
     assert args[0] is typing_inspect.get_args(args[1], evaluate=True)[0]
@@ -186,14 +186,14 @@ def test_to_typing():
     assert nt.__name__ == t.name
     assert nt.__supertype__ is int
 
-    tt = dtype_new.Tuple([t, dtype_new.List(t)])
+    tt = dtype_new.Tuple(t, dtype_new.List(t))
     nt = dtype_new.to_typing(tt)
     args = typing_inspect.get_args(nt, evaluate=True)
     assert args[0] is typing_inspect.get_args(args[1], evaluate=True)[0]
 
 
     # Tuple
-    t = dtype_new.Tuple([dtype_new.Int(), dtype_new.Str()])
+    t = dtype_new.Tuple(dtype_new.Int(), dtype_new.Str())
     nt = dtype_new.to_typing(t)
     assert typing_inspect.get_origin(nt) in [tuple, typing.Tuple]
     args = typing_inspect.get_args(nt, evaluate=True)
@@ -201,7 +201,7 @@ def test_to_typing():
     assert args[1] is str
 
     # Union
-    t = dtype_new.Union([dtype_new.Int(), dtype_new.Str()])
+    t = dtype_new.Union(dtype_new.Int(), dtype_new.Str())
     nt = dtype_new.to_typing(t)
     assert typing_inspect.get_origin(nt) is typing.Union
     args = typing_inspect.get_args(nt, evaluate=True)
@@ -317,10 +317,10 @@ def test_is_equaltype():
     assert not eq(c, a)
 
     # Union
-    assert eq(dt.Union([dt.Int(), dt.Str()]), dt.Union([dt.Int(), dt.Str()]))
-    assert eq(dt.Union([dt.Int(), dt.Str()]), dt.Union([dt.Str(), dt.Int()]))
-    assert not eq(dt.Union([dt.Int(), dt.Str()]), dt.Union([dt.Int(), dt.Str(), dt.Bool()]))
-    assert eq(dt.Union([dt.Int()]), dt.Int())
+    assert eq(dt.Union(dt.Int(), dt.Str()), dt.Union(dt.Int(), dt.Str()))
+    assert eq(dt.Union(dt.Int(), dt.Str()), dt.Union(dt.Str(), dt.Int()))
+    assert not eq(dt.Union(dt.Int(), dt.Str()), dt.Union(dt.Int(), dt.Str(), dt.Bool()))
+    assert eq(dt.Union(dt.Int()), dt.Int())
 
     # List
     assert eq(dt.List(dt.Int()), dt.List(dt.Int()))
@@ -332,14 +332,14 @@ def test_is_equaltype():
     assert not eq(dt.Dict(dt.Int(), dt.Str()), dt.Dict(dt.Int(), dt.Int()))
 
     # Tuple
-    assert eq(dt.Tuple([dt.Int(), dt.Str()]), dt.Tuple([dt.Int(), dt.Str()]))
-    assert not eq(dt.Tuple([dt.Int(), dt.Str()]), dt.Tuple([dt.Int(), dt.Int()]))
+    assert eq(dt.Tuple(dt.Int(), dt.Str()), dt.Tuple(dt.Int(), dt.Str()))
+    assert not eq(dt.Tuple(dt.Int(), dt.Str()), dt.Tuple(dt.Int(), dt.Int()))
 
     # Const
     assert not eq(dt.Const(dt.Int()), dt.Int())
     assert eq(dt.Const(dt.Int()), dt.Const(dt.Int()))
 
-    assert eq(dt.Const(dt.Union([dt.Int()])), dt.Union([dt.Const(dt.Int())]))
+    assert eq(dt.Const(dt.Union(dt.Int())), dt.Union(dt.Const(dt.Int())))
 
     # Any
     assert eq(dt.Any(), dt.Any())
@@ -428,11 +428,11 @@ def test_is_subtype():
     assert not sub(dt.Int(), a)
 
     # Union
-    assert sub(dt.Int(), dt.Union([dt.Int(), dt.Str()]))
-    assert not sub(dt.Union([dt.Int(), dt.Str()]), dt.Int())
-    assert sub(dt.Union([dt.Int(), dt.Str()]), dt.Union([dt.Int(), dt.Str()]))
-    assert sub(dt.Union([dt.Union([dt.Int()]), dt.Str()]), dt.Union([dt.Int(), dt.Str()]))
-    assert sub(dt.Union([dt.Int(), dt.Str()]), dt.Union([dt.Union([dt.Int()]), dt.Str()]))
+    assert sub(dt.Int(), dt.Union(dt.Int(), dt.Str()))
+    assert not sub(dt.Union(dt.Int(), dt.Str()), dt.Int())
+    assert sub(dt.Union(dt.Int(), dt.Str()), dt.Union(dt.Int(), dt.Str()))
+    assert sub(dt.Union(dt.Union(dt.Int()), dt.Str()), dt.Union(dt.Int(), dt.Str()))
+    assert sub(dt.Union(dt.Int(), dt.Str()), dt.Union(dt.Union(dt.Int()), dt.Str()))
 
     # List
     assert sub(dt.List(dt.Int()), dt.List(dt.Int()))
@@ -444,8 +444,8 @@ def test_is_subtype():
     assert not sub(dt.Dict(dt.Int(), dt.Str()), dt.Dict(dt.Int(), dt.Int()))
 
     # Tuple
-    assert sub(dt.Tuple([dt.Int(), dt.Str()]), dt.Tuple([dt.Int(), dt.Str()]))
-    assert not sub(dt.Tuple([dt.Int(), dt.Str()]), dt.Tuple([dt.Int(), dt.Int()]))
+    assert sub(dt.Tuple(dt.Int(), dt.Str()), dt.Tuple(dt.Int(), dt.Str()))
+    assert not sub(dt.Tuple(dt.Int(), dt.Str()), dt.Tuple(dt.Int(), dt.Int()))
 
     # Const
     assert sub(dt.Const(dt.Int()), dt.Int())
@@ -454,7 +454,7 @@ def test_is_subtype():
 
     assert sub(dt.Const(dt.Const(dt.Int())), dt.Int())
     
-    assert sub(dt.Const(dt.Tuple([dt.Int(), dt.Str()])), dt.Tuple([dt.Const(dt.Int()), dt.Str()]))
+    assert sub(dt.Const(dt.Tuple(dt.Int(), dt.Str())), dt.Tuple(dt.Const(dt.Int()), dt.Str()))
 
     # Any
     assert sub(dt.Int(), dt.Any())
@@ -469,27 +469,27 @@ def test_is_subtype():
     assert not sub(t, dt.Int())
     assert sub(t, u)
     #assert sub(dt.Int(), dt.Union([t, u]))
-    assert sub(dt.Union([dt.Int(), dt.Str()]), t)
+    assert sub(dt.Union(dt.Int(), dt.Str()), t)
     #assert sub(dt.Union([dt.Int(), dt.Str()]), dt.Union([t, u]))
-    assert sub(dt.Tuple([dt.Union([dt.Int(), dt.Str()]), dt.Int()]), dt.Tuple([t, t]))
-    assert sub(dt.Tuple([dt.Union([dt.Int(), dt.Str()]), dt.Int()]), dt.Tuple([dt.Union([t, dt.Str()]), t]))
+    assert sub(dt.Tuple(dt.Union(dt.Int(), dt.Str()), dt.Int()), dt.Tuple(t, t))
+    assert sub(dt.Tuple(dt.Union(dt.Int(), dt.Str()), dt.Int()), dt.Tuple(dt.Union(t, dt.Str()), t))
 
     b, vm = dt.is_subtype_map(dt.Int(), t, {})
     assert dt.is_equaltype(vm[t], dt.Int())
 
-    b, vm = dt.is_subtype_map(dt.Union([dt.Int()]), dt.Union([t]), {})
+    b, vm = dt.is_subtype_map(dt.Union(dt.Int()), dt.Union(t), {})
     assert dt.is_equaltype(vm[t], dt.Int())
 
-    b, vm = dt.is_subtype_map(dt.Union([dt.Int()]), dt.Union([t, dt.Int()]), {})
+    b, vm = dt.is_subtype_map(dt.Union(dt.Int()), dt.Union(t, dt.Int()), {})
     assert vm == {}
 
     b, vm = dt.is_subtype_map(dt.List(dt.Int()), dt.List(t), {})
     assert dt.is_equaltype(vm[t], dt.Int())
 
-    b, vm = dt.is_subtype_map(dt.Tuple([dt.Int(), dt.Str()]), dt.Tuple([t, t]), {})
-    assert dt.is_equaltype(vm[t], dt.Union([dt.Int(), dt.Str()]))
+    b, vm = dt.is_subtype_map(dt.Tuple(dt.Int(), dt.Str()), dt.Tuple(t, t), {})
+    assert dt.is_equaltype(vm[t], dt.Union(dt.Int(), dt.Str()))
 
-    b, vm = dt.is_subtype_map(dt.Tuple([dt.Int(), dt.Str()]), dt.Tuple([t, u]), {})
+    b, vm = dt.is_subtype_map(dt.Tuple(dt.Int(), dt.Str()), dt.Tuple(t, u), {})
     assert dt.is_equaltype(vm[t], dt.Int())
     assert dt.is_equaltype(vm[u], dt.Str())
 
@@ -511,9 +511,9 @@ def test_extract_type_var():
 
     assert dt.extract_type_var(t) == {t}
     assert dt.extract_type_var(dt.Int()) == set()
-    assert dt.extract_type_var(dt.Tuple([t])) == {t}
+    assert dt.extract_type_var(dt.Tuple(t)) == {t}
     #assert dt.extract_type_var(dt.Union([t, u])) == {t, u}
-    assert dt.extract_type_var(dt.Union([t, dt.Int()])) == {t}
+    assert dt.extract_type_var(dt.Union(t, dt.Int())) == {t}
     assert dt.extract_type_var(dt.List(t)) == {t}
     assert dt.extract_type_var(dt.Dict(t, u)) == {t, u}
     assert dt.extract_type_var(dt.Const(t)) == {t}

@@ -1,4 +1,5 @@
 from visip.dev import dtype
+from visip.dev import type_inspector
 
 import typing
 import typing_inspect
@@ -16,53 +17,75 @@ class Singleton(type):
         return cls._instances[cls]
 
 
-class Int(metaclass=Singleton):
+class DType:
     pass
 
 
-class Float(metaclass=Singleton):
+class DTypeBase(DType):
     pass
 
 
-class Bool(metaclass=Singleton):
+class DTypeGeneric(DType):
+    def get_args(self):
+        assert False, "Not implemented."
+
+
+class Int(DTypeBase, metaclass=Singleton):
     pass
 
 
-class Str(metaclass=Singleton):
+class Float(DTypeBase, metaclass=Singleton):
     pass
 
 
-class Class:
+class Bool(DTypeBase, metaclass=Singleton):
+    pass
+
+
+class Str(DTypeBase, metaclass=Singleton):
+    pass
+
+
+class Class(DTypeBase):
     def __init__(self, module, name, origin_type):
         self.module = module
         self.name = name
         self.origin_type = origin_type
 
-class Enum:
+class Enum(DTypeBase):
     def __init__(self, module, name, origin_type):
         self.module = module
         self.name = name
         self.origin_type = origin_type
 
 
-class List:
+class List(DTypeGeneric):
     def __init__(self, arg):
         self.arg = arg
 
+    def get_args(self):
+        return [self.arg]
 
-class Dict:
+
+class Dict(DTypeGeneric):
     def __init__(self, key, value):
         self.key = key
         self.value = value
 
+    def get_args(self):
+        return [self.key, self.value]
 
-class Tuple:
-    def __init__(self, args):
+
+class Tuple(DTypeGeneric):
+    def __init__(self, *args):
         self.args = args
 
+    def get_args(self):
+        return self.args
 
-class Union:
-    def __init__(self, args):
+
+class Union(DTypeGeneric):
+    def __init__(self, *args):
         self.args = []
 
         # expand nested unions
@@ -109,8 +132,11 @@ class Union:
             a = self.args.pop(tv_ind)
             self.args.append(a)
 
+    def get_args(self):
+        return self.args
 
-class Const:
+
+class Const(DTypeGeneric):
     def __init__(self, arg):
         if isinstance(arg, Const):
             self.arg = arg.arg
@@ -118,23 +144,26 @@ class Const:
             self.arg = arg
         assert not isinstance(self.arg, Const)
 
+    def get_args(self):
+        return [self.arg]
 
-class TypeVar:
+
+class TypeVar(DTypeBase):
     def __init__(self, name):
         self.name = name
 
 
-class NewType:
+class NewType(DTypeBase):
     def __init__(self, name, supertype):
         self.name = name
         self.supertype = supertype
 
 
-class Any(metaclass=Singleton):
+class Any(DTypeBase, metaclass=Singleton):
     pass
 
 
-class NoneType(metaclass=Singleton):
+class NoneType(DTypeBase, metaclass=Singleton):
     pass
 
 
@@ -185,7 +214,7 @@ def from_typing_map(type, var_map, new_map):
         for a in typing_inspect.get_args(type, evaluate=True):
             t, var_map, new_map = from_typing_map(a, var_map, new_map)
             args.append(t)
-        return Tuple(args), var_map, new_map
+        return Tuple(*args), var_map, new_map
 
 
     # Union
@@ -194,7 +223,7 @@ def from_typing_map(type, var_map, new_map):
         for a in typing_inspect.get_args(type, evaluate=True):
             t, var_map, new_map = from_typing_map(a, var_map, new_map)
             args.append(t)
-        return Union(args), var_map, new_map
+        return Union(*args), var_map, new_map
 
 
     origin = typing_inspect.get_origin(type)
@@ -236,7 +265,8 @@ def from_typing_map(type, var_map, new_map):
         return NoneType(), var_map, new_map
 
 
-    raise TypeError("Not supported type.")
+    #raise TypeError("Not supported type.")
+    return type, var_map, new_map
 
 
 def to_typing(type):
@@ -342,7 +372,7 @@ def is_equaltype(type, other):
         if isinstance(other, Const):
             return is_equaltype(type.arg, other.arg)
         elif isinstance(type.arg, Union):
-            return is_equaltype(Union([type]), other)
+            return is_equaltype(Union(type), other)
         elif isinstance(other, Union):
             return is_equaltype(other, type)
 
@@ -431,7 +461,7 @@ def is_subtype_map(subtype, type, var_map, const=False):
 
     # if type is TypeVar, always True
     elif isinstance(type, TypeVar):
-        return True, _vm_merge(var_map, {type: Union([subtype])})
+        return True, _vm_merge(var_map, {type: Union(subtype)})
 
     # if subtype is Union, must be satisfied for all args
     elif isinstance(subtype, Union):
@@ -514,9 +544,9 @@ def _vm_merge(a, b):
     var_map = a.copy()
     for t in b:
         if t in var_map:
-            var_map[t] = Union([var_map[t], b[t]])
+            var_map[t] = Union(var_map[t], b[t])
         else:
-            var_map[t] = Union([b[t]])
+            var_map[t] = Union(b[t])
     return var_map
 
 
@@ -526,6 +556,9 @@ class TypeInspector:
 
     def constant_type(self, type):
         return type.arg
+
+    def have_attributes(self, type):
+        return isinstance(type, Any) or isinstance(type, Class) or isinstance(type, Dict) or type_inspector.TypeInspector().have_attributes(type)
 
 
 def extract_type_var(type):
