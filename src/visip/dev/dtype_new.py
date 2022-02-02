@@ -149,14 +149,16 @@ class Const(DTypeGeneric):
 
 
 class TypeVar(DTypeBase):
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, origin_type=None):
+        if origin_type is None:
+            origin_type = typing.TypeVar("T")
+        self.origin_type = origin_type
 
 
 class NewType(DTypeBase):
-    def __init__(self, name, supertype):
-        self.name = name
-        self.supertype = supertype
+    def __init__(self, origin_type):
+        self.origin_type = origin_type
+        self.supertype = from_typing(origin_type.__supertype__)
 
 
 class Any(DTypeBase, metaclass=Singleton):
@@ -168,199 +170,155 @@ class NoneType(DTypeBase, metaclass=Singleton):
 
 
 def from_typing(type):
-    t, _, _ = from_typing_map(type, {}, {})
-    return t
-
-
-def from_typing_map(type, var_map, new_map):
     # base
     if type is int:
-        return Int(), var_map, new_map
+        return Int()
 
     if type is float:
-        return Float(), var_map, new_map
+        return Float()
 
     if type is bool:
-        return Bool(), var_map, new_map
+        return Bool()
 
     if type is str:
-        return Str(), var_map, new_map
+        return Str()
 
 
     # TypeVar
     if typing_inspect.is_typevar(type):
-        if type in var_map:
-            return var_map[type], var_map, new_map
-        t = TypeVar(type.__name__)
-        var_map = var_map.copy()
-        var_map[type] = t
-        return t, var_map, new_map
+        return TypeVar(type)
 
 
     # NewType
     if typing_inspect.is_new_type(type):
-        if type in new_map:
-            return new_map[type], var_map, new_map
-        supertype, var_map, new_map = from_typing_map(type.__supertype__, var_map, new_map)
-        t = NewType(type.__name__, supertype)
-        new_map = new_map.copy()
-        new_map[type] = t
-        return t, var_map, new_map
+        return NewType(type)
 
 
     # Tuple
     if typing_inspect.is_tuple_type(type):
         args = []
         for a in typing_inspect.get_args(type, evaluate=True):
-            t, var_map, new_map = from_typing_map(a, var_map, new_map)
-            args.append(t)
-        return Tuple(*args), var_map, new_map
+            args.append(from_typing(a))
+        return Tuple(*args)
 
 
     # Union
     if typing_inspect.is_union_type(type):
         args = []
         for a in typing_inspect.get_args(type, evaluate=True):
-            t, var_map, new_map = from_typing_map(a, var_map, new_map)
-            args.append(t)
-        return Union(*args), var_map, new_map
+            args.append(from_typing(a))
+        return Union(*args)
 
 
     origin = typing_inspect.get_origin(type)
 
     # List
     if origin in [list, typing.List]:
-        t, var_map, new_map = from_typing_map(typing_inspect.get_args(type, evaluate=True)[0], var_map, new_map)
-        return List(t), var_map, new_map
+        return List(from_typing(typing_inspect.get_args(type, evaluate=True)[0]))
 
     # Dict
     if origin in [dict, typing.Dict]:
         args = typing_inspect.get_args(type, evaluate=True)
-        k, var_map, new_map = from_typing_map(args[0], var_map, new_map)
-        v, var_map, new_map = from_typing_map(args[1], var_map, new_map)
-        return Dict(k, v), var_map, new_map
+        return Dict(from_typing(args[0]), from_typing(args[1]))
 
     # Const
     if origin is dtype.Constant:
-        t, var_map, new_map = from_typing_map(typing_inspect.get_args(type, evaluate=True)[0], var_map, new_map)
-        return Const(t), var_map, new_map
+        return Const(from_typing(typing_inspect.get_args(type, evaluate=True)[0]))
 
 
     # Class
     if inspect.isclass(type) and issubclass(type, dtype.DataClassBase):
-        return Class(type.__module__, type.__name__, type), var_map, new_map
+        return Class(type.__module__, type.__name__, type)
 
     # Enum
     if inspect.isclass(type) and issubclass(type, enum.IntEnum):
-        return Enum(type.__module__, type.__name__, type), var_map, new_map
+        return Enum(type.__module__, type.__name__, type)
 
 
     # Any
     if type is typing.Any:
-        return Any(), var_map, new_map
+        return Any()
 
 
     # NoneType
     if type is builtins.type(None):
-        return NoneType(), var_map, new_map
+        return NoneType()
 
 
     #raise TypeError("Not supported type.")
-    return type, var_map, new_map
+    return type
 
 
 def to_typing(type):
-    t, _, _ = to_typing_map(type, {}, {})
-    return t
-
-
-def to_typing_map(type, var_map, new_map):
     # base
     if isinstance(type, Int):
-        return int, var_map, new_map
+        return int
 
     if isinstance(type, Float):
-        return float, var_map, new_map
+        return float
 
     if isinstance(type, Bool):
-        return bool, var_map, new_map
+        return bool
 
     if isinstance(type, Str):
-        return str, var_map, new_map
+        return str
 
 
     # TypeVar
     if isinstance(type, TypeVar):
-        if type in var_map:
-            return var_map[type], var_map, new_map
-        t = typing.TypeVar(type.name)
-        var_map = var_map.copy()
-        var_map[type] = t
-        return t, var_map, new_map
+        return type.origin_type
 
 
     # NewType
     if isinstance(type, NewType):
-        if type in new_map:
-            return new_map[type], var_map, new_map
-        supertype, var_map, new_map = to_typing_map(type.supertype, var_map, new_map)
-        t = typing.NewType(type.name, supertype)
-        new_map = new_map.copy()
-        new_map[type] = t
-        return t, var_map, new_map
+        return type.origin_type
 
 
     # Tuple
     if isinstance(type, Tuple):
         args = []
         for a in type.args:
-            t, var_map, new_map = to_typing_map(a, var_map, new_map)
-            args.append(t)
-        return typing.Tuple[tuple(args)], var_map, new_map
+            args.append(to_typing(a))
+        return typing.Tuple[tuple(args)]
 
 
     # Union
     if isinstance(type, Union):
         args = []
         for a in type.args:
-            t, var_map, new_map = to_typing_map(a, var_map, new_map)
-            args.append(t)
-        return typing.Union[tuple(args)], var_map, new_map
+            args.append(to_typing(a))
+        return typing.Union[tuple(args)]
 
 
     # List
     if isinstance(type, List):
-        t, var_map, new_map = to_typing_map(type.arg, var_map, new_map)
-        return typing.List[t], var_map, new_map
+        return typing.List[to_typing(type.arg)]
 
     # Dict
     if isinstance(type, Dict):
-        k, var_map, new_map = to_typing_map(type.key, var_map, new_map)
-        v, var_map, new_map = to_typing_map(type.value, var_map, new_map)
-        return typing.Dict[k, v], var_map, new_map
+        return typing.Dict[to_typing(type.key), to_typing(type.value)]
 
     # Const
     if isinstance(type, Const):
-        t, var_map, new_map = to_typing_map(type.arg, var_map, new_map)
-        return dtype.Constant[t], var_map, new_map
+        return dtype.Constant[to_typing(type.arg)]
 
 
     # Class
     if isinstance(type, Class):
-        return type.origin_type, var_map, new_map
+        return type.origin_type
 
     # Enum
     if isinstance(type, Enum):
-        return type.origin_type, var_map, new_map
+        return type.origin_type
 
 
     # Any
     if isinstance(type, Any):
-        return typing.Any, var_map, new_map
+        return typing.Any
 
     # NoneType
     if isinstance(type, NoneType):
-        return builtins.type(None), var_map, new_map
+        return builtins.type(None)
 
 
     raise TypeError("Not supported type.")
@@ -382,7 +340,8 @@ def is_equaltype(type, other):
 
     # TypeVar
     elif isinstance(type, TypeVar):
-        return type is other
+        if isinstance(other, TypeVar):
+            return type.origin_type is other.origin_type
 
     # Union
     elif isinstance(type, Union):
@@ -404,8 +363,8 @@ def is_equaltype(type, other):
 
     # NewType
     elif isinstance(type, NewType):
-        if other is type:
-            return True
+        if isinstance(other, NewType):
+            return type.origin_type is other.origin_type
 
     # Int, Float, Bool, Str, NoneType
     elif isinstance(type, (Int, Float, Bool, Str, NoneType)):
@@ -481,8 +440,9 @@ def is_subtype_map(subtype, type, var_map, const=False):
 
     # if type is NewType, than subtype must be appropriate NewType or subtype of supertype
     elif isinstance(subtype, NewType):
-        if type is subtype:
-            return True, var_map
+        if isinstance(type, NewType):
+            if type.origin_type is subtype.origin_type:
+                return True, var_map
         else:
             b, vm = is_subtype_map(subtype.supertype, type, var_map, const)
             if b:

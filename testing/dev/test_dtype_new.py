@@ -45,8 +45,8 @@ def test_types():
     assert len(t.args) == 1
     assert isinstance(t.args[0], dt.Int)
 
-    t = dt.TypeVar("T")
-    u = dt.TypeVar("U")
+    t = dt.TypeVar(typing.TypeVar("T"))
+    u = dt.TypeVar(typing.TypeVar("U"))
 
     try:
         dt.Union(t, u)
@@ -80,23 +80,23 @@ def test_from_typing():
     t = typing.TypeVar("T")
     nt = dtype_new.from_typing(t)
     assert isinstance(nt, dtype_new.TypeVar)
-    assert nt.name == t.__name__
+    assert nt.origin_type is t
 
     tt = typing.Tuple[t, typing.List[t]]
     nt = dtype_new.from_typing(tt)
-    assert nt.args[0] is nt.args[1].arg
+    assert nt.args[0].origin_type is nt.args[1].arg.origin_type
 
 
     # NewType
     t = typing.NewType("NewInt", int)
     nt = dtype_new.from_typing(t)
     assert isinstance(nt, dtype_new.NewType)
-    assert nt.name == t.__name__
+    assert nt.origin_type is t
     assert isinstance(nt.supertype, dtype_new.Int)
 
     tt = typing.Tuple[t, typing.List[t]]
     nt = dtype_new.from_typing(tt)
-    assert nt.args[0] is nt.args[1].arg
+    assert nt.args[0].origin_type is nt.args[1].arg.origin_type
 
 
     # Tuple
@@ -168,10 +168,10 @@ def test_to_typing():
 
 
     # TypeVar
-    t = dtype_new.TypeVar("T")
+    t = dtype_new.TypeVar(typing.TypeVar("T"))
     nt = dtype_new.to_typing(t)
     assert isinstance(nt, typing.TypeVar)
-    assert nt.__name__ == t.name
+    assert nt is t.origin_type
 
     tt = dtype_new.Tuple(t, dtype_new.List(t))
     nt = dtype_new.to_typing(tt)
@@ -180,10 +180,11 @@ def test_to_typing():
 
 
     # NewType
-    t = dtype_new.NewType("NewInt", dtype_new.Int())
+    tx = typing.NewType("NewInt", int)
+    t = dtype_new.NewType(tx)
     nt = dtype_new.to_typing(t)
     assert typing_inspect.is_new_type(nt)
-    assert nt.__name__ == t.name
+    assert nt is t.origin_type
     assert nt.__supertype__ is int
 
     tt = dtype_new.Tuple(t, dtype_new.List(t))
@@ -346,16 +347,16 @@ def test_is_equaltype():
     assert not eq(dt.Any(), dt.Int())
 
     # TypeVar
-    t = dt.TypeVar("T")
-    u = dt.TypeVar("U")
+    t = dt.TypeVar()
+    u = dt.TypeVar()
 
     assert eq(t, t)
     assert not eq(t, dt.Int())
     assert not eq(t, u)
 
     # NewType
-    t = dt.NewType("NT", dt.Int())
-    u = dt.NewType("NT2", dt.Int())
+    t = dt.NewType(typing.NewType("NT1", int))
+    u = dt.NewType(typing.NewType("NT2", int))
 
     assert eq(t, t)
     assert not eq(t, dt.Int())
@@ -462,8 +463,8 @@ def test_is_subtype():
     assert sub(dt.Any(), dt.Any())
 
     # TypeVar
-    t = dt.TypeVar("T")
-    u = dt.TypeVar("U")
+    t = dt.TypeVar()
+    u = dt.TypeVar()
 
     assert sub(dt.Int(), t)
     assert not sub(t, dt.Int())
@@ -494,8 +495,8 @@ def test_is_subtype():
     assert dt.is_equaltype(vm[u], dt.Str())
 
     # NewType
-    t = dt.NewType("NT", dt.Int())
-    u = dt.NewType("NT2", dt.Int())
+    t = dt.NewType(typing.NewType("NT1", int))
+    u = dt.NewType(typing.NewType("NT2", int))
 
     assert sub(t, t)
     assert sub(t, dt.Int())
@@ -506,8 +507,8 @@ def test_is_subtype():
 def test_extract_type_var():
     dt = dtype_new
 
-    t = dt.TypeVar("T")
-    u = dt.TypeVar("U")
+    t = dt.TypeVar()
+    u = dt.TypeVar()
 
     assert dt.extract_type_var(t) == {t}
     assert dt.extract_type_var(dt.Int()) == set()
@@ -519,13 +520,13 @@ def test_extract_type_var():
     assert dt.extract_type_var(dt.Const(t)) == {t}
     assert dt.extract_type_var(dt.Dict(dt.Str(), dt.List(t))) == {t}
     #assert dt.extract_type_var(dt.Union([t, dt.Int(), dt.Union([u, dt.Str()])])) == {t, u}
-    assert dt.extract_type_var(dt.NewType("NT", t)) == {t}
+    assert list(dt.extract_type_var(dt.NewType(typing.NewType("NT", t.origin_type))))[0].origin_type is t.origin_type
 
 
 def test_check_type_var():
     dt = dtype_new
 
-    t = dt.TypeVar("T")
+    t = dt.TypeVar()
 
     assert dt.check_type_var(t, t)
     assert dt.check_type_var(t, dt.Int())
