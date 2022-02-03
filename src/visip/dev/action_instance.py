@@ -231,8 +231,8 @@ class ActionCall:
             assert isinstance(value, ActionCall), type(value)
             check_type = param.type
 
-            if TypeInspector().is_constant(param.type):
-                check_type = TypeInspector().constant_type(param.type)
+            if dtype_new.TypeInspector().is_constant(param.type):
+                check_type = dtype_new.TypeInspector().constant_type(param.type)
                 if not isinstance(value, Value):
                     status = ActionInputStatus.error_value
                     #return ActionArgument(param, value, is_default, ActionInputStatus.error_value)

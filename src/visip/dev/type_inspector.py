@@ -1,7 +1,7 @@
 import typing
 import typing_inspect
 import enum
-from .dtype import valid_base_types, Constant, DataClassBase
+from .dtype import valid_base_types, DataClassBase
 from . import base
 from . import tools
 
@@ -9,8 +9,8 @@ class TypeInspector_36:
     """
     Dropback solution for python < 3.7.4.
     """
-    map_origin = {typing.List: list, typing.Dict: dict, typing.Tuple: tuple, typing.Union: typing.Union, Constant: Constant}
-    origin_typing = {list: typing.List, dict: typing.Dict, tuple: typing.Tuple, typing.Union: typing.Union, Constant: Constant}
+    map_origin = {typing.List: list, typing.Dict: dict, typing.Tuple: tuple, typing.Union: typing.Union}
+    origin_typing = {list: typing.List, dict: typing.Dict, tuple: typing.Tuple, typing.Union: typing.Union}
 
     def is_any(self, xtype):
         return xtype is typing.Any
@@ -58,8 +58,8 @@ class TypeInspector_36:
         except:
             return False
 
-    def is_constant(self, xtype):
-        return self.get_origin(xtype) is Constant
+    # def is_constant(self, xtype):
+    #     return self.get_origin(xtype) is Constant
 
     def constant_type(self, xtype):
         return self.get_args(xtype)[0]

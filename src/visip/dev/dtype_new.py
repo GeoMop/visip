@@ -138,6 +138,8 @@ class Union(DTypeGeneric):
 
 class Const(DTypeGeneric):
     def __init__(self, arg):
+        if not isinstance(arg, DType):
+            arg = from_typing(arg)
         if isinstance(arg, Const):
             self.arg = arg.arg
         else:
@@ -222,8 +224,9 @@ def from_typing(type):
         return Dict(from_typing(args[0]), from_typing(args[1]))
 
     # Const
-    if origin is dtype.Constant:
-        return Const(from_typing(typing_inspect.get_args(type, evaluate=True)[0]))
+    # No more supported
+    # if origin is dtype.Constant:
+    #     return Const(from_typing(typing_inspect.get_args(type, evaluate=True)[0]))
 
 
     # Class
@@ -300,7 +303,8 @@ def to_typing(type):
 
     # Const
     if isinstance(type, Const):
-        return dtype.Constant[to_typing(type.arg)]
+        #return dtype.Constant[to_typing(type.arg)]
+        assert False, "Unable to return unambiguous value."
 
 
     # Class

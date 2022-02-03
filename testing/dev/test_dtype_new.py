@@ -127,7 +127,7 @@ def test_from_typing():
     assert isinstance(nt.value, dtype_new.Str)
 
     # Const
-    t = dtype.Constant[int]
+    t = dtype_new.Const(int)
     nt = dtype_new.from_typing(t)
     assert isinstance(nt, dtype_new.Const)
     assert isinstance(nt.arg, dtype_new.Int)
@@ -224,10 +224,10 @@ def test_to_typing():
     assert args[1] is str
 
     # Const
-    t = dtype_new.Const(dtype_new.Int())
-    nt = dtype_new.to_typing(t)
-    assert typing_inspect.get_origin(nt) is dtype.Constant
-    assert typing_inspect.get_args(nt, evaluate=True)[0] is int
+    # t = dtype_new.Const(dtype_new.Int())
+    # nt = dtype_new.to_typing(t)
+    # assert typing_inspect.get_origin(nt) is dtype.Constant
+    # assert typing_inspect.get_args(nt, evaluate=True)[0] is int
 
 
     # Class

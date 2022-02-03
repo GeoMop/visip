@@ -7,7 +7,7 @@ import subprocess
 
 from typing import *
 from ..dev import base, exceptions as exc
-from ..dev import dtype, data
+from ..dev import dtype, data, dtype_new
 from ..code import decorators
 from ..dev import tools
 
@@ -132,9 +132,9 @@ def format(format_str: str, *args: Any) -> str:
     return format_str.format(*args)
 
 @decorators.action_def
-def file_from_template(template: dtype.Constant[FileIn],
+def file_from_template(template: dtype_new.Const(FileIn),
                        parameters: dtype.Dict[str, str],
-                       delimiters: dtype.Constant[str]="<>") -> FileIn:
+                       delimiters: dtype_new.Const(str)="<>") -> FileIn:
     """
     Substitute for placeholders of format '<name>' from the dict 'params'.
     :param file_in: Template file with extension '.tmpl'.

@@ -35,7 +35,7 @@ def test_type_inspection():
     assert ti.get_args(X) == ()
     assert ti.get_args(wf.List[bool]) == (bool,)
     assert ti.get_args(wf.Dict[int, float]) == (int, float)
-    assert ti.get_args(wf.Constant[wf.List[int]]) == (wf.List[int], )
+    #assert ti.get_args(wf.Constant[wf.List[int]]) == (wf.List[int], )
 
     # is_base_type
     assert ti.is_base_type(int)
