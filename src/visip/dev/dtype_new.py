@@ -18,7 +18,12 @@ class Singleton(type):
 
 
 class DType:
-    pass
+    def typevar_set(self):
+        """
+        Returns set of all TypeVars from type.
+        :return:
+        """
+        return set()
 
 
 class DTypeBase(DType):
@@ -28,6 +33,12 @@ class DTypeBase(DType):
 class DTypeGeneric(DType):
     def get_args(self):
         assert False, "Not implemented."
+
+    def typevar_set(self):
+        ret = set()
+        for arg in self.get_args():
+            ret.update(arg.typevar_set())
+        return ret
 
 
 class Int(DTypeBase, metaclass=Singleton):
@@ -156,11 +167,25 @@ class TypeVar(DTypeBase):
             origin_type = typing.TypeVar("T")
         self.origin_type = origin_type
 
+    def __hash__(self):
+        return self.origin_type.__hash__()
+
+    def __eq__(self, other):
+        if isinstance(other, TypeVar):
+            return other.origin_type is self.origin_type
+        return False
+
+    def typevar_set(self):
+        return {self}
+
 
 class NewType(DTypeBase):
     def __init__(self, origin_type):
         self.origin_type = origin_type
         self.supertype = from_typing(origin_type.__supertype__)
+
+    def typevar_set(self):
+        return self.supertype.typevar_set()
 
 
 class Any(DTypeBase, metaclass=Singleton):
@@ -531,40 +556,7 @@ def extract_type_var(type):
     :param type:
     :return:
     """
-    ret = set()
-
-    # TypeVar
-    if isinstance(type, TypeVar):
-        ret.add(type)
-
-    # Tuple
-    elif isinstance(type, Tuple):
-        for a in type.args:
-            ret.update(extract_type_var(a))
-
-    # Union
-    elif isinstance(type, Union):
-        for a in type.args:
-            ret.update(extract_type_var(a))
-
-    # List
-    elif isinstance(type, List):
-        ret.update(extract_type_var(type.arg))
-
-    # Dict
-    elif isinstance(type, Dict):
-        ret.update(extract_type_var(type.key))
-        ret.update(extract_type_var(type.value))
-
-    # Const
-    elif isinstance(type, Const):
-        ret.update(extract_type_var(type.arg))
-
-    # NewType
-    elif isinstance(type, NewType):
-        ret.update(extract_type_var(type.supertype))
-
-    return ret
+    return type.typevar_set()
 
 
 def check_type_var(input, output):
