@@ -556,7 +556,9 @@ def extract_type_var(type):
     :param type:
     :return:
     """
-    return type.typevar_set()
+    if isinstance(type, DType):
+        return type.typevar_set()
+    return set()
 
 
 def check_type_var(input, output):
