@@ -16,10 +16,11 @@ While(body_
 """
 from . import base
 from . import exceptions
-from ..action import constructor
 from ..dev.parameters import Parameters, ActionParameter
+from ..dev.action_instance import ActionCall
 from . import dtype
-from ..code import wrap
+from ..code.dummy import DummyAction
+from ..dev import tools
 
 
 class MetaAction(base._ActionBase):
@@ -69,8 +70,8 @@ class MetaAction(base._ActionBase):
         :return:
         """
         action = input_result
-        if isinstance(action, wrap.ActionWrapper):
-            action = action.action
+        if isinstance(action, DummyAction):
+            action = action._action_value
         if not isinstance(action, base._ActionBase):
             raise exceptions.ExcInvalidCall(action)
         return action
@@ -127,7 +128,7 @@ Partial TODO:
 #         # TODO: Match 'function' parameters and given arguments.
 #         #self._parameters.append(
 #         #    ActionParameter(name=None, type=typing.Any, default=ActionParameter.no_default))
-#         self._output_type = dtype.Callable[..., PartialReturnType]
+#         #self._output_type = dtype.Callable[..., PartialReturnType]
 #
 #
 #     def expand(self, task, task_creator):
@@ -176,22 +177,27 @@ class DynamicCall(MetaAction):
         TODO: support kwargs in visip, necessary for perferct forwarding
         """
         super().__init__("DynamicCall")
-        self._parameters = Parameters()
+        params =[]
         ReturnType = dtype.TypeVar('ReturnType')
-        self._parameters.append(
-            ActionParameter(name="function", type=dtype.Callable[..., ReturnType]))
-        self._parameters.append(
-            ActionParameter(name=None, type=dtype.Any, default=ActionParameter.no_default))
+        params.append(
+            ActionParameter(name="function", p_type=dtype.Callable[..., ReturnType]))
+        params.append(
+            ActionParameter(name="args", p_type=dtype.Any, kind=ActionParameter.VAR_POSITIONAL))
+        params.append(
+            ActionParameter(name="kwargs", p_type=dtype.Any, kind=ActionParameter.VAR_KEYWORD))
+        self._parameters = Parameters(params, ReturnType)
         # TODO: Support for kwargs forwarding.
         # TODO: Match 'function' parameters and given arguments.
         #self._parameters.append(
         #    ActionParameter(name=None, type=typing.Any, default=ActionParameter.no_default))
-        self._output_type = ReturnType
+
 
     def expand(self, task, task_creator, cache):
         if cache.is_finished(task.inputs[0].result_hash):
-            return [task_creator('__result__',
-                    self.dynamic_action(cache.value(task.inputs[0].result_hash)), task.inputs[1:])]
+            #args, kwargs = tools.compose_arguments(task.id_args_pair, task.inputs)
+            action = self.dynamic_action(cache.value(task.inputs[0].result_hash))
+            task_binding = tools.TaskBinding('__result__', action, task.task.id_args_pair, task.inputs[1:])
+            return [task_creator(task_binding)]
         else:
             return None
 
@@ -206,25 +212,27 @@ class _If(MetaAction):
         Constructed by the Dummy.__call__.
         TODO: support kwargs in visip, necessary for perferct forwarding
         """
-        #super().__init__("DynamicCall")
-        super().__init__("If") # Dynamic Call
-        self._parameters = Parameters()
+        super().__init__("If")
+        params = []
         ReturnType = dtype.TypeVar('ReturnType')
-        self._parameters.append(
-            ActionParameter(name="condition", type=bool))
-        self._parameters.append(
-            ActionParameter(name="true_body", type=dtype.Callable[..., ReturnType]))
-        self._parameters.append(
-            ActionParameter(name="false_body", type=dtype.Callable[..., ReturnType]))
-        self._output_type = ReturnType
+        params.append(
+            ActionParameter(name="condition", p_type=bool))
+        params.append(
+            ActionParameter(name="true_body", p_type=dtype.Callable[..., ReturnType]))
+        params.append(
+            ActionParameter(name="false_body", p_type=dtype.Callable[..., ReturnType]))
+        self._parameters = Parameters(params, ReturnType)
 
     def expand(self, task, task_creator, cache):
         if all([cache.is_finished(i_task.result_hash) for i_task in task.inputs]):
             condition = cache.value(task.inputs[0].result_hash)
             if condition:
-                return [task_creator('__result__', self.dynamic_action(cache.value(task.inputs[1].result_hash)), [])]
+                action = self.dynamic_action(cache.value(task.inputs[1].result_hash))
             else:
-                return [task_creator('__result__', self.dynamic_action(cache.value(task.inputs[2].result_hash)), [])]
+                action = self.dynamic_action(cache.value(task.inputs[2].result_hash))
+            task_binding = tools.TaskBinding('__result__', action, ([], {}), [])
+            return [task_creator(task_binding)]
+
         else:
             return None
 

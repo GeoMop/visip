@@ -14,15 +14,13 @@ import os
 from typing import List, Dict, Tuple, Any, Union
 import attr
 import heapq
-import numpy as np
 import time
 
 from . import data, task as task_mod, base, dfs,  dtype as dtype, action_instance as instance
 from .action_workflow import _Workflow
-from ..action.constructor import Value
 from ..eval.cache import ResultCache
-from ..code import wrap
-from ..code.dummy import Dummy
+from ..code.unwrap import into_action
+from ..code.dummy import Dummy, DummyAction
 from . import tools
 
 
@@ -91,12 +89,10 @@ class Resource:
         res_value = self.cache.value(task.result_hash)
         if res_value is self.cache.NoValue:
             #assert task.is_ready()
-            data_inputs = []
-            for input_hash in task.input_hashes:
-                input = self.cache.value(input_hash)
-                assert input is not self.cache.NoValue
-                data_inputs.append(input)
-            res_value = task.evaluate_fn(data_inputs)
+            data_inputs = [self.cache.value(ih) for ih in task.input_hashes]
+            assert not any([i is self.cache.NoValue for i in data_inputs])
+            args, kwargs = task.inputs_to_args(data_inputs)
+            res_value = task.evaluate_fn(*args, **kwargs)
             # print(task.action)
             # print(task.inputs)
             # print(task_hash, res_value)
@@ -248,7 +244,7 @@ class Scheduler:
 class Result:
     input: bytearray
     result: bytearray
-    result_hash: int    # ints are of any size in Python3
+    result_hash: bytes
 
     @staticmethod
     def make_result(input, result):
@@ -265,7 +261,7 @@ class Result:
 
 
 
-DataOrDummy = Union[dtype.DataType, Dummy]
+DataOrDummy = Union[dtype.DataType, Dummy, DummyAction]
 
 class Evaluation:
     """/
@@ -306,15 +302,10 @@ class Evaluation:
         bind_name = 'all_bind_' + action.name
         workflow = _Workflow(bind_name)
 
-        bind_action = instance.ActionCall.create(action)
-        for i, input in enumerate(inputs):
-            if isinstance(input, Dummy):
-                input_action = input._action_call
-            else:
-                input_action = instance.ActionCall.create(Value(input))
-            workflow.set_action_input(bind_action, i, input_action)
+        args = [into_action(arg) for arg in inputs]
+        bind_action = instance.ActionCall.create(action, *args)
             #assert bind_action.arguments[i].status >= instance.ActionInputStatus.seems_ok
-        workflow.set_action_input(workflow.result, 0, bind_action)
+        workflow.set_action_input(workflow.result_call, 0, bind_action)
         return workflow
 
 
@@ -339,7 +330,7 @@ class Evaluation:
         self.scheduler = scheduler
         self.workspace = workspace
         self.plot_expansion = plot_expansion
-
+        #self.plot_expansion = True
         self.final_task = None
 
         self.composed_id = 0
@@ -395,8 +386,8 @@ class Evaluation:
         :return:
         """
         #TODO: Reinit scheduler and own structures to allow reuse of the Evaluation object.
-
-        self.final_task = task_mod.TaskSchedule._create_task(analysis, [], None, '__root__')
+        task_binding = tools.TaskBinding('__root__', analysis, ([],{}), [])
+        self.final_task = task_mod.TaskSchedule._create_task(None, task_binding)
         self.enqueue(self.final_task)
         # init scheduler
         self.tasks_update([self.final_task])
@@ -479,7 +470,8 @@ class Evaluation:
                 style='rounded'
             else:
                 style = 'solid'
-            node_label = "{}:#{}".format(task.action.name, hex(task.id)[2:6]) # 4 hex digits, hex returns 0x7d29d9f
+            hex_str = task.id.hex()[:4]
+            node_label = f"{task.action.name}:#{hex_str}" # 4 hex digits, hex returns 0x7d29d9f
             g.node(str(task.id), label=node_label, color=color, shape='box', style=style)
 
         dfs.DFS(neighbours=predecessors,
@@ -507,15 +499,15 @@ class Evaluation:
         return self.cache.value(task.result_hash)
 
 
-def run(action: Union[base._ActionBase, wrap.ActionWrapper],
+def run(action: Union[base._ActionBase, DummyAction],
         inputs:List[DataOrDummy] = None,
         **kwargs) -> dtype.DataType:
     """
     Run the 'action' with given arguments 'inputs'.
     Return the data result.
     """
-    if isinstance(action, wrap.ActionWrapper):
-        action = action.action
+    if isinstance(action, DummyAction):
+        action = action._action_value
     if inputs is None:
         inputs = []
     analysis = Evaluation.make_analysis(action, inputs)

@@ -1,6 +1,9 @@
 
 
 class DFS:
+    class CycleError:
+        pass
+
     def __init__(self, neighbours, previsit=None, postvisit=None, edge_visit=None):
         """
         :param neighbours: callable(vertex) return generator of the vertex neighbours
@@ -26,16 +29,15 @@ class DFS:
     def edge_visit(vtx_out, vtx_in, i_vtx_in):
         pass
 
-    def run(self, root_list) -> bool:
+    def run(self, root_list):
         """
         Generic DFS. The graph is defined through the neighbours function.
         Vertices can be any objects.
         :param root_list: Main loop vertex iterable.
-        :return: False in the case of found cycle.
+        :return: False in the case edge cycle, however always process all accessible vertices.
         """
+        have_cycle = False
         closed_vtxs = {}
-
-
         neighbours = enumerate(root_list)
         vtx_stack = [(None, neighbours)]
         while vtx_stack:
@@ -44,7 +46,7 @@ class DFS:
                 i_edge, in_vtx = next(neighbours)
                 vtx_stack.append((out_vtx, neighbours))
                 if in_vtx is None:
-                    # TODO: possibly report missing input
+                    # skipping void links
                     continue
                 self.edge_visit(out_vtx, in_vtx, i_edge)
                 status = closed_vtxs.get(id(in_vtx), None)
@@ -56,9 +58,10 @@ class DFS:
                     vtx_stack.append((in_vtx, neighbours))
                 elif not status:
                     # open vertex (cycle detected)
-                    return False
+                    have_cycle = True
+                    continue
             except StopIteration:
                 if out_vtx is not None:
                     self.postvisit(out_vtx)
                     closed_vtxs[id(out_vtx)] = True
-        return True
+        return not have_cycle

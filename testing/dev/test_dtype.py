@@ -2,10 +2,13 @@ from visip import dev
 from visip.dev import dtype, evaluation
 import visip.action as action
 from visip.code import wrap
+from visip.dev.parameters import Parameters
+from visip.dev.extract_signature import _extract_signature, unwrap_type
 import typing
-import typing_inspect as ti
+#import typing_inspect as ti
+from visip.dev.type_inspector import TypeInspector
+from visip.code.decorators import _dataclass_from_params
 import visip as wf
-
 import ruamel.yaml as yaml
 
 
@@ -23,7 +26,7 @@ def test_type_inspection():
     """
     Test own methods that use undocumented features of the testing module.
     """
-    ti = dtype.TypeInspector()
+    ti = TypeInspector()
     class X:
         pass
 
@@ -42,17 +45,23 @@ def test_type_inspection():
     assert not ti.is_base_type(wf.List)
     assert not ti.is_base_type(dtype.DataClassBase)
 
+    # is dict
+    assert not ti.is_dict(int)
+    assert not ti.is_dict(dtype.Tuple[int, str])
+    assert ti.is_dict(dtype.Dict[int, str])
+    assert ti.is_dict(dtype.Dict[str, int])
     # test_is_subtype
     #assert dtype.is_subtype(Point2d, dtype.DataType)
-    assert ti.is_subtype(Point2d, dtype.DataClassBase)
-    assert ti.is_subtype(Point3d, Point2d)
+    #assert ti.is_subtype(Point2d, dtype.DataClassBase)
+    #assert ti.is_subtype(Point3d, Point2d)
 
 
 def test_data_class_base():
-    parameters = dev.Parameters()
-    parameters.append(dev.ActionParameter('x'))
-    parameters.append(dev.ActionParameter('y'))
-    dclass = action.ClassActionBase.dataclass_from_params("my_class", parameters, module="my_module")
+    params = [
+        dev.ActionParameter('x', p_type=None),
+        dev.ActionParameter('y', p_type=None)
+    ]
+    dclass = _dataclass_from_params("my_class", params, module="my_module")
     assert dclass.yaml_tag == '!my_class'
     my_instance = dclass(x=3, y=7)
     assert my_instance.x == 3
@@ -63,15 +72,15 @@ def test_data_class_base():
     # assert serialized == "!my_module.my_class {x: 3, y: 7}"
 
 def test_config_generic():
-    ti = dtype.TypeInspector()
+    ti = TypeInspector()
     def get_attr(
             key: dtype.Constant[str],
             dataclass: typing.Any) -> typing.Any:
         return dataclass.__getattribute__(key)
 
-    params, result_type = dev.extract_func_signature(get_attr)
-    key_type = params.get_name('key').type
-    dc_type = params.get_name('dataclass').type
+    signature = _extract_signature(get_attr)
+    key_type = signature['key'].type
+    dc_type = signature['dataclass'].type
     assert ti.is_constant(key_type) is True
     assert ti.is_constant(dc_type) is False
     assert ti.constant_type(key_type) is str
@@ -114,7 +123,7 @@ def test_closest_common_ancestor():
 
 
 def test_unwrap_type():
-    type_hint = wrap.unwrap_type(typing.List[int])
+    type_hint = unwrap_type(typing.List[int])
     print("\nType Hint:")
     print(type_hint)
 
@@ -123,11 +132,12 @@ def test_unwrap_type():
         nodes:typing.List[int] = []
 
     for name, ann in Element.__annotations__.items():
-        attr_type = wrap.unwrap_type(ann)
+        attr_type = unwrap_type(ann)
         print(name, ann, attr_type)
 
 
 def test_type_inspect():
+    import typing_inspect as ti
     ty = typing
     basic_type = int
     list_type = ty.List[int]

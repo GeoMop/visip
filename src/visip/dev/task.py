@@ -4,7 +4,7 @@ from ..action import constructor
 from . import data
 from . import base
 from ..eval import cache
-
+from .tools import compose_arguments, TaskBinding
 
 
 class Status(enum.IntEnum):
@@ -20,14 +20,27 @@ class Status(enum.IntEnum):
 
 
 class _TaskBase:
+    """
+    Data class passed to the computational Resources.
+    Contains only input hashes, the function to call and binding of the inputs to the function parameters.
+    TODO:
+    - introduce ActionBody = signature + function ... the stuff necessary for execution on resources
+      use it as a data member not as a base class in the Actions
+    - convert _TaskBase to TaskWork, use attribs
+    - reduce number of properties
+    """
 
     no_value = cache.ResultCache.NoValue
 
-    def __init__(self, action: 'dev._ActionBase', input_hashes: List['data.HashValue'], task_schedule: 'TaskSchedule'):
+    def __init__(self, action: 'dev._ActionBase',
+                 input_hashes: List['data.HashValue'], binding):
         self.action = action
         # Action (like function definition) of the task (like function call).
         self.input_hashes = input_hashes
         # hashes of input tasks
+
+        self.id_args_pair = binding
+        # binding of inputs to args and kwargs to be passed to actual evaluation function
 
         self._result_hash = None
         # Hash of the result
@@ -35,8 +48,9 @@ class _TaskBase:
         self.evaluate_fn = lambda x: None
         # Returns a function accepting the input data and computing the result.
         # e.g. action.evaluate
+        # TODO: set from TaskSchedule during construction
 
-        self._result_hash = self.lazy_hash()
+        self._result_hash = self.lazy_hash_()
 
     def action_hash(self):
         return self.action.action_hash()
@@ -45,17 +59,21 @@ class _TaskBase:
     def result_hash(self):
         return self._result_hash
 
-    def lazy_hash(self):
-        task_hash = self.action_hash()
+    def lazy_hash_(self):
+        task_hash = self.action.action_hash()
         for input_hash in self.input_hashes:
             task_hash = data.hash(input_hash, previous=task_hash)
         return task_hash
 
+    def inputs_to_args(self, data_inputs):
+        return compose_arguments(self.id_args_pair, data_inputs)
+
 
 class TaskSchedule:
-    def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'], parent: 'TaskSchedule', task_name: str):
-        input_hashes = [input.result_hash for input in inputs]
-        self.task = _TaskBase(action, input_hashes, self)
+    def __init__(self, parent: '_TaskBase', task_binding: TaskBinding):
+
+        input_hashes = [input.result_hash for input in task_binding.inputs]
+        self.task = _TaskBase(task_binding.action, input_hashes, task_binding.id_args_pair)
 
         self.inputs = []
         # Input tasks for the action's arguments.
@@ -70,7 +88,7 @@ class TaskSchedule:
         # name of current task within parent
         self.id = int
         # unique task hash
-        self._set_id(parent, task_name)
+        self._set_id(parent, task_binding.child_name)
 
         self.status = Status.none
         # Status of the task, possibly need not to be stored explicitly.
@@ -82,12 +100,14 @@ class TaskSchedule:
         self.eval_time = 0
 
         # Connect to inputs.
-        for input in inputs:
+        # TODO: remove dirrect referencing of the tasks use scheduler to refference through the result hashes
+        for input in task_binding.inputs:
             assert isinstance(input, TaskSchedule)
             self.inputs.append(input)
             input.outputs.append(self)
 
-        self.set_evaluate_fn()
+        self.set_evaluate_fn()  # set during construction
+
 
     @property
     def priority(self):
@@ -116,21 +136,22 @@ class TaskSchedule:
         return self.priority < other.priority
 
     @staticmethod
-    def _create_task(action, input_tasks, parent_task, child_name):
+    def _create_task(parent_task, task_binding):
         """
         Create task from the given action and its input tasks.
         """
-        task_type = action.task_type
+        task_type = task_binding.action.task_type
         if task_type == base.TaskType.Atomic:
-            child = Atomic(action, input_tasks, parent_task, child_name)
+            child = Atomic(parent_task, task_binding)
         elif task_type == base.TaskType.Composed:
-            child = Composed(action, input_tasks, parent_task, child_name)
+            task_binding.id_args_pair = ([0], {}) # for final auxiliary action
+            child = Composed(parent_task, task_binding)
         else:
             assert False
         return child
 
     def set_evaluate_fn(self):
-        pass
+        assert False, "Not implemented"
 
     @property
     def action(self):
@@ -174,7 +195,8 @@ class ComposedHead(Atomic):
     def create(cls, i, input_task, parent, name):
         if name is None:
             name = "__head_{}".format(i)
-        return cls(constructor.Pass(), [input_task], parent, name)
+        task_binding = TaskBinding(name, constructor.Pass(), ([0], {}), [input_task])
+        return cls(parent, task_binding)
 
     @property
     def result(self):
@@ -192,13 +214,16 @@ class Composed(Atomic):
     preferences assigned by the Scheduler. It also keeps a map from
     """
 
-    def __init__(self, action: 'dev._ActionBase', inputs: List['Atomic'],
-                 parent: 'TaskSchedule', task_name: str):
-        params = action.parameters
-        assert params.size() == len(inputs)
+    def __init__(self, parent: 'TaskSchedule', task_binding: TaskBinding):
+        params = task_binding.action.parameters
+        #assert params.size() == len(inputs)
+        # TODO: modify Task.create to accept input binding in form of id_args_pair
+
         heads = [ComposedHead.create(i, input, parent, param.name)
-                                        for (i, input), param in zip(enumerate(inputs), params)]
-        super().__init__(action, heads, parent, task_name)
+                                        for (i, input), param in zip(enumerate(task_binding.inputs), params)]
+        task_binding.inputs = heads
+        super().__init__(parent, task_binding)
+
         self.time_estimate = 0
         # estimate of the start time, used as expansion priority
         self.childs: Atomic = None
@@ -232,8 +257,8 @@ class Composed(Atomic):
         return self.childs is not None
 
 
-    def create_child_task(self, name, action, inputs):
-        return TaskSchedule._create_task(action, inputs, self, name)
+    def create_child_task(self, task_binding: TaskBinding):
+        return TaskSchedule._create_task(self, task_binding)
 
     def expand(self, cache):
         """
@@ -278,7 +303,11 @@ class Composed(Atomic):
         """
         Composed tasks use evaluate to finish expansion.
         """
-        self.task.evaluate_fn = lambda x: x[0]
+        #TODO: move to calling point: assert len(self.inputs) == 1
+        def ff(*args):
+            return args[0]
+        #self.task.evaluate_fn = lambda *args: args[0]
+        self.task.evaluate_fn = ff
 
 
 
