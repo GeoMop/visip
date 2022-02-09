@@ -15,6 +15,7 @@ from typing import List, Dict, Tuple, Any, Union
 import attr
 import heapq
 import time
+import itertools
 
 from . import data, task as task_mod, base, dfs,  dtype as dtype, action_instance as instance
 from .action_workflow import _Workflow
@@ -78,14 +79,14 @@ class Resource:
         return finished
 
     def submit(self, task):
-        # is_ready = task.is_ready()
-        # assert task.status >= task_mod.Status.ready
-        # if is_ready:
-        # hash of action and inputs
-        # TODO: move into task
-        #task_hash = task.lazy_hash()
-        # Check result cache
+        """
+        Basic resource implementation with immediate evaluation of the task during submit.
+        :param task:
+        :return:
+        """
 
+        # TODO: move skipping of finished tasks to the scheduler before submit
+        # Do not test again in the Resource, possibly only for longer tasks
         res_value = self.cache.value(task.result_hash)
         if res_value is self.cache.NoValue:
             #assert task.is_ready()
@@ -126,14 +127,15 @@ class Scheduler:
         # Priority queue of the 'ready' tasks.  Used to submit the ready tasks without
         # whole DAG optimization. Priority is the
 
+        self._task_map = {}
+        # Maps task.result_hash to list of scheduler tasks.
+
         self._start_time = time.perf_counter()
         # Start time of the DAG evaluation.
 
         self._topology_sort = []
         # Topological sort of the tasks.
 
-        self._task_map = {}
-        # Maps task.result_hash to list of tasks.
 
         self._resource_map = {base.ActionKind.Regular: [],
                               base.ActionKind.Meta: [],
@@ -171,16 +173,17 @@ class Scheduler:
         # collect finished tasks, update ready queue
         finished = []
         for resource in self.resources:
+            # res_finished_iter = ( self._task_map.pop(task.result_hash) for task in resource.get_finished() )
+            # new_finished = list(itertools.chain.from_iterable(res_finished_iter))
             new_finished = []
             for task in resource.get_finished():
-                try:
-                    new_finished.extend(self._task_map.pop(task.result_hash))
-                except KeyError:
-                    pass
+                scheduled_tasks = self._task_map[task.result_hash]
+                new_finished.extend(scheduled_tasks)
+                scheduled_tasks.clear()
 
             for task in new_finished:
                 for dep_task in task.outputs:
-                    self.ready_queue_push(dep_task)
+                     self.ready_queue_push(dep_task)
             finished.extend(new_finished)
         return finished
 
@@ -194,14 +197,19 @@ class Scheduler:
         while self._ready_queue:
             task = heapq.heappop(self._ready_queue)
             if task.id in self.tasks:   # deal with duplicate entrieas in the queue
-                self.resources[task.resource_id].submit(task.task)
+                assert task.is_ready(self.cache)
 
+                # TODO: remove _task_map and use just task hashes for task referencing
+                # automaticaly eliminating duplicities in the evaluation DAG
+                # However should be accompanied by the checking the database in order to allow memoizing only
+                # short term history of tasks.
                 key = task.result_hash
                 if key in self._task_map:
+                    # We skip evaluation of all tasks with the same result hash.
                     self._task_map[key].append(task)
                 else:
                     self._task_map[key] = [task]
-
+                    self.resources[task.resource_id].submit(task.task)
                 del self.tasks[task.id]
         return finished
 
@@ -406,7 +414,7 @@ class Evaluation:
                 self.scheduler.optimize()
                 if  self.scheduler.n_assigned_tasks == 0:
                     self.force_finish = True
-        return self.final_task
+        return TaskResult(self.final_task, self.cache)
 
 
 
@@ -495,8 +503,8 @@ class Evaluation:
         except Exception as e:
             print(e)
 
-    def task_result(self, task):
-        return self.cache.value(task.result_hash)
+    # def task_result(self, task):
+    #     return self.cache.value(task.result_hash)
 
 
 def run(action: Union[base._ActionBase, DummyAction],
@@ -513,4 +521,27 @@ def run(action: Union[base._ActionBase, DummyAction],
     analysis = Evaluation.make_analysis(action, inputs)
     eval_obj = Evaluation(**kwargs)
     final_task = eval_obj.execute(analysis)
-    return eval_obj.task_result(final_task)
+    return final_task.result
+
+
+
+class TaskResult:
+    """
+    Wrapper to traverse the evaluation tree.
+    """
+    def __init__(self, task, cache):
+        self._cache = cache
+        self._task: task.TaskSchedule = task
+        try:
+            self._childs = self._task.childs
+        except:
+            self._childs = None
+        if self._childs is None:
+            self._childs = {}
+
+    @property
+    def result(self):
+        return self._cache.value(self._task.result_hash)
+
+    def child(self, key):
+        return TaskResult(self._childs[key], self._cache)

@@ -15,6 +15,14 @@ class TaskType(enum.Enum):
 
 
 class ActionKind(enum.IntEnum):
+    """
+    Indicates some restrictions on the resource used for evaluation of the action.
+    Meta actions should lead to Composed tasks, that are mostly expanded not evaluated.
+    ... needs refined description.
+    TODO: After stabilization of the metaactions should be extened to a concept of ActionRequirement
+    e.g. an action requires MPI or GPU etc. However would be better if the action can run everywhere but possibly with
+    limited efficiency, other wise we loose on portability.
+    """
     Regular = 1  # input and output have specific type
     Meta = 2     # input or output is function / action
     Generic = 3  # input or output is generic type

@@ -11,6 +11,7 @@ class Value(_ActionBase):
         name = "Value"
         params = Parameters([], typing.Any)
         super().__init__(name, params)
+        self.action_kind = base.ActionKind.Meta
         self.value = value
 
     def action_hash(self):
@@ -58,7 +59,6 @@ class _ListBase(_ActionBase):
         self.action_kind = base.ActionKind.Generic
         p = ActionParameter(name='args', p_type=typing.Any,
                              default=ActionParameter.no_default, kind=ActionParameter.VAR_POSITIONAL)
-        #self.action_kind = base.ActionKind.Generic
         params = Parameters((p,), return_type=typing.Any)
         super().__init__(action_name, params)
         #self._output_type = typing.Any

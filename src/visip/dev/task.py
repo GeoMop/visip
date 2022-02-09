@@ -50,7 +50,7 @@ class _TaskBase:
         # e.g. action.evaluate
         # TODO: set from TaskSchedule during construction
 
-        self._result_hash = self.lazy_hash_()
+        self._result_hash = self._lazy_hash()
 
     def action_hash(self):
         return self.action.action_hash()
@@ -59,7 +59,7 @@ class _TaskBase:
     def result_hash(self):
         return self._result_hash
 
-    def lazy_hash_(self):
+    def _lazy_hash(self):
         task_hash = self.action.action_hash()
         for input_hash in self.input_hashes:
             task_hash = data.hash(input_hash, previous=task_hash)
@@ -226,7 +226,7 @@ class Composed(Atomic):
 
         self.time_estimate = 0
         # estimate of the start time, used as expansion priority
-        self.childs: Atomic = None
+        self.childs: Dict[Union[int, str], Atomic] = None
         # map child_id to the child task, filled during expand.
 
     def is_ready(self, cache):
