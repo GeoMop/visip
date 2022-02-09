@@ -26,6 +26,7 @@ class _Slot(base._ActionBase):
     def __init__(self, param_type=None):
         super().__init__("_Slot")
         self._parameters = Parameters([], return_type=param_type)
+        self.action_kind = base.ActionKind.Generic
 
 class _SlotCall(ActionCall):
     def __init__(self, slot_name, param_type):
@@ -62,7 +63,7 @@ class _Result(_ListBase):
     """
     def __init__(self, out_type):
         super().__init__(action_name='result')
-
+        self.action_kind = base.ActionKind.Generic
         params = []
         params.append(ActionParameter(name="result", p_type=out_type, default=ActionParameter.no_default))
         # The return value, there should be always some return value, as we want to use "functional style".
@@ -531,12 +532,13 @@ class _Workflow(meta.MetaAction):
 
 
 
-    def expand(self, task, task_creator):
+    def expand(self, task, task_creator, cache):
         """
         Expansion of the composed task with given data inputs (possibly None if not evaluated yet).
         :param inputs: List[Task]
         :param task_creator: Dependency injection method for creating tasks from action instances:
             task_creator(action_call, input_tasks)
+        :param cache: Result cache instance
         :return:
             None if can not be expanded yet.
             List of created actions.

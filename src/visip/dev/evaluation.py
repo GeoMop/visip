@@ -15,6 +15,7 @@ from typing import List, Dict, Tuple, Any, Union
 import attr
 import heapq
 import time
+import itertools
 
 from . import data, task as task_mod, base, dfs,  dtype as dtype, action_instance as instance
 from .action_workflow import _Workflow
@@ -34,7 +35,7 @@ class Resource:
     We shall start with fixed number of resources, dynamic creation of executing PBS jobs can later be done.
 
     """
-    def __init__(self):
+    def __init__(self, cache:ResultCache):
         """
         Initialize time scaling and other features of the resource.
         """
@@ -51,7 +52,10 @@ class Resource:
         self._finished = []
 
 
-        self.cache = ResultCache()
+        self.cache = cache
+
+        self.action_kind_list = [base.ActionKind.Regular, base.ActionKind.Meta, base.ActionKind.Generic]
+        # list of action kind that this resource is capable run
 
     # def assign_task(self, task, i_thread=None):
     #     """
@@ -75,28 +79,27 @@ class Resource:
         return finished
 
     def submit(self, task):
-        is_ready = task.is_ready()
-        assert task.status >= task_mod.Status.ready
-        if is_ready:
-            # hash of action and inputs
-            # TODO: move into task
-            task_hash = task.lazy_hash()
-            # Check result cache
+        """
+        Basic resource implementation with immediate evaluation of the task during submit.
+        :param task:
+        :return:
+        """
 
-            res_value = self.cache.value(task_hash)
-            if res_value is self.cache.NoValue:
-                assert task.is_ready()
-                result = task.evaluate_fn()
-                data_inputs = [input.result for input in task.inputs]
-                args, kwargs = task.inputs_to_args(data_inputs)
-                res_value = result(*args, **kwargs)
-                # print(task.action)
-                # print(task.inputs)
-                # print(task_hash, res_value)
-                self.cache.insert(task_hash, res_value)
+        # TODO: move skipping of finished tasks to the scheduler before submit
+        # Do not test again in the Resource, possibly only for longer tasks
+        res_value = self.cache.value(task.result_hash)
+        if res_value is self.cache.NoValue:
+            #assert task.is_ready()
+            data_inputs = [self.cache.value(ih) for ih in task.input_hashes]
+            assert not any([i is self.cache.NoValue for i in data_inputs])
+            args, kwargs = task.inputs_to_args(data_inputs)
+            res_value = task.evaluate_fn(*args, **kwargs)
+            # print(task.action)
+            # print(task.inputs)
+            # print(task_hash, res_value)
+            self.cache.insert(task.result_hash, res_value)
 
-            task.finish(result=res_value, task_hash=task_hash)
-            self._finished.append(task)
+        self._finished.append(task)
 
 
 
@@ -104,12 +107,14 @@ class Resource:
 
 
 class Scheduler:
-    def __init__(self, resources:Resource, n_tasks_limit:int = 1024):
+    def __init__(self, resources:Resource, cache:ResultCache, n_tasks_limit:int = 1024):
         """
         :param tasks_dag: Tasks to be evaluated.
         """
         self.resources = resources
         # Dict of available resources
+        self.cache = cache
+        # Result cache instance
         self.n_tasks_limit = n_tasks_limit
         # When number of assigned (and unprocessed) tasks is over the limit we do not accept
         # further DAG expansion.
@@ -122,11 +127,24 @@ class Scheduler:
         # Priority queue of the 'ready' tasks.  Used to submit the ready tasks without
         # whole DAG optimization. Priority is the
 
+        self._task_map = {}
+        # Maps task.result_hash to list of scheduler tasks.
+
         self._start_time = time.perf_counter()
         # Start time of the DAG evaluation.
 
         self._topology_sort = []
         # Topological sort of the tasks.
+
+
+        self._resource_map = {base.ActionKind.Regular: [],
+                              base.ActionKind.Meta: [],
+                              base.ActionKind.Generic: []}
+        # map from action kind to list of capable resources
+
+        for i, res in enumerate(self.resources):
+            for kind in res.action_kind_list:
+                self._resource_map[kind].append(i)
 
     def can_expand(self):
         return self.n_assigned_tasks < self.n_tasks_limit
@@ -146,7 +164,7 @@ class Scheduler:
         self.tasks.update({ t.id: t for t in tasks})
 
     def ready_queue_push(self, task):
-        if task.is_ready():
+        if task.is_ready(self.cache):
             heapq.heappush(self._ready_queue, task)
 
 
@@ -155,10 +173,17 @@ class Scheduler:
         # collect finished tasks, update ready queue
         finished = []
         for resource in self.resources:
-            new_finished = resource.get_finished()
+            # res_finished_iter = ( self._task_map.pop(task.result_hash) for task in resource.get_finished() )
+            # new_finished = list(itertools.chain.from_iterable(res_finished_iter))
+            new_finished = []
+            for task in resource.get_finished():
+                scheduled_tasks = self._task_map[task.result_hash]
+                new_finished.extend(scheduled_tasks)
+                scheduled_tasks.clear()
+
             for task in new_finished:
                 for dep_task in task.outputs:
-                    self.ready_queue_push(dep_task)
+                     self.ready_queue_push(dep_task)
             finished.extend(new_finished)
         return finished
 
@@ -172,7 +197,19 @@ class Scheduler:
         while self._ready_queue:
             task = heapq.heappop(self._ready_queue)
             if task.id in self.tasks:   # deal with duplicate entrieas in the queue
-                self.resources[task.resource_id].submit(task)
+                assert task.is_ready(self.cache)
+
+                # TODO: remove _task_map and use just task hashes for task referencing
+                # automaticaly eliminating duplicities in the evaluation DAG
+                # However should be accompanied by the checking the database in order to allow memoizing only
+                # short term history of tasks.
+                key = task.result_hash
+                if key in self._task_map:
+                    # We skip evaluation of all tasks with the same result hash.
+                    self._task_map[key].append(task)
+                else:
+                    self._task_map[key] = [task]
+                    self.resources[task.resource_id].submit(task.task)
                 del self.tasks[task.id]
         return finished
 
@@ -185,7 +222,7 @@ class Scheduler:
         """
         # perform topological sort
         def predecessors(task):
-            if task.is_finished():
+            if self.cache.is_finished(task.result_hash):
                 return []
             else:
                 max_end_time = 0
@@ -195,7 +232,11 @@ class Scheduler:
             return task.inputs
 
         def post_visit(task):
-            task.resource_id = 0
+            kind = task.task.action.action_kind
+            kind_list = self._resource_map[kind]
+            assert kind_list, 'There are no resource capable of run "{}".'.format(kind)
+            task.resource_id = kind_list[0]
+
             self.ready_queue_push(task)
             self._topology_sort.append(task)
 
@@ -290,12 +331,14 @@ class Evaluation:
 
         :param analysis: an action without inputs
         """
+        self.cache = ResultCache()
+
         if scheduler is None:
-            scheduler = Scheduler([ Resource() ])
+            scheduler = Scheduler([ Resource(self.cache) ], self.cache)
         self.scheduler = scheduler
         self.workspace = workspace
         self.plot_expansion = plot_expansion
-
+        #self.plot_expansion = True
         self.final_task = None
 
         self.composed_id = 0
@@ -324,7 +367,7 @@ class Evaluation:
         :param task:
         :return:
         """
-        if task.is_finished():
+        if self.cache.is_finished(task.result_hash):
             task.eval_time = task.end_time - task.start_time
         else:
             task.time_estimate = 1
@@ -341,7 +384,7 @@ class Evaluation:
         """
         return []
 
-    def execute(self, analysis) -> task_mod._TaskBase:
+    def execute(self, analysis) -> task_mod.TaskSchedule:
         """
         Execute the workflow.
         assigned_tasks_limit -  maximum number of tasks processed by the Scheduler
@@ -351,10 +394,8 @@ class Evaluation:
         :return:
         """
         #TODO: Reinit scheduler and own structures to allow reuse of the Evaluation object.
-
-
         task_binding = tools.TaskBinding('__root__', analysis, ([],{}), [])
-        self.final_task = task_mod._TaskBase._create_task(None, task_binding)
+        self.final_task = task_mod.TaskSchedule._create_task(None, task_binding)
         self.enqueue(self.final_task)
         # init scheduler
         self.tasks_update([self.final_task])
@@ -373,7 +414,7 @@ class Evaluation:
                 self.scheduler.optimize()
                 if  self.scheduler.n_assigned_tasks == 0:
                     self.force_finish = True
-        return self.final_task
+        return TaskResult(self.final_task, self.cache)
 
 
 
@@ -396,7 +437,7 @@ class Evaluation:
 
         while self.queue and not self.force_finish and self.scheduler.can_expand():
             composed_id, time, composed_task = heapq.heappop(self.queue)
-            task_dict = composed_task.expand()
+            task_dict = composed_task.expand(self.cache)
 
             if task_dict is None:
                 # Can not expand yet, return back into queue
@@ -429,7 +470,7 @@ class Evaluation:
             return task.inputs
 
         def previsit(task: 'Task'):
-            if task.is_finished():
+            if self.cache.is_finished(task.result_hash):
                 color='green'
             else:
                 color='gray'
@@ -437,7 +478,8 @@ class Evaluation:
                 style='rounded'
             else:
                 style = 'solid'
-            node_label = "{}:#{}".format(task.action.name, hex(task.id)[2:6]) # 4 hex digits, hex returns 0x7d29d9f
+            hex_str = task.id.hex()[:4]
+            node_label = f"{task.action.name}:#{hex_str}" # 4 hex digits, hex returns 0x7d29d9f
             g.node(str(task.id), label=node_label, color=color, shape='box', style=style)
 
         dfs.DFS(neighbours=predecessors,
@@ -461,6 +503,9 @@ class Evaluation:
         except Exception as e:
             print(e)
 
+    # def task_result(self, task):
+    #     return self.cache.value(task.result_hash)
+
 
 def run(action: Union[base._ActionBase, DummyAction],
         inputs:List[DataOrDummy] = None,
@@ -475,4 +520,28 @@ def run(action: Union[base._ActionBase, DummyAction],
         inputs = []
     analysis = Evaluation.make_analysis(action, inputs)
     eval_obj = Evaluation(**kwargs)
-    return eval_obj.execute(analysis).result
+    final_task = eval_obj.execute(analysis)
+    return final_task.result
+
+
+
+class TaskResult:
+    """
+    Wrapper to traverse the evaluation tree.
+    """
+    def __init__(self, task, cache):
+        self._cache = cache
+        self._task: task.TaskSchedule = task
+        try:
+            self._childs = self._task.childs
+        except:
+            self._childs = None
+        if self._childs is None:
+            self._childs = {}
+
+    @property
+    def result(self):
+        return self._cache.value(self._task.result_hash)
+
+    def child(self, key):
+        return TaskResult(self._childs[key], self._cache)

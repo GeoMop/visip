@@ -37,12 +37,13 @@ class MetaAction(base._ActionBase):
     """
     def __init__(self, name):
         super().__init__(name)
+        self.action_kind = base.ActionKind.Meta
 
         self.task_type = base.TaskType.Composed
         # Task type determines how the actions are converted to the tasks.
         # Composed tasks are expanded.
 
-    def expand(self, task: 'Task', task_creator):
+    def expand(self, task: 'Task', task_creator, cache):
         """
         Expansion of the composed task. In order to no break input references of other tasks
         the current task is collapsed to an effective Pass action connected to the expansion __result__ task.
@@ -53,6 +54,7 @@ class MetaAction(base._ActionBase):
         :param task: The complex task to expand.
         :param task_creator: Dependency injection method for creating tasks from the actions:
             task_creator(instance_name:str, action:base._ActionBase, input_tasks:List[Task])
+        :param cache: Result cache instance
         :return:
             None if can not be expanded yet.
 
@@ -61,13 +63,13 @@ class MetaAction(base._ActionBase):
         """
         assert False, "Missing definition."
 
-    def dynamic_action(self, input_task):
+    def dynamic_action(self, input_result):
         """
         Extract a dynamic action from the result of a meta action.
-        :param input_task:
+        :param input_result:
         :return:
         """
-        action = input_task.result
+        action = input_result
         if isinstance(action, DummyAction):
             action = action._action_value
         if not isinstance(action, base._ActionBase):
@@ -190,11 +192,11 @@ class DynamicCall(MetaAction):
         #    ActionParameter(name=None, type=typing.Any, default=ActionParameter.no_default))
 
 
-    def expand(self, task, task_creator):
-        if task.inputs[0].is_finished():
-            args, kwargs = tools.compose_arguments(task.id_args_pair, task.inputs)
-            action = self.dynamic_action(args[0])
-            task_binding = tools.TaskBinding('__result__', action, task.id_args_pair, task.inputs[1:])
+    def expand(self, task, task_creator, cache):
+        if cache.is_finished(task.inputs[0].result_hash):
+            #args, kwargs = tools.compose_arguments(task.id_args_pair, task.inputs)
+            action = self.dynamic_action(cache.value(task.inputs[0].result_hash))
+            task_binding = tools.TaskBinding('__result__', action, task.task.id_args_pair, task.inputs[1:])
             return [task_creator(task_binding)]
         else:
             return None
@@ -210,8 +212,7 @@ class _If(MetaAction):
         Constructed by the Dummy.__call__.
         TODO: support kwargs in visip, necessary for perferct forwarding
         """
-        #super().__init__("DynamicCall")
-        super().__init__("If") # Dynamic Cal
+        super().__init__("If")
         params = []
         ReturnType = dtype.TypeVar('ReturnType')
         params.append(
@@ -222,13 +223,13 @@ class _If(MetaAction):
             ActionParameter(name="false_body", p_type=dtype.Callable[..., ReturnType]))
         self._parameters = Parameters(params, ReturnType)
 
-    def expand(self, task, task_creator):
-        if all([ i_task.is_finished() for i_task in task.inputs]):
-            condition = task.inputs[0].result
+    def expand(self, task, task_creator, cache):
+        if all([cache.is_finished(i_task.result_hash) for i_task in task.inputs]):
+            condition = cache.value(task.inputs[0].result_hash)
             if condition:
-                action = self.dynamic_action(task.inputs[1])
+                action = self.dynamic_action(cache.value(task.inputs[1].result_hash))
             else:
-                action = self.dynamic_action(task.inputs[2])
+                action = self.dynamic_action(cache.value(task.inputs[2].result_hash))
             task_binding = tools.TaskBinding('__result__', action, ([], {}), [])
             return [task_creator(task_binding)]
 

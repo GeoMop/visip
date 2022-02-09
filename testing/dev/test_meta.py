@@ -1,4 +1,4 @@
-import os
+import pytest
 import visip as wf
 from visip.dev import evaluation
 # script_dir = os.path.dirname(os.path.realpath(__file__))
@@ -23,6 +23,8 @@ def tst_adder() -> float:
     adder_val = adder(1)
     return adder_val(2)
 
+
+#@pytest.mark.skip
 def test_action_returning_action():
     result = evaluation.run(tst_adder)
     assert result == 3
@@ -62,6 +64,7 @@ def false_body():
 @wf.workflow
 def wf_condition(cond: int) -> int:
     return wf.If(cond, true_body, false_body)
+
 
 def test_if_action():
     result = evaluation.run(wf_condition, [True])
