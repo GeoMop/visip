@@ -3,6 +3,7 @@ from ..dev.base import ActionBase
 from ..dev import dtype as dtype
 from ..dev.parameters import Parameters, ActionParameter
 from ..dev import data
+from ..dev import base
 
 
 class Value(ActionBase):
@@ -10,10 +11,15 @@ class Value(ActionBase):
         name = "Value"
         params = Parameters([], typing.Any)
         super().__init__(name, params)
+        self.action_kind = base.ActionKind.Meta
         self.value = value
 
     def action_hash(self):
-        return data.hash(self.value)
+        salt_hash = data.hash("Value")
+        # In the case of "action" value with action having no parameters, we have to distinguish
+        # hash of the result of action from the hash of the action itself (result of the Value action).
+        # TODO: any way we should store action values to a separate storage private to the scheduler
+        return data.hash(self.value, previous=salt_hash)
 
     def _evaluate(self):
         return self.value
@@ -27,8 +33,10 @@ class Pass(ActionBase):
     Propagate given single argument. Do nothing action. Meant for internal usage in particular.
     """
     def __init__(self):
+    	# TODO: TypeVar
         p = ActionParameter('input', typing.Any)
         signature = Parameters((p,), typing.Any)
+        self.action_kind = base.ActionKind.Generic
         super().__init__('Pass', signature)
 
     def _evaluate(self, input: dtype.DataType) -> dtype.DataType:
@@ -47,6 +55,8 @@ class _ListBase(ActionBase):
     # in this case. After reinit one should use only self.arguments.
 
     def __init__(self, action_name):
+        # TODO: TypeVar
+        self.action_kind = base.ActionKind.Generic
         p = ActionParameter(name='args', p_type=typing.Any,
                              default=ActionParameter.no_default, kind=ActionParameter.VAR_POSITIONAL)
         params = Parameters((p,), return_type=typing.Any)
@@ -82,8 +92,10 @@ class A_tuple(_ListBase):
 
 class A_dict(ActionBase):
     def __init__(self):
+    	# TODO: TypeVar
         p =  ActionParameter(name='args', p_type=typing.Tuple[typing.Any, typing.Any],
                             default=ActionParameter.no_default, kind=ActionParameter.VAR_POSITIONAL)
+        self.action_kind = base.ActionKind.Generic
         signature = Parameters((p, ), return_type=typing.Any)
         super().__init__('dict', signature)
 

@@ -1,3 +1,4 @@
+import pytest
 import visip as wf
 from visip.dev import evaluation
 from visip.dev import exceptions
@@ -27,6 +28,8 @@ def tst_adder() -> float:
     return adder_val(2)     # 'DynamicCall' involved here.
 
 
+
+#@pytest.mark.skip
 def test_action_returning_action():
     result = evaluation.run(tst_adder)
     assert result == 3
@@ -47,6 +50,7 @@ def false_body():
 @wf.workflow
 def wf_condition(cond: int) -> int:
     return wf.If(cond, true_body, false_body)
+
 
 def test_if_action():
     result = evaluation.run(wf_condition, [True])

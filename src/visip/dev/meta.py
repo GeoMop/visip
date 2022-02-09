@@ -65,12 +65,13 @@ class MetaAction(base.ActionBase):
     """
     def __init__(self, name):
         super().__init__(name)
+        self.action_kind = base.ActionKind.Meta
 
         self.task_type = base.TaskType.Composed
         # Task type determines how the actions are converted to the tasks.
         # Composed tasks are expanded.
 
-    def expand(self, task: 'Task', task_creator):
+    def expand(self, task: 'Task', task_creator, cache):
         """
         Expansion of the composed task. In order to no break input references of other tasks
         the current task is collapsed to an effective Pass action connected to the expansion __result__ task.
@@ -81,6 +82,7 @@ class MetaAction(base.ActionBase):
         :param task: The complex task to expand.
         :param task_creator: Dependency injection method for creating tasks from the actions:
             task_creator(instance_name:str, action:base._ActionBase, input_tasks:List[Task])
+        :param cache: Result cache instance
         :return:
             None if can not be expanded yet.
 
@@ -89,13 +91,13 @@ class MetaAction(base.ActionBase):
         """
         assert False, "Missing definition."
 
-    def dynamic_action(self, input_task):
+    def dynamic_action(self, input_result):
         """
         Extract a dynamic action from the result of a meta action.
-        :param input_task:
+        :param input_result:
         :return:
         """
-        action = input_task.result
+        action = input_result
         if isinstance(action, (DummyAction, DummyWorkflow)):
             action = action._action_value
         elif isinstance(action, Dummy):
@@ -156,7 +158,7 @@ class _Closure(MetaAction):
         # TODO: get callable type and check given arguments against signature
         # TODO: how to consistently reports errors at this stage
 
-    def expand(self, task: '_ClosureTask', task_creator):
+    def expand(self, task: '_ClosureTask', task_creator, cache):
         # Always expand create the task with merged inputs.
         # TODO: merge new inputs to partial_args
         # TODO: How to match inputs to unbinded args.
@@ -211,7 +213,7 @@ class _Lazy(MetaAction):
         self._parameters = Parameters(params, ReturnType)
 
 
-    def expand(self, task: 'task.Composed', task_creator):
+    def expand(self, task: 'task.Composed', task_creator, cache):
         """
         Expands to the ClosureTask, holding the action as instance of _Closure.
         The _ClosureTaks has reduced number or possibly no inputs (i.e. closure)
@@ -223,7 +225,7 @@ class _Lazy(MetaAction):
 
 
 
-        if task.inputs[0].is_finished():
+        if cache.is_finished(task.inputs[0].result_hash):
             # TODO:
             # - wrap actions into Closure action in order to prevent storing actions into DB
             # - check task is the ClosureTask
@@ -237,11 +239,11 @@ class _Lazy(MetaAction):
             # args = [ActionCall.create(constructor.Value(TaskValue(value))) for value in ]
             # ac.set_inputs(args, {})
             args, kwargs = tools.compose_arguments(task.id_args_pair, task.inputs)
-            action = self.dynamic_action(args[0])
+            action = self.dynamic_action(cache.value(args[0].result_hash))
 
 
             closure = _Closure(action, args[1:], kwargs)
-            task.finish(closure)
+            cache.insert(task.result_hash, closure)
             # empty task to proceed
             task_binding = tools.TaskBinding('__result__', Pass(), ([0], {}), [task])
             pass_task = task_creator(task_binding)
@@ -296,11 +298,11 @@ class DynamicCall(MetaAction):
         #    ActionParameter(name=None, type=typing.Any, default=ActionParameter.no_default))
 
 
-    def expand(self, task, task_creator):
-        if task.inputs[0].is_finished():
-            args, kwargs = tools.compose_arguments(task.id_args_pair, task.inputs)
-            action = self.dynamic_action(args[0])
-            id_args, id_kwargs = task.id_args_pair
+    def expand(self, task, task_creator, cache):
+        if cache.is_finished(task.inputs[0].result_hash):
+            #args, kwargs = tools.compose_arguments(task.id_args_pair, task.inputs)
+            action = self.dynamic_action(cache.value(task.inputs[0].result_hash))
+            id_args, id_kwargs = task.task.id_args_pair
             id_args = [i - 1 for i in id_args[1:]]
             id_kwargs = {k: (i-1) for k, i in id_kwargs.items()}
             task_binding = tools.TaskBinding('__result__', action, (id_args, id_kwargs), task.inputs[1:])
@@ -317,7 +319,7 @@ class _If(MetaAction):
     then the true and false inputs?
     """
     def __init__(self):
-        super().__init__("If") # Dynamic Cal
+        super().__init__("If")
         params = []
         ReturnType = dtype.TypeVar('ReturnType')
         params.append(
@@ -328,13 +330,13 @@ class _If(MetaAction):
             ActionParameter(name="false_body", p_type=dtype.Callable[..., ReturnType]))
         self._parameters = Parameters(params, ReturnType)
 
-    def expand(self, task, task_creator):
-        if all([ i_task.is_finished() for i_task in task.inputs]):
-            condition = task.inputs[0].result
+    def expand(self, task, task_creator, cache):
+        if all([cache.is_finished(i_task.result_hash) for i_task in task.inputs]):
+            condition = cache.value(task.inputs[0].result_hash)
             if condition:
-                action = self.dynamic_action(task.inputs[1])
+                action = self.dynamic_action(cache.value(task.inputs[1].result_hash))
             else:
-                action = self.dynamic_action(task.inputs[2])
+                action = self.dynamic_action(cache.value(task.inputs[2].result_hash))
             task_binding = tools.TaskBinding('__result__', action, ([], {}), [])
             return {'__result__': task_creator(task_binding)}
 

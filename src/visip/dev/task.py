@@ -1,6 +1,5 @@
 import enum
 from typing import *
-from ..action import constructor
 from . import data
 from . import base
 from ..eval import cache
@@ -20,19 +19,65 @@ class Status(enum.IntEnum):
 
 
 class _TaskBase:
+    """
+    Data class passed to the computational Resources.
+    Contains only input hashes, the function to call and binding of the inputs to the function parameters.
+    TODO:
+    - introduce ActionBody = signature + function ... the stuff necessary for execution on resources
+      use it as a data member not as a base class in the Actions
+    - convert _TaskBase to TaskWork, use attribs
+    - reduce number of properties
+    """
 
     no_value = cache.ResultCache.NoValue
 
-    def __init__(self, parent: '_TaskBase', task_binding: TaskBinding):
-        self._task_binding = task_binding
-        #self.action = task_binding.action
+    def __init__(self, action: base.ActionBase,
+                 input_hashes: List['data.HashValue'], binding):
+        self.action = action
         # Action (like function definition) of the task (like function call).
-        #self.id_args_pair = task_binding.id_args_pair
+        self.input_hashes = input_hashes
+        # hashes of input tasks
+
+        self.id_args_pair = binding
         # binding of inputs to args and kwargs to be passed to actual evaluation function
-        #self.inputs = []
+
+        self._result_hash = None
+        # Hash of the result
+
+        self.evaluate_fn = lambda x: None
+        # Returns a function accepting the input data and computing the result.
+        # e.g. action.evaluate
+        # TODO: set from TaskSchedule during construction
+
+        self._result_hash = self._lazy_hash()
+
+    def action_hash(self):
+        return self.action.action_hash()
+
+    @property
+    def result_hash(self):
+        return self._result_hash
+
+    def _lazy_hash(self):
+        task_hash = self.action.action_hash()
+        for input_hash in self.input_hashes:
+            task_hash = data.hash(input_hash, previous=task_hash)
+        return task_hash
+
+    def inputs_to_args(self, data_inputs):
+        return compose_arguments(self.id_args_pair, data_inputs)
+
+
+class TaskSchedule:
+    def __init__(self, parent: 'Composed', task_binding: TaskBinding):
+
+        input_hashes = [input.result_hash for input in task_binding.inputs]
+        self.task = _TaskBase(task_binding.action, input_hashes, task_binding.id_args_pair)
+
         # Input tasks for the action's arguments.
-        self.outputs: List['Atomic'] = []
+        self.outputs: List['TaskSchedule'] = []
         # List of tasks dependent on the result. (Try to not use and eliminate.)
+
         self.parent: Optional['Composed'] = parent
         # parent task
         self.child_id = None
@@ -43,10 +88,7 @@ class _TaskBase:
 
         self.status = Status.none
         # Status of the task, possibly need not to be stored explicitly.
-        self._result: Any = self.no_value
-        # The task result.
-        self._result_hash = None
-        # Hash of the result
+
         self.resource_id = None
 
         self.start_time = -1
@@ -55,70 +97,49 @@ class _TaskBase:
 
         self._inputs = task_binding.inputs # reset in Workflow to its result, but we yet keep original in the task_binding
         # Connect to inputs.
+        # TODO: remove dirrect referencing of the tasks use scheduler to refference through the result hashes
         for input in task_binding.inputs:
-            assert isinstance(input, _TaskBase)
+            assert isinstance(input, TaskSchedule)
             input.outputs.append(self)
 
+        self.set_evaluate_fn()  # set during construction
+    
     @property
     def action(self):
-        return self._task_binding.action
+        return self.task.action
 
     @property
     def id_args_pair(self):
-        return self._task_binding.id_args_pair
+        return self.task.id_args_pair
 
     @property
     def inputs(self):
         return self._inputs
 
-    def inputs_to_args(self, data_inputs):
-        return compose_arguments(self.id_args_pair, data_inputs)
-
-    def action_hash(self):
-        return self.action.action_hash()
+    @property
+    def result_hash(self):
+        return self.task.result_hash
 
     @property
     def priority(self):
         return 1
 
-    @property
-    def result(self):
-        return self._result
-
-    @property
-    def result_hash(self):
-        return self._result_hash
-
-    def evaluate_fn(self):
-        # Returns a function accepting the input data and computing the result.
-        # e.g. action.evaluate
-        assert False, "Not implemented."
-
-    def lazy_hash(self):
-        task_hash = self.action_hash()
-        for input in self.inputs:
-            task_hash = data.hash(input.result_hash, previous=task_hash)
-        return task_hash
-
-    def finish(self, result, task_hash=None):
-        """
-        Store the result of the action.
-        :param result: The result value.
-        :param task_hash: The hash of lazy evaluation of the value (hash of the action chain)
-        :return:
-        """
-        if task_hash is None:
-            task_hash = self.lazy_hash()
-        assert result is not self.no_value
-        self.status = Status.finished
-        self._result = result
-        self._result_hash = task_hash
-
-    def is_finished(self):
-        return self.result is not self.no_value
-
-    def is_ready(self):
-        assert False, "Not implemented."
+    # def finish(self, result, task_hash=None):
+    #     """
+    #     Store the result of the action.
+    #     :param result: The result value.
+    #     :param task_hash: The hash of lazy evaluation of the value (hash of the action chain)
+    #     :return:
+    #     """
+    #     if task_hash is None:
+    #         task_hash = self.lazy_hash()
+    #     assert result is not self.no_value
+    #     self.status = Status.finished
+    #     self._result = result
+    #     self._result_hash = task_hash
+    #
+    # def is_finished(self):
+    #     return self.result is not self.no_value
 
     def get_path(self):
         path = []
@@ -156,29 +177,32 @@ class _TaskBase:
             assert False
         return child
 
+    def set_evaluate_fn(self):
+        assert False, "Not implemented"
 
-class Atomic(_TaskBase):
 
-    def is_ready(self):
+
+class Atomic(TaskSchedule):
+
+
+    def is_ready(self, cache):
         """
         Update ready status, return
         :return:
         """
         if self.status < Status.ready:
-            is_ready = all([task.is_finished() for task in self.inputs])
+            is_ready = all([cache.is_finished(input_hash) for input_hash in self.task.input_hashes])
             if is_ready:
                 self.status = Status.ready
         return self.status >= Status.ready
 
-    def evaluate_fn(self):
+    def set_evaluate_fn(self):
         """
         For given data evaluate the action and store the result.
         TODO: should handle just status and possibly store the result
         since Resource may execute the task remotely.
         """
-        assert self.is_ready()
-        return self.action.evaluate
-
+        self.task.evaluate_fn = self.action.evaluate
 
 
 
@@ -200,6 +224,10 @@ class Atomic(_TaskBase):
 #     def result(self):
 #         return self.inputs[0].result
 
+    # @property
+    # def result_hash(self):
+    #     return self.inputs[0].result_hash
+
 
 class Composed(Atomic):
     """
@@ -213,7 +241,7 @@ class Composed(Atomic):
     through the expanded task. So the expansion doesn't break existing task dependencies.
     """
 
-    def __init__(self, parent: '_TaskBase', task_binding: TaskBinding):
+    def __init__(self, parent: 'Composed', task_binding: TaskBinding):
         params = task_binding.action.parameters
         #assert params.size() == len(inputs)
         # TODO: modify Task.create to accept input binding in form of id_args_pair
@@ -223,17 +251,18 @@ class Composed(Atomic):
         #                                for (i, input), param in zip(enumerate(task_binding.inputs), params)]
         #task_binding.inputs = inputs
         super().__init__(parent, task_binding)
+
         self.time_estimate = 0
         # estimate of the start time, used as expansion priority
-        self.childs: Atomic = None
+        self.childs: Dict[Union[int, str], Atomic] = {}
         # map child_id to the child task, filled during expand.
 
-    def is_ready(self):
+    def is_ready(self, cache):
         """
         Block submission of unexpanded tasks.
         :return:
         """
-        return self.is_expanded() and Atomic.is_ready(self)
+        return self.is_expanded() and Atomic.is_ready(self, cache)
 
 
     def child(self, item: Union[int, str]) -> Optional[Atomic]:
@@ -259,9 +288,9 @@ class Composed(Atomic):
     def create_child_task(self, task_binding: TaskBinding):
         args, kwargs = task_binding.id_args_pair
         assert len(args) + len(kwargs) == len(task_binding.inputs)
-        return _TaskBase._create_task(self, task_binding)
+        return TaskSchedule._create_task(self, task_binding)
 
-    def expand(self):
+    def expand(self, cache):
         """
         Composed task expansion.
 
@@ -282,7 +311,7 @@ class Composed(Atomic):
         # for head in heads:
         #     head.outputs = []
         # Generate and connect body tasks.
-        childs = self.action.expand(self, self.create_child_task)
+        childs = self.action.expand(self, self.create_child_task, cache)
         if childs is not None:
             assert len(childs) > 0
             self.childs = childs #{task.child_id: task for task in childs}
@@ -290,8 +319,9 @@ class Composed(Atomic):
             result_task = self.childs['__result__']
             assert len(result_task.outputs) == 0
             result_task.outputs.append(self)
-            self._task_binding.id_args_pair = ([0],{})
-            self._inputs = [result_task]
+            self.task.id_args_pair = ([0],{})
+            #B: self._inputs = [result_task]
+            self.task.input_hashes = [result_task.result_hash]
             # After expansion the composed task is just a dummy task dependent on the previoous result.
             # This works with Workflow, see how it will work with other composed actions:
             # if, reduce (for, while)
@@ -302,14 +332,15 @@ class Composed(Atomic):
         #         head.outputs = [self]
         return childs
 
-    def evaluate_fn(self):
+    def set_evaluate_fn(self):
         """
         Composed tasks use evaluate to finish expansion.
         """
-        assert self.is_ready()
-        assert len(self.inputs) == 1
-
-        return lambda *args: args[0]
+        #TODO: move to calling point: assert len(self.inputs) == 1
+        def ff(*args):
+            return args[0]
+        #self.task.evaluate_fn = lambda *args: args[0]
+        self.task.evaluate_fn = ff
 
 
 

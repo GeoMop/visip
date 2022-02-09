@@ -13,6 +13,7 @@ class GetAttribute(base.ActionBase):
     def __init__(self):
         signature = _extract_signature(self._evaluate)
         super().__init__(signature=signature)
+        self.action_kind = base.ActionKind.Generic
 
     def call_format(self, representer, action_name, arg_names, arg_values):
         assert len(arg_names) == 2
@@ -35,6 +36,7 @@ class GetItem(base.ActionBase):
     def __init__(self):
         signature = _extract_signature(self._evaluate)
         super().__init__(signature=signature)
+        self.action_kind = base.ActionKind.Generic
 
     def call_format(self, representer, action_name, arg_names, arg_values):
         assert len(arg_names) == 2
