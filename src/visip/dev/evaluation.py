@@ -16,7 +16,7 @@ import attr
 import heapq
 import time
 
-from . import data, task as task_mod, base, dfs, action_instance as instance, dtype_new
+from . import data, task as task_mod, base, dfs, action_instance as instance, dtype
 from .action_workflow import _Workflow
 from ..eval.cache import ResultCache
 from ..code.unwrap import into_action
@@ -228,7 +228,7 @@ class Result:
 
 
 
-DataOrDummy = Union[dtype_new.DType, Dummy, DummyAction]
+DataOrDummy = Union[dtype.DType, Dummy, DummyAction]
 
 class Evaluation:
     """/
@@ -464,7 +464,7 @@ class Evaluation:
 
 def run(action: Union[base._ActionBase, DummyAction],
         inputs:List[DataOrDummy] = None,
-        **kwargs) -> dtype_new.DType:
+        **kwargs) -> dtype.DType:
     """
     Run the 'action' with given arguments 'inputs'.
     Return the data result.

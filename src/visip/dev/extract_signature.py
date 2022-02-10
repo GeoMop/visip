@@ -3,7 +3,7 @@ from .type_inspector import TypeInspector
 from . parameters import Parameters, ActionParameter
 from .exceptions import ExcTypeBase
 from ..code.dummy import DummyAction
-from ..dev import dtype_new
+from ..dev import dtype
 
 
 def unwrap_type(type_hint):
@@ -25,9 +25,9 @@ def unwrap_type(type_hint):
         return None   #raise TypeError("Type annotation is required.")
     #elif type_hint is type(None):
     #    return None
-    elif isinstance(type_hint, dtype_new.DTypeBase):
+    elif isinstance(type_hint, dtype.DTypeBase):
         return type_hint
-    elif isinstance(type_hint, dtype_new.DTypeGeneric):
+    elif isinstance(type_hint, dtype.DTypeGeneric):
         args = type_hint.get_args()
         if args:
             # Is a generic, process its parameters recursively.
@@ -41,15 +41,15 @@ def unwrap_type(type_hint):
 
 def _parameter_from_inspect(param: inspect.Parameter) -> 'ActionParameter':
     assert param.annotation is not None
-    param_type = unwrap_type(dtype_new.from_typing(param.annotation))
+    param_type = unwrap_type(dtype.from_typing(param.annotation))
     return ActionParameter(param.name, param_type, param.default, param.kind)
 
 
 def _check_type_var(parameters):
     in_set = set()
     for param in parameters.parameters:
-        in_set.update(dtype_new.extract_type_var(param.type))
-    out_set = dtype_new.extract_type_var(parameters.return_type)
+        in_set.update(dtype.extract_type_var(param.type))
+    out_set = dtype.extract_type_var(parameters.return_type)
     assert out_set.issubset(in_set), "All TypeVars at output there are not also at input."
 
 
@@ -69,7 +69,7 @@ def _extract_signature(func, omit_self=False):
             continue
         params.append(_parameter_from_inspect(param))
     #assert signature.return_annotation is not None
-    return_type = unwrap_type(dtype_new.from_typing(signature.return_annotation))
+    return_type = unwrap_type(dtype.from_typing(signature.return_annotation))
     parameters = Parameters(params, return_type , had_self)
     _check_type_var(parameters)
     return parameters

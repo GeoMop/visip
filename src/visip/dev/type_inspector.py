@@ -1,7 +1,7 @@
 import typing
 import typing_inspect
 import enum
-from .dtype_new import DataClassBase
+from .dtype import DataClassBase
 from . import base
 from . import tools
 

@@ -1,6 +1,6 @@
 import typing
 from ..dev.base import _ActionBase
-from ..dev import dtype_new
+from ..dev import dtype
 from ..dev.parameters import Parameters, ActionParameter
 from ..dev import data
 
@@ -31,7 +31,7 @@ class Pass(_ActionBase):
         signature = Parameters((p,), typing.Any)
         super().__init__('Pass', signature)
 
-    def _evaluate(self, input: dtype_new.DType) -> dtype_new.DType:
+    def _evaluate(self, input: dtype.DType) -> dtype.DType:
         return input
 
 
@@ -112,7 +112,7 @@ TODO:
 
 
 class ClassActionBase(_ActionBase):
-    base_data_type = dtype_new.DataClassBase
+    base_data_type = dtype.DataClassBase
     """
     Action constructs particular Dataclass given in constructor.
     So the action is parametrized by the 'data_class'.
@@ -124,7 +124,7 @@ class ClassActionBase(_ActionBase):
         self.__visip_module__ = self._data_class.__module__
         # module where the data class is defined
 
-    def _evaluate(self, *args, **kwargs) -> dtype_new.DataClassBase:
+    def _evaluate(self, *args, **kwargs) -> dtype.DataClassBase:
         return self._data_class(*args, **kwargs)
 
     def code_of_definition(self, representer):

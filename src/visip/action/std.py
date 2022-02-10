@@ -7,7 +7,7 @@ import subprocess
 
 from typing import *
 from ..dev import base, exceptions as exc
-from ..dev import data, dtype_new
+from ..dev import data, dtype
 from ..code import decorators
 from ..dev import tools
 
@@ -20,7 +20,7 @@ Folder = NewType('Folder', str)
 FileOut = NewType('FileOut', str)
 
 @attr.s(auto_attribs=True)
-class FileIn(dtype_new.DataClassBase):
+class FileIn(dtype.DataClassBase):
     """
     Represent an existing input file.
     TODO: In fact we need to represent only already existiong input files.
@@ -34,7 +34,7 @@ class FileIn(dtype_new.DataClassBase):
         return self.path
 
 @attr.s(auto_attribs=True)
-class ExecResult(dtype_new.DataClassBase):
+class ExecResult(dtype.DataClassBase):
     args: List[str]
     return_code: int
     workdir: Folder
@@ -132,9 +132,9 @@ def format(format_str: str, *args: Any) -> str:
     return format_str.format(*args)
 
 @decorators.action_def
-def file_from_template(template: dtype_new.Const(FileIn),
+def file_from_template(template: dtype.Const(FileIn),
                        parameters: Dict[str, str],
-                       delimiters: dtype_new.Const(str)="<>") -> FileIn:
+                       delimiters: dtype.Const(str)= "<>") -> FileIn:
     """
     Substitute for placeholders of format '<name>' from the dict 'params'.
     :param file_in: Template file with extension '.tmpl'.

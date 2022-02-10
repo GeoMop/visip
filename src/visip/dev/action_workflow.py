@@ -7,7 +7,7 @@ from . import base
 from . import dfs
 from . import meta
 from . import exceptions
-from . import dtype_new
+from . import dtype
 from ..action.action_factory import ActionFactory
 from .action_instance import ActionCall, ActionArgument, ActionInputStatus
 from ..action.constructor import _ListBase, Value
@@ -402,7 +402,7 @@ class _Workflow(meta.MetaAction):
         body.append("{}return {}".format(indent, result_action_call.get_code_instance_name()))
         return "\n".join(body)
 
-    def insert_slot(self, i_slot: int, name: str, p_type: dtype_new.DType,
+    def insert_slot(self, i_slot: int, name: str, p_type: dtype.DType,
                     default: Any = ActionParameter.no_default, kind: int = ActionParameter.POSITIONAL_OR_KEYWORD) -> None:
         """
         Insert a new parameter on i_th position shifting the slots starting form i-th position.

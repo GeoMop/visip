@@ -1,7 +1,7 @@
 from typing import *
 from ..dev import base
 from .constructor import Value
-from ..dev import dtype_new
+from ..dev import dtype
 from ..dev.extract_signature import  _extract_signature
 
 
@@ -23,7 +23,7 @@ class GetAttribute(base._ActionBase):
         data_class_token = representer.token(arg_names[1])
         return representer.format(data_class_token, ".{}".format(key_name))
 
-    def _evaluate(self, key: dtype_new.Const(str), data_class: Any) -> Any:
+    def _evaluate(self, key: dtype.Const(str), data_class: Any) -> Any:
         return data_class.__getattribute__(key)
 
 

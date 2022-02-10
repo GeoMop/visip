@@ -1,6 +1,6 @@
 import enum
 
-from visip.dev import dtype_new
+from visip.dev import dtype
 
 import typing
 import typing_inspect
@@ -8,7 +8,7 @@ import builtins
 
 
 def test_singleton():
-    class A(metaclass=dtype_new.Singleton):
+    class A(metaclass=dtype.Singleton):
         pass
 
     class B(A):
@@ -23,7 +23,7 @@ def test_singleton():
 
 
 def test_types():
-    dt = dtype_new
+    dt = dtype
 
     # Union
     t = dt.Union(dt.Int(), dt.Union(dt.Str()))
@@ -70,75 +70,75 @@ def test_types():
 
 def test_from_typing():
     # base
-    assert isinstance(dtype_new.from_typing(int), dtype_new.Int)
-    assert isinstance(dtype_new.from_typing(float), dtype_new.Float)
-    assert isinstance(dtype_new.from_typing(bool), dtype_new.Bool)
-    assert isinstance(dtype_new.from_typing(str), dtype_new.Str)
+    assert isinstance(dtype.from_typing(int), dtype.Int)
+    assert isinstance(dtype.from_typing(float), dtype.Float)
+    assert isinstance(dtype.from_typing(bool), dtype.Bool)
+    assert isinstance(dtype.from_typing(str), dtype.Str)
 
 
     # TypeVar
     t = typing.TypeVar("T")
-    nt = dtype_new.from_typing(t)
-    assert isinstance(nt, dtype_new.TypeVar)
+    nt = dtype.from_typing(t)
+    assert isinstance(nt, dtype.TypeVar)
     assert nt.origin_type is t
 
     tt = typing.Tuple[t, typing.List[t]]
-    nt = dtype_new.from_typing(tt)
+    nt = dtype.from_typing(tt)
     assert nt.args[0].origin_type is nt.args[1].arg.origin_type
 
 
     # NewType
     t = typing.NewType("NewInt", int)
-    nt = dtype_new.from_typing(t)
-    assert isinstance(nt, dtype_new.NewType)
+    nt = dtype.from_typing(t)
+    assert isinstance(nt, dtype.NewType)
     assert nt.origin_type is t
-    assert isinstance(nt.supertype, dtype_new.Int)
+    assert isinstance(nt.supertype, dtype.Int)
 
     tt = typing.Tuple[t, typing.List[t]]
-    nt = dtype_new.from_typing(tt)
+    nt = dtype.from_typing(tt)
     assert nt.args[0].origin_type is nt.args[1].arg.origin_type
 
 
     # Tuple
     t = typing.Tuple[int, str]
-    nt = dtype_new.from_typing(t)
-    assert isinstance(nt, dtype_new.Tuple)
-    assert isinstance(nt.args[0], dtype_new.Int)
-    assert isinstance(nt.args[1], dtype_new.Str)
+    nt = dtype.from_typing(t)
+    assert isinstance(nt, dtype.Tuple)
+    assert isinstance(nt.args[0], dtype.Int)
+    assert isinstance(nt.args[1], dtype.Str)
 
     # Union
     t = typing.Union[int, str]
-    nt = dtype_new.from_typing(t)
-    assert isinstance(nt, dtype_new.Union)
-    assert isinstance(nt.args[0], dtype_new.Int)
-    assert isinstance(nt.args[1], dtype_new.Str)
+    nt = dtype.from_typing(t)
+    assert isinstance(nt, dtype.Union)
+    assert isinstance(nt.args[0], dtype.Int)
+    assert isinstance(nt.args[1], dtype.Str)
 
     # List
     t = typing.List[int]
-    nt = dtype_new.from_typing(t)
-    assert isinstance(nt, dtype_new.List)
-    assert isinstance(nt.arg, dtype_new.Int)
+    nt = dtype.from_typing(t)
+    assert isinstance(nt, dtype.List)
+    assert isinstance(nt.arg, dtype.Int)
 
     # Dict
     t = typing.Dict[int, str]
-    nt = dtype_new.from_typing(t)
-    assert isinstance(nt, dtype_new.Dict)
-    assert isinstance(nt.key, dtype_new.Int)
-    assert isinstance(nt.value, dtype_new.Str)
+    nt = dtype.from_typing(t)
+    assert isinstance(nt, dtype.Dict)
+    assert isinstance(nt.key, dtype.Int)
+    assert isinstance(nt.value, dtype.Str)
 
     # Const
-    t = dtype_new.Const(int)
-    nt = dtype_new.from_typing(t)
-    assert isinstance(nt, dtype_new.Const)
-    assert isinstance(nt.arg, dtype_new.Int)
+    t = dtype.Const(int)
+    nt = dtype.from_typing(t)
+    assert isinstance(nt, dtype.Const)
+    assert isinstance(nt.arg, dtype.Int)
 
 
     # Class
-    class A(dtype_new.DataClassBase):
+    class A(dtype.DataClassBase):
         pass
 
-    nt = dtype_new.from_typing(A)
-    assert isinstance(nt, dtype_new.Class)
+    nt = dtype.from_typing(A)
+    assert isinstance(nt, dtype.Class)
     assert nt.module == A.__module__
     assert nt.name == A.__name__
 
@@ -146,78 +146,78 @@ def test_from_typing():
     class A(enum.IntEnum):
         A = 1
 
-    nt = dtype_new.from_typing(A)
-    assert isinstance(nt, dtype_new.Enum)
+    nt = dtype.from_typing(A)
+    assert isinstance(nt, dtype.Enum)
     assert nt.module == A.__module__
     assert nt.name == A.__name__
 
 
     # Any
-    assert isinstance(dtype_new.from_typing(typing.Any), dtype_new.Any)
+    assert isinstance(dtype.from_typing(typing.Any), dtype.Any)
 
     # NoneType
-    assert isinstance(dtype_new.from_typing(builtins.type(None)), dtype_new.NoneType)
+    assert isinstance(dtype.from_typing(builtins.type(None)), dtype.NoneType)
 
 
 def test_to_typing():
     # base
-    assert dtype_new.to_typing(dtype_new.Int()) is int
-    assert dtype_new.to_typing(dtype_new.Float()) is float
-    assert dtype_new.to_typing(dtype_new.Bool()) is bool
-    assert dtype_new.to_typing(dtype_new.Str()) is str
+    assert dtype.to_typing(dtype.Int()) is int
+    assert dtype.to_typing(dtype.Float()) is float
+    assert dtype.to_typing(dtype.Bool()) is bool
+    assert dtype.to_typing(dtype.Str()) is str
 
 
     # TypeVar
-    t = dtype_new.TypeVar(typing.TypeVar("T"))
-    nt = dtype_new.to_typing(t)
+    t = dtype.TypeVar(typing.TypeVar("T"))
+    nt = dtype.to_typing(t)
     assert isinstance(nt, typing.TypeVar)
     assert nt is t.origin_type
 
-    tt = dtype_new.Tuple(t, dtype_new.List(t))
-    nt = dtype_new.to_typing(tt)
+    tt = dtype.Tuple(t, dtype.List(t))
+    nt = dtype.to_typing(tt)
     args = typing_inspect.get_args(nt, evaluate=True)
     assert args[0] is typing_inspect.get_args(args[1], evaluate=True)[0]
 
 
     # NewType
     tx = typing.NewType("NewInt", int)
-    t = dtype_new.NewType(tx)
-    nt = dtype_new.to_typing(t)
+    t = dtype.NewType(tx)
+    nt = dtype.to_typing(t)
     assert typing_inspect.is_new_type(nt)
     assert nt is t.origin_type
     assert nt.__supertype__ is int
 
-    tt = dtype_new.Tuple(t, dtype_new.List(t))
-    nt = dtype_new.to_typing(tt)
+    tt = dtype.Tuple(t, dtype.List(t))
+    nt = dtype.to_typing(tt)
     args = typing_inspect.get_args(nt, evaluate=True)
     assert args[0] is typing_inspect.get_args(args[1], evaluate=True)[0]
 
 
     # Tuple
-    t = dtype_new.Tuple(dtype_new.Int(), dtype_new.Str())
-    nt = dtype_new.to_typing(t)
+    t = dtype.Tuple(dtype.Int(), dtype.Str())
+    nt = dtype.to_typing(t)
     assert typing_inspect.get_origin(nt) in [tuple, typing.Tuple]
     args = typing_inspect.get_args(nt, evaluate=True)
     assert args[0] is int
     assert args[1] is str
 
     # Union
-    t = dtype_new.Union(dtype_new.Int(), dtype_new.Str())
-    nt = dtype_new.to_typing(t)
+    t = dtype.Union(dtype.Int(), dtype.Str())
+    nt = dtype.to_typing(t)
     assert typing_inspect.get_origin(nt) is typing.Union
     args = typing_inspect.get_args(nt, evaluate=True)
     assert args[0] is int
     assert args[1] is str
 
     # List
-    t = dtype_new.List(dtype_new.Int())
-    nt = dtype_new.to_typing(t)
+    t = dtype.List(dtype.Int())
+    nt = dtype.to_typing(t)
     assert typing_inspect.get_origin(nt) in [list, typing.List]
     assert typing_inspect.get_args(nt, evaluate=True)[0] is int
 
     # Dict
-    t = dtype_new.Dict(dtype_new.Int(), dtype_new.Str())
-    nt = dtype_new.to_typing(t)
+    t = dtype.Dict(dtype.Int(), dtype.Str())
+    nt = dtype.to_typing(t)
     assert typing_inspect.get_origin(nt) in [dict, typing.Dict]
     args = typing_inspect.get_args(nt, evaluate=True)
     assert args[0] is int
@@ -231,31 +231,31 @@ def test_to_typing():
 
 
     # Class
-    class A(dtype_new.DataClassBase):
+    class A(dtype.DataClassBase):
         pass
 
-    t = dtype_new.Class(A.__module__, A.__name__, A)
-    nt = dtype_new.to_typing(t)
+    t = dtype.Class(A.__module__, A.__name__, A)
+    nt = dtype.to_typing(t)
     assert nt is A
 
     # Enum
     class A(enum.IntEnum):
         pass
 
-    t = dtype_new.Enum(A.__module__, A.__name__, A)
-    nt = dtype_new.to_typing(t)
+    t = dtype.Enum(A.__module__, A.__name__, A)
+    nt = dtype.to_typing(t)
     assert nt is A
 
 
     # Any
-    assert dtype_new.to_typing(dtype_new.Any()) is typing.Any
+    assert dtype.to_typing(dtype.Any()) is typing.Any
 
     # NoneType
-    assert dtype_new.to_typing(dtype_new.NoneType()) is builtins.type(None)
+    assert dtype.to_typing(dtype.NoneType()) is builtins.type(None)
 
 
 def test_is_equaltype():
-    dt = dtype_new
+    dt = dtype
 
     def eq(type, other):
         a = dt.is_equaltype(type, other)
@@ -279,10 +279,10 @@ def test_is_equaltype():
     assert not eq(dt.NoneType(), dt.Int())
 
     # Class
-    class A(dtype_new.DataClassBase):
+    class A(dtype.DataClassBase):
         pass
 
-    class B(dtype_new.DataClassBase):
+    class B(dtype.DataClassBase):
         pass
 
     class C(A):
@@ -364,7 +364,7 @@ def test_is_equaltype():
 
 
 def test_is_subtype():
-    dt = dtype_new
+    dt = dtype
     sub = dt.is_subtype
     
     # base
@@ -384,10 +384,10 @@ def test_is_subtype():
     assert not sub(dt.Int(), dt.NoneType())
 
     # Class
-    class A(dtype_new.DataClassBase):
+    class A(dtype.DataClassBase):
         pass
 
-    class B(dtype_new.DataClassBase):
+    class B(dtype.DataClassBase):
         pass
 
     class C(A):
@@ -505,7 +505,7 @@ def test_is_subtype():
 
 
 def test_extract_type_var():
-    dt = dtype_new
+    dt = dtype
 
     t = dt.TypeVar()
     u = dt.TypeVar()
@@ -524,7 +524,7 @@ def test_extract_type_var():
 
 
 def test_check_type_var():
-    dt = dtype_new
+    dt = dtype
 
     t = dt.TypeVar()
 

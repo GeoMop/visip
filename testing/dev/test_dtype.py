@@ -1,5 +1,5 @@
 from visip import dev
-from visip.dev import evaluation, dtype_new
+from visip.dev import evaluation, dtype
 import visip.action as action
 #from visip.code import wrap
 from visip.dev.parameters import Parameters
@@ -13,7 +13,7 @@ import ruamel.yaml as yaml
 
 
 
-class Point2d(dtype_new.DataClassBase):
+class Point2d(dtype.DataClassBase):
     x:float
     y:float
 
@@ -43,7 +43,7 @@ def test_type_inspection():
     assert ti.is_base_type(bool)
     assert ti.is_base_type(str)
     assert not ti.is_base_type(wf.List)
-    assert not ti.is_base_type(dtype_new.DataClassBase)
+    assert not ti.is_base_type(dtype.DataClassBase)
 
     # is dict
     assert not ti.is_dict(int)
@@ -83,7 +83,7 @@ def test_config_generic():
     dc_type = signature['dataclass'].type
     assert ti.is_constant(key_type) is True
     assert ti.is_constant(dc_type) is False
-    assert isinstance(ti.constant_type(key_type), dtype_new.Str)
+    assert isinstance(ti.constant_type(key_type), dtype.Str)
 
 
 

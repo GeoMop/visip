@@ -4,7 +4,7 @@ from visip.dev.parameters import ActionParameter
 from visip.action.constructor import ClassActionBase
 from visip.code import decorators as wf
 from visip.code.decorators import public_action, _construct_from_params
-from visip.dev import dtype_new
+from visip.dev import dtype
 
 @wf.Class
 class Point:
@@ -29,7 +29,7 @@ def test_dataclass_modification():
     point_wrap = Point
     point_action = point_wrap._action_value
     params = list(point_action.parameters)
-    params = [ActionParameter(p.name, dtype_new.to_typing(p.type), p.default) for p in params]
+    params = [ActionParameter(p.name, dtype.to_typing(p.type), p.default) for p in params]
     param_z = ActionParameter("z", float, 0.0)
     params.append(param_z)
     point_xyz = public_action(_construct_from_params("PointXYZ", params) )

@@ -1,5 +1,5 @@
 from ..dev.type_inspector import TypeInspector
-from ..dev import dtype_new
+from ..dev import dtype
 from . import formating
 from ..dev import parameters
 
@@ -28,7 +28,7 @@ class Representer:
         :param type_hint:
         :return:
         """
-        return self.type_code_inner(dtype_new.to_typing(type_hint))
+        return self.type_code_inner(dtype.to_typing(type_hint))
 
     def type_code_inner(self, type_hint):
         ti = TypeInspector()
