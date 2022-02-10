@@ -1,6 +1,7 @@
 import enum
 from . import data
 from .parameters import Parameters
+from ..dev import dtype
 from .exceptions import ExcActionExpected
 # Name for the first parameter of the workflow definiton function that is used
 # to capture instance names.
@@ -149,7 +150,6 @@ class _ActionBase:
     def code_of_definition(self, representer):
         # TODO: make derived class for actions implemented in user module
         # and move thic method there
-        from ..dev import dtype
 
         type_code = representer.type_code(self.output_type)
         type_code = representer.make_rel_name(dtype.to_typing(self.output_type).__module__, type_code)
