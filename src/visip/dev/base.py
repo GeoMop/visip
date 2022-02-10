@@ -13,7 +13,6 @@ _VAR_="self"
 class TaskType(enum.Enum):
     Atomic = 1
     Composed = 2
-    Closure = 3
 
 
 class ActionKind(enum.IntEnum):

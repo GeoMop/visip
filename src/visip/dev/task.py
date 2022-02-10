@@ -80,12 +80,8 @@ class TaskSchedule:
 
         self.parent: Optional['Composed'] = parent
         # parent task
-        self.child_id = None
+        self.child_id = task_binding.child_name
         # name of current task within parent
-        self.id: int = 0
-        # Task is identified by the hash of the hash of its parent task and its name within the parent.
-        self._set_id(parent, task_binding.child_name)
-
         self.status = Status.none
         # Status of the task, possibly need not to be stored explicitly.
 
@@ -103,7 +99,11 @@ class TaskSchedule:
             input.outputs.append(self)
 
         self.set_evaluate_fn()  # set during construction
-    
+
+    @property
+    def id(self):
+        return self.task.result_hash
+
     @property
     def action(self):
         return self.task.action
@@ -124,23 +124,6 @@ class TaskSchedule:
     def priority(self):
         return 1
 
-    # def finish(self, result, task_hash=None):
-    #     """
-    #     Store the result of the action.
-    #     :param result: The result value.
-    #     :param task_hash: The hash of lazy evaluation of the value (hash of the action chain)
-    #     :return:
-    #     """
-    #     if task_hash is None:
-    #         task_hash = self.lazy_hash()
-    #     assert result is not self.no_value
-    #     self.status = Status.finished
-    #     self._result = result
-    #     self._result_hash = task_hash
-    #
-    # def is_finished(self):
-    #     return self.result is not self.no_value
-
     def get_path(self):
         path = []
         t = self
@@ -148,14 +131,6 @@ class TaskSchedule:
             path.append(t.child_id)
             t = t.parent
         return path
-
-    def _set_id(self, parent_task, child_id):
-        self.child_id = child_id
-        if parent_task is None:
-            parent_hash = data.hash(None)
-        else:
-            parent_hash = parent_task.id
-        self.id = data.hash(child_id, previous=parent_hash)
 
     def __lt__(self, other):
         return self.priority < other.priority
@@ -171,8 +146,6 @@ class TaskSchedule:
         elif task_type == base.TaskType.Composed:
             #task_binding.id_args_pair = ([0], {}) # for final auxiliary action
             child = Composed(parent_task, task_binding)
-        elif task_type == base.TaskType.Closure:
-            child = ClosureTask(parent_task, task_binding)
         else:
             assert False
         return child
@@ -205,30 +178,6 @@ class Atomic(TaskSchedule):
         self.task.evaluate_fn = self.action.evaluate
 
 
-
-
-# class ComposedHead(Atomic):
-#     """
-#     Auxiliary task for the inputs of the composed task. Simplifies
-#     expansion as we need not to change input and output links of outer tasks, just link between head and tail.
-#     """
-#
-#     @classmethod
-#     def create(cls, i, input_task, parent, name):
-#         if name is None:
-#             name = "__head_{}".format(i)
-        #task_binding = TaskBinding(name, constructor.Pass(), ([0], {}), [input_task])
-        #return cls(parent, task_binding)
-        
-#     @property
-#     def result(self):
-#         return self.inputs[0].result
-
-    # @property
-    # def result_hash(self):
-    #     return self.inputs[0].result_hash
-
-
 class Composed(Atomic):
     """
     Composed tasks are non-leaf vertices of the execution (recursion) tree.
@@ -242,14 +191,7 @@ class Composed(Atomic):
     """
 
     def __init__(self, parent: 'Composed', task_binding: TaskBinding):
-        params = task_binding.action.parameters
-        #assert params.size() == len(inputs)
         # TODO: modify Task.create to accept input binding in form of id_args_pair
-
-        #                                 for (i, input), param in zip(enumerate(inputs), params)]
-        #heads = [ComposedHead.create(i, input, parent, param.name)
-        #                                for (i, input), param in zip(enumerate(task_binding.inputs), params)]
-        #task_binding.inputs = inputs
         super().__init__(parent, task_binding)
 
         self.time_estimate = 0
@@ -303,13 +245,9 @@ class Composed(Atomic):
             Dictionary of child tasks (action_instance_name -> task)
             Empty dict is valid result, used to indicate end of a loop e.g. in the case of ForEach and While actions.
         """
-        assert self.action.task_type in (base.TaskType.Composed, base.TaskType.Closure)
+        assert self.action.task_type is base.TaskType.Composed
         assert hasattr(self.action, 'expand')
 
-        # Disconnect composed task heads.
-        # heads = self.inputs.copy()
-        # for head in heads:
-        #     head.outputs = []
         # Generate and connect body tasks.
         childs = self.action.expand(self, self.create_child_task, cache)
         if childs is not None:
@@ -326,10 +264,6 @@ class Composed(Atomic):
             # This works with Workflow, see how it will work with other composed actions:
             # if, reduce (for, while)
 
-        # else:
-        #     # No expansion: reconnect heads
-        #     for head in heads:
-        #         head.outputs = [self]
         return childs
 
     def set_evaluate_fn(self):
@@ -342,10 +276,3 @@ class Composed(Atomic):
         #self.task.evaluate_fn = lambda *args: args[0]
         self.task.evaluate_fn = ff
 
-
-
-class ClosureTask(Composed):
-    def __init__(self, parent: '_TaskBase', task_binding: TaskBinding):
-        super().__init__(parent, task_binding)
-        assert isinstance(task_binding.action, _Closure)
-        #self.finish(task_binding.action)

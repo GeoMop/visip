@@ -91,8 +91,8 @@ class Resource:
         if res_value is self.cache.NoValue:
             #assert task.is_ready()
             data_inputs = [self.cache.value(ih) for ih in task.input_hashes]
-            if any([i is self.cache.NoValue for i in data_inputs]):
-                print(task.action, data_inputs)
+            #if any([i is self.cache.NoValue for i in data_inputs]):
+            #    print(task.action, data_inputs)
             assert not any([i is self.cache.NoValue for i in data_inputs])
             args, kwargs = task.inputs_to_args(data_inputs)
             res_value = task.evaluate_fn(*args, **kwargs)

@@ -151,7 +151,7 @@ class _Closure(MetaAction):
     """
     def __init__(self, action, args, kwargs):
         super().__init__("Closure")
-        self.task_type = base.TaskType.Closure
+        self.task_type = base.TaskType.Composed
         self._action : dtype._ActionBase = action
         self._args : List['_TaskBase'] = args
         self._kwargs : Dict[str, '_TaskBase'] = kwargs
