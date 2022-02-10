@@ -1,11 +1,10 @@
 import enum
 from typing import *
-from ..action import constructor
 from . import data
 from . import base
 from ..eval import cache
 from .tools import compose_arguments, TaskBinding
-
+from .meta import _Closure
 
 class Status(enum.IntEnum):
     none = 0
@@ -32,7 +31,7 @@ class _TaskBase:
 
     no_value = cache.ResultCache.NoValue
 
-    def __init__(self, action: 'dev._ActionBase',
+    def __init__(self, action: base.ActionBase,
                  input_hashes: List['data.HashValue'], binding):
         self.action = action
         # Action (like function definition) of the task (like function call).
@@ -70,26 +69,19 @@ class _TaskBase:
 
 
 class TaskSchedule:
-    def __init__(self, parent: '_TaskBase', task_binding: TaskBinding):
+    def __init__(self, parent: 'Composed', task_binding: TaskBinding):
 
         input_hashes = [input.result_hash for input in task_binding.inputs]
         self.task = _TaskBase(task_binding.action, input_hashes, task_binding.id_args_pair)
 
-        self.inputs = []
         # Input tasks for the action's arguments.
-        self.outputs: List['Atomic'] = []
+        self.outputs: List['TaskSchedule'] = []
         # List of tasks dependent on the result. (Try to not use and eliminate.)
 
-        self.id: int = 0
-        # Task is identified by the hash of the hash of its parent task and its name within the parent.
         self.parent: Optional['Composed'] = parent
         # parent task
-        self.child_id = None
+        self.child_id = task_binding.child_name
         # name of current task within parent
-        self.id = int
-        # unique task hash
-        self._set_id(parent, task_binding.child_name)
-
         self.status = Status.none
         # Status of the task, possibly need not to be stored explicitly.
 
@@ -99,22 +91,38 @@ class TaskSchedule:
         self.end_time = -1
         self.eval_time = 0
 
+        self._inputs = task_binding.inputs # reset in Workflow to its result, but we yet keep original in the task_binding
         # Connect to inputs.
         # TODO: remove dirrect referencing of the tasks use scheduler to refference through the result hashes
         for input in task_binding.inputs:
             assert isinstance(input, TaskSchedule)
-            self.inputs.append(input)
             input.outputs.append(self)
 
         self.set_evaluate_fn()  # set during construction
 
+    @property
+    def id(self):
+        return self.task.result_hash
+
+    @property
+    def action(self):
+        return self.task.action
+
+    @property
+    def id_args_pair(self):
+        return self.task.id_args_pair
+
+    @property
+    def inputs(self):
+        return self._inputs
+
+    @property
+    def result_hash(self):
+        return self.task.result_hash
 
     @property
     def priority(self):
         return 1
-
-    def is_ready(self, cache):
-        assert False, "Not implemented."
 
     def get_path(self):
         path = []
@@ -123,14 +131,6 @@ class TaskSchedule:
             path.append(t.child_id)
             t = t.parent
         return path
-
-    def _set_id(self, parent_task, child_id):
-        self.child_id = child_id
-        if parent_task is None:
-            parent_hash = data.hash(None)
-        else:
-            parent_hash = parent_task.id
-        self.id = data.hash(child_id, previous=parent_hash)
 
     def __lt__(self, other):
         return self.priority < other.priority
@@ -144,7 +144,7 @@ class TaskSchedule:
         if task_type == base.TaskType.Atomic:
             child = Atomic(parent_task, task_binding)
         elif task_type == base.TaskType.Composed:
-            task_binding.id_args_pair = ([0], {}) # for final auxiliary action
+            #task_binding.id_args_pair = ([0], {}) # for final auxiliary action
             child = Composed(parent_task, task_binding)
         else:
             assert False
@@ -153,13 +153,6 @@ class TaskSchedule:
     def set_evaluate_fn(self):
         assert False, "Not implemented"
 
-    @property
-    def action(self):
-        return self.task.action
-
-    @property
-    def result_hash(self):
-        return self.task.result_hash
 
 
 class Atomic(TaskSchedule):
@@ -171,10 +164,10 @@ class Atomic(TaskSchedule):
         :return:
         """
         if self.status < Status.ready:
-            is_ready = all([cache.is_finished(task.result_hash) for task in self.inputs])
+            is_ready = all([cache.is_finished(input_hash) for input_hash in self.task.input_hashes])
             if is_ready:
                 self.status = Status.ready
-        return self.status == Status.ready
+        return self.status >= Status.ready
 
     def set_evaluate_fn(self):
         """
@@ -185,48 +178,25 @@ class Atomic(TaskSchedule):
         self.task.evaluate_fn = self.action.evaluate
 
 
-class ComposedHead(Atomic):
-    """
-    Auxiliary task for the inputs of the composed task. Simplifies
-    expansion as we need not to change input and output links of outer tasks, just link between head and tail.
-    """
-
-    @classmethod
-    def create(cls, i, input_task, parent, name):
-        if name is None:
-            name = "__head_{}".format(i)
-        task_binding = TaskBinding(name, constructor.Pass(), ([0], {}), [input_task])
-        return cls(parent, task_binding)
-
-    @property
-    def result(self):
-        return self.inputs[0].result
-
-    @property
-    def result_hash(self):
-        return self.inputs[0].result_hash
-
-
 class Composed(Atomic):
     """
-    Composed tasks are non-leaf vertices of the execution tree.
+    Composed tasks are non-leaf vertices of the execution (recursion) tree.
     The Evaluation class takes care of their expansion during execution according to the
-    preferences assigned by the Scheduler. It also keeps a map from
+    preferences assigned by the Scheduler.
+
+    After the expansion a composed task is still connected to its inputs, but the inputs are newly
+    connected to its slots. Moreover the composed task is made dependent on its own result and
+    while its evaluation is empty so any task dependent on the expanded task depends on the result only indirectly
+    through the expanded task. So the expansion doesn't break existing task dependencies.
     """
 
-    def __init__(self, parent: 'TaskSchedule', task_binding: TaskBinding):
-        params = task_binding.action.parameters
-        #assert params.size() == len(inputs)
+    def __init__(self, parent: 'Composed', task_binding: TaskBinding):
         # TODO: modify Task.create to accept input binding in form of id_args_pair
-
-        heads = [ComposedHead.create(i, input, parent, param.name)
-                                        for (i, input), param in zip(enumerate(task_binding.inputs), params)]
-        task_binding.inputs = heads
         super().__init__(parent, task_binding)
 
         self.time_estimate = 0
         # estimate of the start time, used as expansion priority
-        self.childs: Dict[Union[int, str], Atomic] = None
+        self.childs: Dict[Union[int, str], Atomic] = {}
         # map child_id to the child task, filled during expand.
 
     def is_ready(self, cache):
@@ -258,6 +228,8 @@ class Composed(Atomic):
 
 
     def create_child_task(self, task_binding: TaskBinding):
+        args, kwargs = task_binding.id_args_pair
+        assert len(args) + len(kwargs) == len(task_binding.inputs)
         return TaskSchedule._create_task(self, task_binding)
 
     def expand(self, cache):
@@ -273,31 +245,26 @@ class Composed(Atomic):
             Dictionary of child tasks (action_instance_name -> task)
             Empty dict is valid result, used to indicate end of a loop e.g. in the case of ForEach and While actions.
         """
-        assert self.action.task_type == base.TaskType.Composed
+        assert self.action.task_type is base.TaskType.Composed
         assert hasattr(self.action, 'expand')
 
-        # Disconnect composed task heads.
-        heads = self.inputs.copy()
-        for head in heads:
-            head.outputs = []
         # Generate and connect body tasks.
         childs = self.action.expand(self, self.create_child_task, cache)
         if childs is not None:
-            self.childs = {task.child_id: task for task in childs}
+            assert len(childs) > 0
+            self.childs = childs #{task.child_id: task for task in childs}
+            #self.childs.expand({})
             result_task = self.childs['__result__']
             assert len(result_task.outputs) == 0
             result_task.outputs.append(self)
-            self.inputs = [result_task]
+            self.task.id_args_pair = ([0],{})
+            #B: self._inputs = [result_task]
             self.task.input_hashes = [result_task.result_hash]
             # After expansion the composed task is just a dummy task dependent on the previoous result.
             # This works with Workflow, see how it will work with other composed actions:
             # if, reduce (for, while)
 
-        else:
-            # No expansion: reconnect heads
-            for head in heads:
-                head.outputs = [self]
-        return self.childs
+        return childs
 
     def set_evaluate_fn(self):
         """
@@ -308,6 +275,4 @@ class Composed(Atomic):
             return args[0]
         #self.task.evaluate_fn = lambda *args: args[0]
         self.task.evaluate_fn = ff
-
-
 

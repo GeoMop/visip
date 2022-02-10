@@ -21,7 +21,7 @@ from . import data, task as task_mod, base, dfs,  dtype as dtype, action_instanc
 from .action_workflow import _Workflow
 from ..eval.cache import ResultCache
 from ..code.unwrap import into_action
-from ..code.dummy import Dummy, DummyAction
+from ..code.dummy import Dummy, DummyAction, DummyWorkflow
 from . import tools
 
 
@@ -91,6 +91,8 @@ class Resource:
         if res_value is self.cache.NoValue:
             #assert task.is_ready()
             data_inputs = [self.cache.value(ih) for ih in task.input_hashes]
+            #if any([i is self.cache.NoValue for i in data_inputs]):
+            #    print(task.action, data_inputs)
             assert not any([i is self.cache.NoValue for i in data_inputs])
             args, kwargs = task.inputs_to_args(data_inputs)
             res_value = task.evaluate_fn(*args, **kwargs)
@@ -148,9 +150,14 @@ class Scheduler:
 
     def can_expand(self):
         return self.n_assigned_tasks < self.n_tasks_limit
+
     @property
     def n_assigned_tasks(self):
         return len(self.tasks)
+
+    def is_finished(self, task: task_mod.TaskSchedule):
+        return self.cache.is_finished(task.result_hash)
+
 
     def get_time(self):
         return time.perf_counter() - self._start_time
@@ -197,19 +204,19 @@ class Scheduler:
         while self._ready_queue:
             task = heapq.heappop(self._ready_queue)
             if task.id in self.tasks:   # deal with duplicate entrieas in the queue
-                assert task.is_ready(self.cache)
-
-                # TODO: remove _task_map and use just task hashes for task referencing
-                # automaticaly eliminating duplicities in the evaluation DAG
-                # However should be accompanied by the checking the database in order to allow memoizing only
-                # short term history of tasks.
-                key = task.result_hash
-                if key in self._task_map:
-                    # We skip evaluation of all tasks with the same result hash.
-                    self._task_map[key].append(task)
-                else:
-                    self._task_map[key] = [task]
-                    self.resources[task.resource_id].submit(task.task)
+                if not self.is_finished(task):
+                    assert task.is_ready(self.cache)
+                    # TODO: remove _task_map and use just task hashes for task referencing
+                    # automaticaly eliminating duplicities in the evaluation DAG
+                    # However should be accompanied by the checking the database in order to allow memoizing only
+                    # short term history of tasks.
+                    key = task.result_hash
+                    if key in self._task_map:
+                        # We skip evaluation of all tasks with the same result hash.
+                        self._task_map[key].append(task)
+                    else:
+                        self._task_map[key] = [task]
+                        self.resources[task.resource_id].submit(task.task)
                 del self.tasks[task.id]
         return finished
 
@@ -222,7 +229,7 @@ class Scheduler:
         """
         # perform topological sort
         def predecessors(task):
-            if self.cache.is_finished(task.result_hash):
+            if self.is_finished(task):
                 return []
             else:
                 max_end_time = 0
@@ -243,8 +250,6 @@ class Scheduler:
 
         dfs.DFS(neighbours=predecessors,
                 postvisit=post_visit).run(self.tasks.values())
-
-        #print("N task: ", len(self.tasks))
 
 
 
@@ -298,7 +303,7 @@ class Evaluation:
     :return: List of all tasks.
     """
     @staticmethod
-    def make_analysis(action: base._ActionBase, inputs:List[DataOrDummy]):
+    def make_analysis(action: dtype._ActionBase, inputs:List[DataOrDummy]):
         """
         Bind values 'inputs' as parameters of the action using the Value action wrappers,
         returns a workflow without parameters.
@@ -352,8 +357,8 @@ class Evaluation:
         # Used to force end of evaluation after an error.
         self.error_tasks = []
         # List of tasks finished with error.
-
-
+        self.exptansion_iter = 0
+        # Expansion iteration.
 
 
     def tasks_update(self, tasks):
@@ -367,7 +372,7 @@ class Evaluation:
         :param task:
         :return:
         """
-        if self.cache.is_finished(task.result_hash):
+        if self.scheduler.is_finished(task):
             task.eval_time = task.end_time - task.start_time
         else:
             task.time_estimate = 1
@@ -400,20 +405,23 @@ class Evaluation:
         # init scheduler
         self.tasks_update([self.final_task])
 
+
         with tools.change_cwd(self.workspace):
             # print("CWD: ", os.getcwd())
             invalid_connections = self.validate_connections(self.final_task.action)
             if invalid_connections:
                 raise Exception(invalid_connections)
+            self.expansion_iter = 0
             while not self.force_finish:
                 schedule = self.expand_tasks()
-                if self.plot_expansion and len(schedule) > 0:
-                    self._plot_task_graph()
+                if self.plot_expansion:
+                    self._plot_task_graph(self.expansion_iter)
                 self.tasks_update(schedule)
-                self.scheduler.update()
                 self.scheduler.optimize()
-                if  self.scheduler.n_assigned_tasks == 0:
+                self.scheduler.update()
+                if self.scheduler.n_assigned_tasks == 0:
                     self.force_finish = True
+                self.expansion_iter += 1
         return TaskResult(self.final_task, self.cache)
 
 
@@ -447,8 +455,7 @@ class Evaluation:
                 for task in task_dict.values():
                     if isinstance(task, task_mod.Composed):
                         self.enqueue(task)
-                    else:
-                        schedule.append(task)
+                    schedule.append(task)
                 self.tasks_update([composed_task])
         for task in postpone_expand:
             self.enqueue(task)
@@ -464,37 +471,37 @@ class Evaluation:
         g = Digraph("Task DAG")
         g.attr('graph', rankdir="BT")
 
-        def predecessors(task: 'Task'):
+        def predecessors(task: task_mod._TaskBase):
             for in_task in task.inputs:
-                g.edge(str(task.id), str(in_task.id))
+                g.edge(task.id.hex()[:6], in_task.id.hex()[:6])
             return task.inputs
 
-        def previsit(task: 'Task'):
-            if self.cache.is_finished(task.result_hash):
-                color='green'
+        def previsit(task: task_mod._TaskBase):
+            if self.scheduler.is_finished(task):
+                color = 'green'
+            elif task.is_ready():
+                color = 'orange'
             else:
-                color='gray'
+                color = 'gray'
             if isinstance(task, task_mod.Composed):
-                style='rounded'
+                style = 'rounded'
             else:
                 style = 'solid'
             hex_str = task.id.hex()[:4]
-            node_label = f"{task.action.name}:#{hex_str}" # 4 hex digits, hex returns 0x7d29d9f
-            g.node(str(task.id), label=node_label, color=color, shape='box', style=style)
+            node_label = f"{task.action.name}:#{hex_str}"   # 4 hex digits, hex returns 0x7d29d9f
+            g.node(task.id.hex()[:6], label=node_label, color=color, shape='box', style=style)
 
         dfs.DFS(neighbours=predecessors,
                 previsit=previsit).run([self.final_task])
         return g
 
-    i_plot = 0
-    def _plot_task_graph(self):
-        filename = "{}_{:02d}".format(self.final_task.action.name, self.i_plot)
-        print("\nPlot ", self.i_plot)
-        self.i_plot += 1
-        g = self.make_graphviz_digraph()
-        output_path = g.render(filename=filename, format='pdf', cleanup=True)
-        print("Out: ", os.path.abspath(output_path))
 
+    def _plot_task_graph(self, iter):
+        filename = "{}_{:02d}".format(self.final_task.action.name, iter)
+        print("\nPlotting expansion iter: ", iter)
+        g = self.make_graphviz_digraph()
+        output_path = g.render(filename=filename, format='pdf', cleanup=True, view=True)
+        print("Out: ", os.path.abspath(output_path))
 
 
     def plot_task_graph(self):
@@ -507,7 +514,7 @@ class Evaluation:
     #     return self.cache.value(task.result_hash)
 
 
-def run(action: Union[base._ActionBase, DummyAction],
+def run(action: Union[dtype._ActionBase, DummyAction],
         inputs:List[DataOrDummy] = None,
         **kwargs) -> dtype.DataType:
     """
@@ -516,6 +523,8 @@ def run(action: Union[base._ActionBase, DummyAction],
     """
     if isinstance(action, DummyAction):
         action = action._action_value
+    if isinstance(action, DummyWorkflow):
+        action = action.workflow
     if inputs is None:
         inputs = []
     analysis = Evaluation.make_analysis(action, inputs)

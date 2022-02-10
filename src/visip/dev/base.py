@@ -1,5 +1,6 @@
 import enum
 from . import data
+from . import dtype
 from .parameters import Parameters
 from .exceptions import ExcActionExpected
 # Name for the first parameter of the workflow definiton function that is used
@@ -29,8 +30,7 @@ class ActionKind(enum.IntEnum):
 
 
 
-
-class _ActionBase:
+class ActionBase(dtype._ActionBase):
 
     """
     Base of all actions.

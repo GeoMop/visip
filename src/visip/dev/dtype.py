@@ -17,13 +17,21 @@ from . import tools
 from typing import Any, List, Dict, Tuple, TypeVar, Callable
 # reusing some Python typehints, before we have own typing schema
 ################################################################################################
+class _ActionBase:
+    pass
 
 class TypeBase:
     # Future base class of all type hint classes
     pass
 
+class _Empty(_ActionBase):
+    pass
+empty = _Empty()
+# Singleton value marking empty arguments of the Lazy action
+
 BasicType = typing.Union[bool, int, float, complex, str]
 valid_base_types = (bool, int, float, complex, str)
+
 
 DataType = typing.Union[BasicType, typing.List['DataType'], typing.Dict['DataType', 'DataType'], typing.Tuple['DataType', ...], 'DataClassBase']
 # All valid data types that can be passed between VISIP actions.
@@ -86,7 +94,7 @@ class DataClassBase:
     def to_yaml(self):
         pass
 
-
+valid_data_types = (*valid_base_types, list, dict, DataClassBase)
 
 
 def closest_common_ancestor(*cls_list):
