@@ -1,7 +1,7 @@
 from typing import *
 import inspect
 import builtins
-from . import dtype
+from . import dtype_new
 from . import data
 
 
@@ -19,7 +19,7 @@ class ActionParameter:
     VAR_KEYWORD             = inspect.Parameter.VAR_KEYWORD
 
     # Class attribute. Single instance object representing no default value.
-    def __init__(self, name:str, p_type: dtype.TypeBase, default: object = no_default, kind=POSITIONAL_OR_KEYWORD):
+    def __init__(self, name:str, p_type: dtype_new.DType, default: object = no_default, kind=POSITIONAL_OR_KEYWORD):
         self._name : str = name
         # Name of the parameter, None for positional only.
         self._default = default
@@ -28,8 +28,8 @@ class ActionParameter:
         # Indicates that the parameter must be constant wrapped into Value action.
         self._kind = kind
         # Kind of the parameter to be consistent with Python implementation
-        if p_type == ActionParameter.no_default:
-            p_type = None
+        # if p_type == ActionParameter.no_default:
+        #     p_type = None
         self._type = p_type
         # Type annotation of the parameter, None means missing annotation, but interpreted as Any.
 

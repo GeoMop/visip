@@ -1,6 +1,3 @@
-from visip.dev import dtype
-from visip.dev import type_inspector
-
 import typing
 import typing_inspect
 import inspect
@@ -15,6 +12,14 @@ class Singleton(type):
         if cls not in cls._instances:
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
+
+
+class DataClassBase:
+    """
+    Base class to the dataclasses used in VISIP.
+    Implement some common methods for hashing, and serialization.
+    """
+    pass
 
 
 class DType:
@@ -255,7 +260,7 @@ def from_typing(type):
 
 
     # Class
-    if inspect.isclass(type) and issubclass(type, dtype.DataClassBase):
+    if inspect.isclass(type) and issubclass(type, DataClassBase):
         return Class(type.__module__, type.__name__, type)
 
     # Enum
@@ -547,7 +552,8 @@ class TypeInspector:
         return type.arg
 
     def have_attributes(self, type):
-        return isinstance(type, Any) or isinstance(type, Class) or isinstance(type, Dict) or type_inspector.TypeInspector().have_attributes(type)
+        return isinstance(type, Any) or isinstance(type, Class) or isinstance(type, Dict) or \
+               type is typing.Any or (inspect.isclass(type) and issubclass(type, DataClassBase)) or type in [typing.Dict, dict]
 
 
 def extract_type_var(type):

@@ -11,7 +11,7 @@ from ..action import constructor
 #from ..code import wrap
 from ..code.dummy import DummyAction
 from ..code.representer import Representer
-from . import base, action_workflow as wf, dtype as dtype
+from . import base, action_workflow as wf
 from .action_instance import ActionCall
 
 

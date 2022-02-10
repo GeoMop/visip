@@ -3,7 +3,7 @@ from .type_inspector import TypeInspector
 from . parameters import Parameters, ActionParameter
 from .exceptions import ExcTypeBase
 from ..code.dummy import DummyAction
-from ..dev import dtype, dtype_new
+from ..dev import dtype_new
 
 
 def unwrap_type(type_hint):

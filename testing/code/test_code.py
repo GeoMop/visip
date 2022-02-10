@@ -1,4 +1,3 @@
-from visip.dev import dtype
 from visip.dev import module
 import os
 import pytest

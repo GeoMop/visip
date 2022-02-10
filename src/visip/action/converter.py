@@ -1,7 +1,7 @@
 from typing import *
 from ..dev import base
 from .constructor import Value
-from ..dev import dtype, dtype_new
+from ..dev import dtype_new
 from ..dev.extract_signature import  _extract_signature
 
 

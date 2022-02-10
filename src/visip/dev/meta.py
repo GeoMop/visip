@@ -18,9 +18,10 @@ from . import base
 from . import exceptions
 from ..dev.parameters import Parameters, ActionParameter
 from ..dev.action_instance import ActionCall
-from . import dtype
 from ..code.dummy import DummyAction
 from ..dev import tools
+
+import typing
 
 
 class MetaAction(base._ActionBase):
@@ -176,13 +177,13 @@ class DynamicCall(MetaAction):
         """
         super().__init__("DynamicCall")
         params =[]
-        ReturnType = dtype.TypeVar('ReturnType')
+        ReturnType = typing.TypeVar('ReturnType')
         params.append(
-            ActionParameter(name="function", p_type=dtype.Callable[..., ReturnType]))
+            ActionParameter(name="function", p_type=typing.Callable[..., ReturnType]))
         params.append(
-            ActionParameter(name="args", p_type=dtype.Any, kind=ActionParameter.VAR_POSITIONAL))
+            ActionParameter(name="args", p_type=typing.Any, kind=ActionParameter.VAR_POSITIONAL))
         params.append(
-            ActionParameter(name="kwargs", p_type=dtype.Any, kind=ActionParameter.VAR_KEYWORD))
+            ActionParameter(name="kwargs", p_type=typing.Any, kind=ActionParameter.VAR_KEYWORD))
         self._parameters = Parameters(params, ReturnType)
         # TODO: Support for kwargs forwarding.
         # TODO: Match 'function' parameters and given arguments.
@@ -213,13 +214,13 @@ class _If(MetaAction):
         #super().__init__("DynamicCall")
         super().__init__("If") # Dynamic Cal
         params = []
-        ReturnType = dtype.TypeVar('ReturnType')
+        ReturnType = typing.TypeVar('ReturnType')
         params.append(
             ActionParameter(name="condition", p_type=bool))
         params.append(
-            ActionParameter(name="true_body", p_type=dtype.Callable[..., ReturnType]))
+            ActionParameter(name="true_body", p_type=typing.Callable[..., ReturnType]))
         params.append(
-            ActionParameter(name="false_body", p_type=dtype.Callable[..., ReturnType]))
+            ActionParameter(name="false_body", p_type=typing.Callable[..., ReturnType]))
         self._parameters = Parameters(params, ReturnType)
 
     def expand(self, task, task_creator):

@@ -3,7 +3,7 @@ import inspect
 import typing
 import attr
 #from ..code import wrap
-from ..dev import dtype
+from ..dev import dtype_new
 from ..dev import base
 from ..dev import action_workflow as wf
 from ..action import constructor
@@ -53,7 +53,7 @@ def _dataclass_from_params(name: str, params: typing.List[ActionParameter], modu
     # however it allows correct serialization to yaml
     # Note: replaced by the DataClassBase classproperty 'yaml_tag'.
     #attributes['yaml_tag'] = u'!{}'.format(name)
-    data_class = type(name, (dtype.DataClassBase,), attributes)
+    data_class = type(name, (dtype_new.DataClassBase,), attributes)
     if module:
         data_class.__module__ = module
 

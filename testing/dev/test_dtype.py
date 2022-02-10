@@ -1,5 +1,5 @@
 from visip import dev
-from visip.dev import dtype, evaluation, dtype_new
+from visip.dev import evaluation, dtype_new
 import visip.action as action
 #from visip.code import wrap
 from visip.dev.parameters import Parameters
@@ -13,7 +13,7 @@ import ruamel.yaml as yaml
 
 
 
-class Point2d(dtype.DataClassBase):
+class Point2d(dtype_new.DataClassBase):
     x:float
     y:float
 
@@ -43,13 +43,13 @@ def test_type_inspection():
     assert ti.is_base_type(bool)
     assert ti.is_base_type(str)
     assert not ti.is_base_type(wf.List)
-    assert not ti.is_base_type(dtype.DataClassBase)
+    assert not ti.is_base_type(dtype_new.DataClassBase)
 
     # is dict
     assert not ti.is_dict(int)
-    assert not ti.is_dict(dtype.Tuple[int, str])
-    assert ti.is_dict(dtype.Dict[int, str])
-    assert ti.is_dict(dtype.Dict[str, int])
+    assert not ti.is_dict(typing.Tuple[int, str])
+    assert ti.is_dict(typing.Dict[int, str])
+    assert ti.is_dict(typing.Dict[str, int])
     # test_is_subtype
     #assert dtype.is_subtype(Point2d, dtype.DataType)
     #assert ti.is_subtype(Point2d, dtype.DataClassBase)
@@ -103,23 +103,23 @@ def test_type_hint_unwrapping():
 
 
 
-class A:
-    pass
-class B(A):
-    pass
-class C(A):
-    pass
-class D(B):
-    pass
-class E(B):
-    pass
-
-def test_closest_common_ancestor():
-    cca = dtype.closest_common_ancestor
-    assert cca(D, E) is B
-    assert cca(C, D) is A
-    assert cca(A, B) is A
-    assert cca(A, int) is object
+# class A:
+#     pass
+# class B(A):
+#     pass
+# class C(A):
+#     pass
+# class D(B):
+#     pass
+# class E(B):
+#     pass
+#
+# def test_closest_common_ancestor():
+#     cca = dtype.closest_common_ancestor
+#     assert cca(D, E) is B
+#     assert cca(C, D) is A
+#     assert cca(A, B) is A
+#     assert cca(A, int) is object
 
 
 def test_unwrap_type():

@@ -1,6 +1,6 @@
 import enum
 
-from visip.dev import dtype_new, dtype
+from visip.dev import dtype_new
 
 import typing
 import typing_inspect
@@ -134,7 +134,7 @@ def test_from_typing():
 
 
     # Class
-    class A(dtype.DataClassBase):
+    class A(dtype_new.DataClassBase):
         pass
 
     nt = dtype_new.from_typing(A)
@@ -231,7 +231,7 @@ def test_to_typing():
 
 
     # Class
-    class A(dtype.DataClassBase):
+    class A(dtype_new.DataClassBase):
         pass
 
     t = dtype_new.Class(A.__module__, A.__name__, A)
@@ -279,10 +279,10 @@ def test_is_equaltype():
     assert not eq(dt.NoneType(), dt.Int())
 
     # Class
-    class A(dtype.DataClassBase):
+    class A(dtype_new.DataClassBase):
         pass
 
-    class B(dtype.DataClassBase):
+    class B(dtype_new.DataClassBase):
         pass
 
     class C(A):
@@ -384,10 +384,10 @@ def test_is_subtype():
     assert not sub(dt.Int(), dt.NoneType())
 
     # Class
-    class A(dtype.DataClassBase):
+    class A(dtype_new.DataClassBase):
         pass
 
-    class B(dtype.DataClassBase):
+    class B(dtype_new.DataClassBase):
         pass
 
     class C(A):

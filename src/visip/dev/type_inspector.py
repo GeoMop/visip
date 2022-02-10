@@ -1,7 +1,7 @@
 import typing
 import typing_inspect
 import enum
-from .dtype import valid_base_types, DataClassBase
+from .dtype_new import DataClassBase
 from . import base
 from . import tools
 
@@ -17,6 +17,7 @@ class TypeInspector_36:
 
     def is_base_type(self, xtype):
         """ True for basic, i.e. scalar types."""
+        valid_base_types = (bool, int, float, complex, str)
         return xtype in valid_base_types
 
     def is_enum(self, xtype):
