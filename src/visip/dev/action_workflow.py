@@ -84,6 +84,17 @@ class _ResultCall(ActionCall):
 
 
 
+class WorkflowTypeErrorItem:
+    def __init__(self, call, arg, subtype, type):
+        self.call = call
+        self.arg = arg
+        self.subtype = subtype
+        self.type = type
+
+    def __repr__(self):
+        return "In {} {}, {} is not subtype of {}".format(self.call, self.arg, self.subtype, self.type)
+
+
 class _Workflow(meta.MetaAction):
     """
     Represents a composed action.
@@ -213,6 +224,7 @@ class _Workflow(meta.MetaAction):
         self._type_var_map = {}
         self._type_var_restraints = {}
         types_ok = True
+        error_list = []
 
         # backward
         for call in reversed(self._sorted_calls):
@@ -231,6 +243,7 @@ class _Workflow(meta.MetaAction):
                     arg.value.actual_output_type, arg.actual_type, self._type_var_map, self._type_var_restraints)
                 if not b:
                     types_ok = False
+                    error_list.append(WorkflowTypeErrorItem(call, arg, arg.value.actual_output_type, arg.actual_type))
                     self._type_var_map = type_var_map_back
                     self._type_var_restraints = type_var_restraints_back
 
