@@ -4,8 +4,6 @@ Visual Simulation Programming
 
 
 ## Essential features (TODO)
-- metaactions 
-- partial parameter substitution
 - visip docker image
 - typy: time map (time -> snapshot), bilance, VTK,
 - zobrazovani dat z vypoctu: hodnoty, pole, BREP, MSH, VTK

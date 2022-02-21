@@ -99,7 +99,7 @@ class Complex:
     p_dict: typing.Dict[int, Point]
 
 def test_type_hint_unwrapping():
-    res = evaluation.run(Complex, [{1:Point(2,3)}])
+    res = evaluation.run(Complex, {1:Point(2,3)})
 
 
 

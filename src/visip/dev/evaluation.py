@@ -11,13 +11,14 @@ Evaluation of a workflow.
 4. Tasks are assigned to the resources by scheduler,
 """
 import os
-from typing import List, Dict, Tuple, Any, Union
+from typing import Optional, List, Dict, Tuple, Any, Union
 import attr
 import heapq
 import time
 import itertools
 
 from . import data, task as task_mod, base, dfs,  dtype as dtype, action_instance as instance
+from .task_result import TaskResult
 from .action_workflow import _Workflow
 from ..eval.cache import ResultCache
 from ..code.unwrap import into_action
@@ -253,28 +254,29 @@ class Scheduler:
 
 
 
-@attr.s(auto_attribs=True)
-class Result:
-    input: bytearray
-    result: bytearray
-    result_hash: bytes
-
-    @staticmethod
-    def make_result(input, result):
-        input = data.serialize(input)
-        result = data.serialize(result)
-        res_hash = data.hash_fn(result)
-        return Result(input, result, res_hash)
-
-    def extract_result(self):
-        return deserialize(self.result)
-
-
+# @attr.s(auto_attribs=True)
+# class Result:
+#     input: bytearray
+#     result: bytearray
+#     result_hash: bytes
+#
+#     @staticmethod
+#     def make_result(input, result):
+#         input = data.serialize(input)
+#         result = data.serialize(result)
+#         res_hash = data.hash_fn(result)
+#         return Result(input, result, res_hash)
+#
+#     def extract_result(self):
+#         return deserialize(self.result)
 
 
 
 
-DataOrDummy = Union[dtype.DataType, Dummy, DummyAction]
+
+ActionOrDummy = Union[dtype._ActionBase, DummyAction, DummyWorkflow]
+DataOrDummy = Union[dtype.DataType, Dummy, DummyAction, DummyWorkflow]
+
 
 class Evaluation:
     """/
@@ -302,24 +304,7 @@ class Evaluation:
     :param inputs:
     :return: List of all tasks.
     """
-    @staticmethod
-    def make_analysis(action: dtype._ActionBase, inputs:List[DataOrDummy]):
-        """
-        Bind values 'inputs' as parameters of the action using the Value action wrappers,
-        returns a workflow without parameters.
-        :param action:
-        :param inputs:
-        :return: a bind workflow instance
-        """
-        #assert action.parameters.is_variadic() or len(inputs) == action.parameters.size()
-        bind_name = 'all_bind_' + action.name
-        workflow = _Workflow(bind_name)
 
-        args = [into_action(arg) for arg in inputs]
-        bind_action = instance.ActionCall.create(action, *args)
-            #assert bind_action.arguments[i].status >= instance.ActionInputStatus.seems_ok
-        workflow.set_action_input(workflow.result_call, 0, bind_action)
-        return workflow
 
 
 
@@ -388,6 +373,38 @@ class Evaluation:
         :return: List of invalid or possibly invalid connections.
         """
         return []
+
+    def _make_analysis(self, action: ActionOrDummy, args:List[DataOrDummy], kwargs:Dict['str', DataOrDummy]):
+        """
+        Bind values 'inputs' as parameters of the action using the Value action wrappers,
+        returns a workflow without parameters.
+        :param action:
+        :param inputs:
+        :return: a bind workflow instance
+        """
+        #assert action.parameters.is_variadic() or len(inputs) == action.parameters.size()
+        if isinstance(action, DummyAction):
+            action = action._action_value
+        if isinstance(action, DummyWorkflow):
+            action = action.workflow
+
+        bind_name = 'all_bind_' + action.name
+        workflow = _Workflow(bind_name)
+
+        args_ = [into_action(arg) for arg in args]
+        kwargs_ = {key: into_action(arg) for (key, arg) in kwargs.items()}
+        bind_action = instance.ActionCall.create(action, *args_, **kwargs_)
+            #assert bind_action.arguments[i].status >= instance.ActionInputStatus.seems_ok
+        workflow.set_action_input(workflow.result_call, 0, bind_action)
+        return workflow
+
+    def run(self, action, *args, **kwargs) -> TaskResult:
+        """
+        Evaluate given action with given arguments.
+        :return:
+        """
+        analysis = self._make_analysis(action, args, kwargs)
+        return self.execute(analysis)
 
     def execute(self, analysis) -> task_mod.TaskSchedule:
         """
@@ -515,42 +532,14 @@ class Evaluation:
 
 
 def run(action: Union[dtype._ActionBase, DummyAction],
-        inputs:List[DataOrDummy] = None,
-        **kwargs) -> dtype.DataType:
+        *args: DataOrDummy,
+        **kwargs: DataOrDummy) -> dtype.DataType:
     """
-    Run the 'action' with given arguments 'inputs'.
-    Return the data result.
+    Use default evaluation setup (local resource only) to evaluate the
+    'action' with given arguments 'args' and 'kwargs',
+     return just the resulting value not the evaluation structure (TaskResult).
     """
-    if isinstance(action, DummyAction):
-        action = action._action_value
-    if isinstance(action, DummyWorkflow):
-        action = action.workflow
-    if inputs is None:
-        inputs = []
-    analysis = Evaluation.make_analysis(action, inputs)
-    eval_obj = Evaluation(**kwargs)
-    final_task = eval_obj.execute(analysis)
-    return final_task.result
+    return Evaluation().run(action, *args, **kwargs).result
 
 
 
-class TaskResult:
-    """
-    Wrapper to traverse the evaluation tree.
-    """
-    def __init__(self, task, cache):
-        self._cache = cache
-        self._task: task.TaskSchedule = task
-        try:
-            self._childs = self._task.childs
-        except:
-            self._childs = None
-        if self._childs is None:
-            self._childs = {}
-
-    @property
-    def result(self):
-        return self._cache.value(self._task.result_hash)
-
-    def child(self, key):
-        return TaskResult(self._childs[key], self._cache)

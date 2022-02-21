@@ -53,9 +53,9 @@ def wf_condition(cond: int) -> int:
 
 
 def test_if_action():
-    result = evaluation.run(wf_condition, [True])
+    result = evaluation.run(wf_condition, True)
     assert result == 101
-    result = evaluation.run(wf_condition, [False])
+    result = evaluation.run(wf_condition, False)
     assert result == 100
 
 
@@ -70,9 +70,9 @@ def wf_condition(cond: int) -> int:
 
 
 def test_if_action():
-    result = evaluation.run(wf_condition, [True])
+    result = evaluation.run(wf_condition, True)
     assert result == 101
-    result = evaluation.run(wf_condition, [False])
+    result = evaluation.run(wf_condition, False)
     assert result == 100
 
 
@@ -95,7 +95,7 @@ def lazy_wf():
 
 def test_lazy():
     #result = evaluation.run(lazy_wf, [], plot_expansion=True)
-    result = evaluation.run(lazy_wf, [])
+    result = evaluation.run(lazy_wf)
     assert result[0] == "lazy_action(4 1 (5,) 2 7 {'c': 3})"
     assert result[1] == "lazy_action(100 101 (102,) a b {'d': 'd'})"
 
@@ -108,7 +108,7 @@ def lazy_wf_err_1():
 @pytest.mark.skip
 def test_lazy_errors():
     with pytest.raises(exceptions.ExcArgumentBindError) as e:
-        result = evaluation.run(lazy_wf_err_1, [])
+        result = evaluation.run(lazy_wf_err_1)
 
 #####
 # test recursion
@@ -150,7 +150,7 @@ def fac(i:int):
 
 @pytest.mark.skip
 def test_recursion():
-    result = evaluation.run(fac, [4])
+    result = evaluation.run(fac, 4)
     assert result == 24
 
 # TODO:
@@ -174,7 +174,7 @@ def outer_wf(i: int):
 # nested workflow def yet to be implemented
 @pytest.mark.skip
 def test_nested_wf():
-    result = evaluation.run(outer_wf, [4])
+    result = evaluation.run(outer_wf, 4)
     assert result == 4
 
 

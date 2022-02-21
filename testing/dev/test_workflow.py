@@ -1,10 +1,13 @@
+import pytest
+import visip as wf
 from visip.dev import action_instance as instance
-from visip.dev import action_workflow as wf
+from visip.dev import action_workflow as awf
 from visip.action import constructor
+from visip.dev import evaluation
 from visip.dev.parameters import ActionParameter
 
 def test_workflow_modification():
-    w = wf._Workflow("tst_wf")
+    w = awf._Workflow("tst_wf")
 
     ## Slot modifications
     # insert_slotg_data_item
@@ -84,3 +87,13 @@ def test_workflow_modification():
     res = w.set_action_input(list_2, 0, list_1)     # Cycle
     assert not res
     assert len(list_2.arguments) == 0
+
+
+@wf.workflow
+def var_args(self, *args):
+    return wf.tuple(self.args[0], self.args[1])
+
+@pytest.mark.skip
+def test_workflow_parameters():
+    res = evaluation.run(var_args, 1, 2, 3)
+    assert res == [1,2,3]

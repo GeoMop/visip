@@ -97,3 +97,4 @@ class TaskBinding:
     action: '_ActionBase'
     id_args_pair: ArgsPair[int]
     inputs: List['Task']
+

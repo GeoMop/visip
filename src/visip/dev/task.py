@@ -4,7 +4,6 @@ from . import data
 from . import base
 from ..eval import cache
 from .tools import compose_arguments, TaskBinding
-from .meta import _Closure
 
 class Status(enum.IntEnum):
     none = 0

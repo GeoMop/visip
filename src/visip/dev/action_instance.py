@@ -147,7 +147,7 @@ class ActionCall:
         """ The Action (instance of _ActionBase), have defined parameter. """
         
         self._arguments : List[ActionArgument] = []
-        # input values - connected action calls, avery represented by ActionArgument (action_call, status, param)
+        # input values - connected action calls, every represented by ActionArgument (action_call, status, param)
         # ActionCall is marked invalid by setting _arguments to None
 
 
