@@ -1,5 +1,6 @@
 import visip as wf
 import analysis_in as tool
+#import analysis_in
 
 
 
@@ -15,3 +16,5 @@ def xflip(square):
 @wf.workflow
 def dependent_action():
     return tool.test_dict(0, 2, 1)    # result: (1. 2)
+
+# Try to use action_lib.add_float

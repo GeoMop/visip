@@ -19,3 +19,6 @@ class ResultCache:
 
     def insert(self, hash, value):
         self.cache[hash] = value
+
+    def is_finished(self, hash_int:int) -> bool:
+        return self.value(hash_int) is not ResultCache.NoValue

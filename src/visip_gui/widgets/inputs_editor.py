@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QTreeWidget
 from pyqtgraph import parametertree, TreeWidget
 from pyqtgraph.parametertree import ParameterItem
 
-from visip.dev.base import _ActionBase
+from visip.dev import dtype
 from visip_gui.parameter_tree_custom.eval_param import EvalParam
 
 from visip.dev.action_workflow import _Workflow
@@ -85,7 +85,7 @@ class InputsEditor(parametertree.ParameterTree):
             item.showEditor()
         else:
             if not  isinstance(item.param.arg.value.action, _Value) or\
-                    isinstance(item.param.arg.value.action.value, _ActionBase):
+                    isinstance(item.param.arg.value.action.value, dtype._ActionBase):
                 i = self.g_action.w_data_item.arguments.index(item.param.arg)
                 conn = self.g_action.in_ports[i].connections[0]
                 self.g_action.scene()._delete_connection(conn)

@@ -73,7 +73,7 @@ class TypeInspector_36:
 
     def is_callable(self, xtype):
         try:
-            return issubclass(xtype, base._ActionBase)
+            return issubclass(xtype, dtype._ActionBase)
         except:
             return False
 

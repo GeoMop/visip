@@ -5,7 +5,7 @@ from ..dev import dtype
 from ..dev.extract_signature import  _extract_signature
 
 
-class GetAttribute(base._ActionBase):
+class GetAttribute(base.ActionBase):
     """
     Return a class attribute for given fixed key.
     TODO: Do we really need the "configuration" data?
@@ -13,6 +13,7 @@ class GetAttribute(base._ActionBase):
     def __init__(self):
         signature = _extract_signature(self._evaluate)
         super().__init__(signature=signature)
+        self.action_kind = base.ActionKind.Generic
 
     def call_format(self, representer, action_name, arg_names, arg_values):
         assert len(arg_names) == 2
@@ -27,7 +28,7 @@ class GetAttribute(base._ActionBase):
         return data_class.__getattribute__(key)
 
 
-class GetItem(base._ActionBase):
+class GetItem(base.ActionBase):
     """
     Return item of a list or dict given by index or key.
     Note: Possibly we can distinguish GetItem and GetKey and have better typechecking for the index.
@@ -35,6 +36,7 @@ class GetItem(base._ActionBase):
     def __init__(self):
         signature = _extract_signature(self._evaluate)
         super().__init__(signature=signature)
+        self.action_kind = base.ActionKind.Generic
 
     def call_format(self, representer, action_name, arg_names, arg_values):
         assert len(arg_names) == 2

@@ -7,10 +7,11 @@ from ..action.constructor import Value, A_list, A_dict, A_tuple
 from .type_inspector import TypeInspector
 from enum import IntEnum
 from .exceptions import ExcTypeBase, ExcArgumentBindError, ExcConstantKey, ExcActionExpected
-from ..code.dummy import Dummy, DummyAction
-from ..dev import dtype
+from ..code.dummy import Dummy, DummyAction, DummyWorkflow
+from . import dtype
 
 class ActionInputStatus(enum.IntEnum):
+    error_default =  -5  # Invalid default value.
     error_impl  = -4     # Missing type hint or other error in the action implementation.
     missing     = -3     # missing value
     error_value = -2     # error input passed, can not be wrapped into an action
@@ -52,7 +53,6 @@ class ActionArgument:
 
 
 
-
 class ActionCall:
     @staticmethod
     def action_wrap(value: Any) -> 'ActionCall':
@@ -74,10 +74,12 @@ class ActionCall:
             action_call = value._value
             assert isinstance(action_call, ActionCall)
             return action_call
-        elif isinstance(value, DummyAction):
+        elif isinstance(value, (DummyAction, DummyWorkflow)):
             action = value._action_value
-            assert isinstance(action, base._ActionBase)
+            assert isinstance(action, dtype._ActionBase)
             return action
+        elif value is dtype.empty:
+            return value
         elif type(value) is list:
             args = [ActionCall._into_action(val) for val in value]
             if any(isinstance(arg, ActionCall) for arg in args):
@@ -132,7 +134,7 @@ class ActionCall:
     The call of an action within a workflow. ActionInstance objects are vertices of the
     call graph (DAG).
     """
-    def __init__(self, action : base._ActionBase, name : str = None) -> None:
+    def __init__(self, action: dtype._ActionBase, name : str = None) -> None:
         self.name = name
         """ The instance name. (i.e. name of variable containing this instance.)
             This also seerves as a unique id within the workflow.
@@ -178,17 +180,18 @@ class ActionCall:
         :param args:
         :param kwargs:
         :return:
+        TODO: Make a global error buffer, report errors there so that
+        all parsing can proceed, possibly we can stop at given number of errors.
+        Then we can remove create_and_check
         """
-        assert isinstance(action, base._ActionBase), f"{action.__name__}, {action.__class__}"
+        assert isinstance(action, dtype._ActionBase), f"{action.__name__}, {action.__class__}"
         instance = ActionCall(action)
-        errors = instance.set_inputs(args, kwargs)
-        if errors:
+        instance.errors = instance.set_inputs(args, kwargs)
+        if instance.errors:
             # TODO: report also missing arguments, possibly in _arg_split
-            arg, err = errors[0]
-
+            arg, err = instance.errors[0]
             raise ExcArgumentBindError(f"Action {str(action)}, binding error: {str(err)}, for argument: {arg}.")
         return instance
-
 
     @property
     def parameters(self):
@@ -220,6 +223,11 @@ class ActionCall:
             is_default, value = param.get_default()
             if is_default:
                 value = ActionCall.into_action(value)
+                # if TypeInspector().is_subtype(value.output_type, param.type):
+                #     status = ActionInputStatus.default
+                #
+                # else:
+                #     return ActionArgument(param, value, is_default, ActionInputStatus.error_default)
         status = ActionInputStatus.seems_ok
         if value is None:
             status = ActionInputStatus.missing
@@ -262,6 +270,7 @@ class ActionCall:
         DUPLICATE = 2
         POSITIONAL_OVER = 3
         KEYWORD_OVER = 4
+        MISSING = 5
 
     InputDict = Dict[str, 'ActionCall']
     InputList = List['ActionCall']
@@ -341,6 +350,8 @@ class ActionCall:
         kwargs_param = None
         #for param in itertools.chain(parameters_ex, parameters):
         for param in parameters:
+            if param.kind == param.POSITIONAL_ONLY:
+                errors.append( (arg, self.BindError.MISSING_POSSITIONAL) )
 
             if param.kind == param.VAR_KEYWORD:
                 # Memorize that we have a '**kwargs'-like parameter
@@ -378,6 +389,14 @@ class ActionCall:
                 errors.extend([(arg, self.BindError.KEYWORD_OVER) for k, arg in kwargs.items()])
 
         return bound_args, errors
+
+    def check_arguments(self):
+        errors = []
+        assert len(self.arguments) == len(self.action.parameters)
+        for a in self.arguments:
+            if a.status < ActionInputStatus.error_type:
+                errors.append((a, self.BindError.MISSING))
+        return errors
 
 
     def set_name(self, instance_name: str):

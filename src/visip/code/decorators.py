@@ -4,15 +4,15 @@ import typing
 import attr
 #from ..code import wrap
 from ..dev import dtype
-from ..dev import base
+from ..dev.base import ActionBase
 from ..dev import action_workflow as wf
 from ..action import constructor
 from ..action.action_factory import ActionFactory
 from ..dev.extract_signature import unwrap_type, _extract_signature, ActionParameter
 from ..dev import exceptions
-from .dummy import DummyAction, Dummy
+from .dummy import DummyAction, Dummy, DummyWorkflow
 
-def public_action(action: base._ActionBase):
+def public_action(action: dtype._ActionBase):
     """
     Decorator makes a wrapper function for an action that should be used explicitly in a workflow.
     A wrapper is called instead of the action constructor in order to:
@@ -29,19 +29,20 @@ def workflow(func) -> DummyAction:
     """
     Decorator to crate a Workflow class from a function.
     """
-    new_workflow = wf._Workflow.from_source(func)
-    return public_action(new_workflow)
+    return DummyWorkflow(ActionFactory.instance(), func)
 
 
 def analysis(func):
     """
     Decorator for the main analysis workflow of the module.
     """
-    w: DummyAction = workflow(func)
-    assert isinstance(w._action_value, wf._Workflow)
-    workflow_action = w._action_value
-    assert len(workflow_action._slots) == 0
-    workflow_action.is_analysis = True
+    w: DummyWorkflow = workflow(func)
+    # analysis have no parameters so it can not be resursive
+    # we make workflow instance.
+    wflow = w.workflow
+    assert isinstance(wflow, wf._Workflow)
+    assert len(wflow._slots) == 0
+    wflow.is_analysis = True
     return w
 
 
@@ -123,7 +124,7 @@ def action_def(func):
         raise exceptions.ExcTypeBase(f"Wrong signature of action:  {func.__module__}.{func.__name__}") from e
     action_name = func.__name__
     action_module = func.__module__  # attempt to fix imported modules, but it brakes chained (successive) imports
-    action = base._ActionBase(action_name, signature)
+    action = ActionBase(action_name, signature)
     action.__module__ = func.__module__
     action.__name__ = func.__name__
     action._evaluate = func

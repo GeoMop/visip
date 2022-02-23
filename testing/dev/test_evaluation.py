@@ -28,18 +28,19 @@ def test_evaluation(src_file):
     eval = evaluation.Evaluation()
     result = eval.execute(analysis)
 
-    assert isinstance(result, task.Composed)
-    assert isinstance(result.result, Point._data_class)
-    assert result.result.x == 0
-    assert result.result.y == 3
+    assert isinstance(result._task, task.Composed)
+    res = result.result
+    assert isinstance(res, Point._data_class)
+    assert res.x == 0
+    assert res.y == 3
 
     # first level workflow
-    assert result.action == analysis
-    assert result.child('Value_1').action.value == pa
+    assert result._task.action == analysis
+    assert result.child('Value_1')._task.action.value == pa
     test_wf_task = result.child('test_class_1')
 
     # second level workflow
-    assert test_wf_task.action == wf_test_class
+    assert test_wf_task._task.action == wf_test_class
     assert test_wf_task.child('a').result.x == 0
     assert test_wf_task.child('a').result.y == 1
     assert test_wf_task.child('b').result.x == 2

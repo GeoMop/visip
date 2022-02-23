@@ -5,6 +5,19 @@ import builtins
 import enum
 
 
+class _ActionBase:
+    pass
+
+class TypeBase:
+    # Future base class of all type hint classes
+    pass
+
+class _Empty(_ActionBase):
+    pass
+empty = _Empty()
+# Singleton value marking empty arguments of the Lazy action
+
+
 class Singleton(type):
     _instances = {}
 
@@ -20,6 +33,10 @@ class DataClassBase:
     Implement some common methods for hashing, and serialization.
     """
     pass
+
+
+valid_base_types = (bool, int, float, complex, str)
+valid_data_types = (*valid_base_types, list, dict, DataClassBase)
 
 
 class DType:
