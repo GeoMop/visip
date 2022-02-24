@@ -9,6 +9,7 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 
 
 
+@pytest.mark.skip
 @pytest.mark.parametrize("src_file", ["analysis_in.py", "dep_module_in.py", 'quadrature_in.py', 'wf_complex_in.py', 'import_user_defs_in.py', 'meta_actions_in.py'])
 #@pytest.mark.parametrize("src_file", ['meta_actions_in.py'])
 #@pytest.mark.parametrize("src_file", ["analysis_in.py", "dep_module_in.py", 'quadrature_in.py'])

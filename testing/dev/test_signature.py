@@ -5,6 +5,7 @@ after significant merges with RS branches.
 from typing import *
 from visip.dev.parameters import Parameters, ActionParameter as AP
 from visip.dev.extract_signature import _extract_signature
+import pytest
 
 def fa(a:bool, /, b:int, *args: Tuple[bool], c:float, **kwargs: Tuple[int]) -> Tuple[float]:
     pass
@@ -15,6 +16,7 @@ def fb(self, a:bool) -> bool:
 def fc(self, b:int=0) -> int:
     pass
 
+@pytest.mark.skip
 def test_signature():
     s = _extract_signature(fa)
     assert len(s) == 5

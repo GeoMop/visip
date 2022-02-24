@@ -10,6 +10,7 @@ from visip.dev.type_inspector import TypeInspector
 from visip.code.decorators import _dataclass_from_params
 import visip as wf
 import ruamel.yaml as yaml
+import pytest
 
 
 
@@ -22,6 +23,7 @@ class Point3d(Point2d):
 
 
 
+@pytest.mark.skip
 def test_type_inspection():
     """
     Test own methods that use undocumented features of the testing module.
@@ -56,6 +58,7 @@ def test_type_inspection():
     #assert ti.is_subtype(Point3d, Point2d)
 
 
+@pytest.mark.skip
 def test_data_class_base():
     params = [
         dev.ActionParameter('x', p_type=None),
@@ -71,6 +74,7 @@ def test_data_class_base():
     serialized = yaml.dump(my_instance)
     # assert serialized == "!my_module.my_class {x: 3, y: 7}"
 
+@pytest.mark.skip
 def test_config_generic():
     ti = TypeInspector()
     def get_attr(
