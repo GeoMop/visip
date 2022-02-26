@@ -202,9 +202,17 @@ class TypeVar(DTypeBase):
 
 
 class NewType(DTypeBase):
-    def __init__(self, origin_type):
-        self.origin_type = origin_type
-        self.supertype = from_typing(origin_type.__supertype__)
+    def __init__(self, supertype, name=""):
+        if isinstance(supertype, DType):
+            self.origin_type = None
+            self.supertype = supertype
+            self.name = name
+        else:
+            origin_type = supertype
+            assert typing_inspect.is_new_type(origin_type)
+            self.origin_type = origin_type
+            self.supertype = from_typing(origin_type.__supertype__)
+            self.name = origin_type.__name__
 
     def typevar_set(self):
         return self.supertype.typevar_set()
@@ -415,7 +423,8 @@ def is_equaltype(type, other):
     # NewType
     elif isinstance(type, NewType):
         if isinstance(other, NewType):
-            return type.origin_type is other.origin_type
+            return type is other or (type.origin_type is not None and other.origin_type is not None and
+                                     type.origin_type is other.origin_type)
 
     # Int, Float, Bool, Str, NoneType
     elif isinstance(type, (Int, Float, Bool, Str, NoneType)):
@@ -492,12 +501,11 @@ def is_subtype_map(subtype, type, var_map, const=False):
     # if type is NewType, than subtype must be appropriate NewType or subtype of supertype
     elif isinstance(subtype, NewType):
         if isinstance(type, NewType):
-            if type.origin_type is subtype.origin_type:
+            if type is subtype or (type.origin_type is not None and subtype.origin_type is not None and
+                                   type.origin_type is subtype.origin_type):
                 return True, var_map
         else:
-            b, vm = is_subtype_map(subtype.supertype, type, var_map, const)
-            if b:
-                return True, _vm_merge(var_map, vm)
+            return is_subtype_map(subtype.supertype, type, var_map, const)
 
     # if subtype is Int, Float, Str, NoneType, type must be the same
     elif isinstance(subtype, (Int, Float, Str, NoneType)):

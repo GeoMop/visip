@@ -362,6 +362,13 @@ def test_is_equaltype():
     assert not eq(t, dt.Int())
     assert not eq(t, u)
 
+    t = dt.NewType(dt.Int(), "NT1")
+    u = dt.NewType(dt.Int(), "NT2")
+
+    assert eq(t, t)
+    assert not eq(t, dt.Int())
+    assert not eq(t, u)
+
 
 def test_is_subtype():
     dt = dtype
@@ -497,6 +504,14 @@ def test_is_subtype():
     # NewType
     t = dt.NewType(typing.NewType("NT1", int))
     u = dt.NewType(typing.NewType("NT2", int))
+
+    assert sub(t, t)
+    assert sub(t, dt.Int())
+    assert not sub(dt.Int(), t)
+    assert not sub(t, u)
+
+    t = dt.NewType(dt.Int(), "NT1")
+    u = dt.NewType(dt.Int(), "NT2")
 
     assert sub(t, t)
     assert sub(t, dt.Int())
