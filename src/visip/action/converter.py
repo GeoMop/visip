@@ -1,4 +1,3 @@
-from typing import *
 from ..dev import base
 from .constructor import Value
 from ..dev import dtype
@@ -24,7 +23,7 @@ class GetAttribute(base.ActionBase):
         data_class_token = representer.token(arg_names[1])
         return representer.format(data_class_token, ".{}".format(key_name))
 
-    def _evaluate(self, key: dtype.Const(str), data_class: Any) -> Any:
+    def _evaluate(self, key: dtype.Const(dtype.Str()), data_class: dtype.Any()) -> dtype.Any():
         return data_class.__getattribute__(key)
 
 
@@ -42,7 +41,7 @@ class GetItem(base.ActionBase):
         assert len(arg_names) == 2
         return representer.format(representer.token(arg_names[0]), "[", representer.token(arg_names[1]), "]")
 
-    def _evaluate(self, data_list: List[Any], idx: int) -> Any:
+    def _evaluate(self, data_list: dtype.List(dtype.Any()), idx: dtype.Int()) -> dtype.Any():
         return data_list[idx]
 
 

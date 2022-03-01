@@ -40,7 +40,7 @@ class ActionParameter:
     @property
     def type(self):
         if self._type is None:
-            return Any
+            return dtype.Any()
         else:
             return self._type
 
@@ -88,7 +88,7 @@ class Parameters:
     def return_type(self):
         rt = self._return_type
         if rt is None:
-            return Any
+            return dtype.Any()
         else:
             return rt
 

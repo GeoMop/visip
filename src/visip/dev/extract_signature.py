@@ -46,6 +46,7 @@ def _parameter_from_inspect(param: inspect.Parameter) -> 'ActionParameter':
 
 
 def _check_type_var(parameters):
+    # todo: possible move to class Parameters
     in_set = set()
     for param in parameters.parameters:
         in_set.update(dtype.extract_type_var(param.type))

@@ -36,7 +36,7 @@ class _Result(_ListBase):
         params = []
         params.append(ActionParameter(name="result", p_type=out_type, default=ActionParameter.no_default))
         # The return value, there should be always some return value, as we want to use "functional style".
-        params.append(ActionParameter(name='args', p_type=Any, default=ActionParameter.no_default,
+        params.append(ActionParameter(name='args', p_type=dtype.Any(), default=ActionParameter.no_default,
                                       kind=ActionParameter.VAR_POSITIONAL))
         self._parameters = Parameters(params, return_type=out_type)
         # The "side effects" of the workflow.
