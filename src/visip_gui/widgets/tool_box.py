@@ -6,7 +6,9 @@ from visip import _Slot
 from visip.code.dummy import Dummy
 from visip.dev.action_instance import ActionCall
 from visip.dev.action_workflow import _SlotCall
-from visip.code.wrap import ActionWrapper
+from visip.code.dummy import DummyAction
+from visip.dev import dtype
+
 from visip_gui.config.config_data import ConfigData
 from visip_gui.data.tree_item import TreeItem
 from visip_gui.dialogs.import_module import ImportModule
@@ -97,7 +99,7 @@ class ToolBox(QToolBox):
             for m in module.imported_modules:
                 item = None
                 for obj in m.__dict__.values():
-                    if issubclass(type(obj), ActionWrapper):
+                    if issubclass(type(obj), DummyAction):
                         item = obj
                         break
                 if item is not None:
@@ -105,8 +107,8 @@ class ToolBox(QToolBox):
                     module_category = ActionCategory(module_name)
                     self.action_database[module_name] = {}
                     for name, obj in m.__dict__.items():
-                        if issubclass(type(obj), ActionWrapper):
-                            item = obj.action
+                        if issubclass(type(obj), DummyAction):
+                            item = obj._action_value
                             g_action = GAction(TreeItem([item.name, 0, 0, 50, 50]),
                                                 ActionCall.create(item))
                             g_action.hide_name(True)
@@ -120,7 +122,7 @@ class ToolBox(QToolBox):
                         index = 0
                         for action in visip.base_system_actions:
                             if isinstance(action, _Slot):
-                                inst = _SlotCall("Slot")
+                                inst = _SlotCall("Slot", None)
                                 g_action = GInputAction(TreeItem(["Input", 0, 0, 50, 50]), inst)
                                 g_action.hide_name(True)
                                 ToolboxView(g_action, module_category, index)

@@ -1,5 +1,5 @@
 import visip as wf
-from visip.dev import dtype_new, dtype
+from visip.dev import dtype
 
 import typing
 
@@ -14,7 +14,7 @@ def wf_check_type_error(fun):
 
 
 def wf_in_types(wf):
-    return [slot.actual_output_type for slot in wf.action.slots]
+    return [slot.actual_output_type for slot in wf.workflow.slots]
 
 
 def wf_out_type(wf):
@@ -66,13 +66,14 @@ def test_workflow_types():
     @wf.workflow
     def wf_add(a: int, b: int) -> int:
         return add(a, b)
+    #wf_add.workflow
 
     @wf.workflow
     def wf_add2(a, b):
         return add(a, b)
-    assert dtype_new.is_equaltype(wf_in_types(wf_add2)[0], dtype_new.Int())
-    assert dtype_new.is_equaltype(wf_in_types(wf_add2)[1], dtype_new.Int())
-    assert dtype_new.is_equaltype(wf_out_type(wf_add2), dtype_new.Int())
+    assert dtype.is_equaltype(wf_in_types(wf_add2)[0], dtype.Int())
+    assert dtype.is_equaltype(wf_in_types(wf_add2)[1], dtype.Int())
+    assert dtype.is_equaltype(wf_out_type(wf_add2), dtype.Int())
 
     @wf.workflow
     def wf_add_inc(a: int, b: int) -> int:
@@ -90,29 +91,29 @@ def test_workflow_types():
     @wf.workflow
     def wf_first(a):
         return first(a)
-    assert dtype_new.is_equaltype(wf_in_types(wf_first)[0], dtype_new.List(wf_out_type(wf_first)))
+    assert dtype.is_equaltype(wf_in_types(wf_first)[0], dtype.List(wf_out_type(wf_first)))
 
     @wf.workflow
     def wf_to_list(a):
         return to_list(a)
-    assert dtype_new.is_equaltype(dtype_new.List(wf_in_types(wf_to_list)[0]), wf_out_type(wf_to_list))
+    assert dtype.is_equaltype(dtype.List(wf_in_types(wf_to_list)[0]), wf_out_type(wf_to_list))
 
     @wf.workflow
     def wf_first_inc(a):
         return inc(first(a))
-    assert dtype_new.is_equaltype(wf_in_types(wf_first_inc)[0], dtype_new.List(dtype_new.Int()))
+    assert dtype.is_equaltype(wf_in_types(wf_first_inc)[0], dtype.List(dtype.Int()))
 
     @wf.workflow
     def wf_first_to_list(a):
         return to_list(first(a))
-    assert isinstance(wf_in_types(wf_first_to_list)[0], dtype_new.List)
-    assert dtype_new.is_equaltype(wf_in_types(wf_first_to_list)[0], wf_out_type(wf_first_to_list))
+    assert isinstance(wf_in_types(wf_first_to_list)[0], dtype.List)
+    assert dtype.is_equaltype(wf_in_types(wf_first_to_list)[0], wf_out_type(wf_first_to_list))
 
     @wf.workflow
     def wf_first_inc_to_list(a):
         return to_list(inc(first(a)))
-    assert dtype_new.is_equaltype(wf_in_types(wf_first_inc_to_list)[0], dtype_new.List(dtype_new.Int()))
-    assert dtype_new.is_equaltype(wf_out_type(wf_first_inc_to_list), dtype_new.List(dtype_new.Int()))
+    assert dtype.is_equaltype(wf_in_types(wf_first_inc_to_list)[0], dtype.List(dtype.Int()))
+    assert dtype.is_equaltype(wf_out_type(wf_first_inc_to_list), dtype.List(dtype.Int()))
 
 
     # workflows, typing error

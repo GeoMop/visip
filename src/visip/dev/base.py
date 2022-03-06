@@ -1,28 +1,13 @@
 import enum
 from . import data
-from .parameters import Parameters, extract_func_signature
-
-
-
+from . import dtype
+from .parameters import Parameters
+from ..dev import dtype
+from .exceptions import ExcActionExpected
 # Name for the first parameter of the workflow definiton function that is used
 # to capture instance names.
 _VAR_="self"
 
-
-class ExcMissingArgument(Exception):
-    pass
-
-class ExcActionExpected(Exception):
-    pass
-
-class ExcTooManyArguments(Exception):
-    pass
-
-class ExcUnknownArgument(Exception):
-    pass
-
-class ExcDuplicateArgument(Exception):
-    pass
 
 
 
@@ -31,9 +16,22 @@ class TaskType(enum.Enum):
     Composed = 2
 
 
+class ActionKind(enum.IntEnum):
+    """
+    Indicates some restrictions on the resource used for evaluation of the action.
+    Meta actions should lead to Composed tasks, that are mostly expanded not evaluated.
+    ... needs refined description.
+    TODO: After stabilization of the metaactions should be extened to a concept of ActionRequirement
+    e.g. an action requires MPI or GPU etc. However would be better if the action can run everywhere but possibly with
+    limited efficiency, other wise we loose on portability.
+    """
+    Regular = 1  # input and output have specific type
+    Meta = 2     # input or output is function / action
+    Generic = 3  # input or output is generic type
 
 
-class _ActionBase:
+
+class ActionBase(dtype._ActionBase):
 
     """
     Base of all actions.
@@ -42,29 +40,38 @@ class _ActionBase:
     - implement expansion to the Task DAG.
     - have _code representation
     """
-    def __init__(self, action_name = None, action_module="visip"):
+    def __init__(self, action_name = None, signature = None):
         self.task_type = TaskType.Atomic
+        self.action_kind = ActionKind.Regular
         self.is_analysis = False
-        self.name = action_name or self.__class__.__name__
-        self.__module__ = action_module
+        if action_name is None:
+            action_name = self.__class__.__name__
+        self.name = action_name
         self.__name__ = self.name
+
         # Module where the action is defined.
-        self._parameters = None
+        if signature is None:
+            signature = Parameters([])
+        # self.check_type_annotations(signature)
+        # turn annotation checking once we provide automatic derivation of the workflow types
+        # that makes explicit annotations of the workflows optional, but imperative for other actions
+
+        self._parameters = signature
         # Parameter specification list, class attribute, no parameters by default.
-        self._output_type = None
-        # Output type of the action, class attribute.
         # Both _parameters and _outputtype can be extracted from type annotations of the evaluate method using the _extract_input_type.
 
+    def __str__(self):
+        return self.name
 
-    @property
-    def module(self):
-        """
-        Module prefix used in code generationn.
-        :return:
-        """
-        #TODO: TB - I think this property became obsolete. Also it currently doesn't work because __visip_module__ doesn't exist
-        assert self.__visip_module__
-        return self.__visip_module__
+    # @property
+    # def module(self):
+    #     """
+    #     Module prefix used in code generationn.
+    #     :return:
+    #     """
+    #     #TODO: TB - I think this property became obsolete. Also it currently doesn't work because __visip_module__ doesn't exist
+    #     assert self.__visip_module__
+    #     return self.__visip_module__
 
     def action_hash(self):
         """
@@ -77,25 +84,10 @@ class _ActionBase:
         """
         return data.hash(self.name)
 
-
-    def _extract_input_type(self, func=None, skip_self=True) -> None:
-        """
-        Extract input and output types of the action from its evaluate method.
-        Only support fixed numbeer of parameters named or positional.
-        set: cls._input_type, cls._output_type
-        """
-        if self._parameters is not None:
-            return
-        if func is None:
-            func = self._evaluate
-        self._parameters, self._output_type = extract_func_signature(func, skip_self)
-        self.check_type_annotations()
-        self.check_type_var()
-
-    def check_type_annotations(self):
-        for param in self.parameters:
+    def check_type_annotations(self, params: Parameters):
+        for param in params.parameters:
             assert param.type is not None, "Missing type annotation of parameter: {}  of action: {}".format(param.name, self.name)
-        assert self.output_type is not None, "Missing return type annotation of action: {}".format(self.name)
+        assert params.return_type is not None, "Missing return type annotation of action: {}".format(self.name)
 
     def check_type_var(self):
         from visip.dev import dtype_new
@@ -107,24 +99,22 @@ class _ActionBase:
 
     @property
     def output_type(self):
-        self._extract_input_type()
-        return self._output_type
+        return self.parameters.return_type
 
 
     @property
     def parameters(self):
-        self._extract_input_type()
         return self._parameters
 
 
-    def evaluate(self, inputs):
+    def evaluate(self, *args, **kwargs):
         """
         Common evaluation function for all actions.
         Call _evaluate which actually implements the action.
         :param inputs: List of arguments.
         :return: action result
         """
-        return self._evaluate(*inputs)
+        return self._evaluate(*args, **kwargs)
 
 
     def _evaluate(self):
@@ -158,31 +148,34 @@ class _ActionBase:
         :param arg_names ... action_call names within workflow
         :param arg_values ... action_calls
         :return: Format ... basically list of strings and placeholders (for argument values).
+        TODO: modify to represent to deal with new scheme of arguments as dict.
         """
         args = []
+        have_variadic = any(p.kind == p.VAR_POSITIONAL for p in self.parameters)
         for i, arg in enumerate(arg_names):
-            if  self.parameters.is_variadic():
+            param = self.parameters.at(i)
+            if param.kind == param.POSITIONAL_ONLY or \
+               param.kind == param.POSITIONAL_OR_KEYWORD and have_variadic or\
+               param.kind == param.VAR_POSITIONAL:
                 param_name = None
             else:
-                param = self.parameters.get_index(i)
-                assert param is not None
+                assert param.name is not None
                 param_name = param.name
             args.append( (param_name, arg) )
         return representer.action_call(full_action_name, *args)
 
 
 
-    def validate(self, inputs):
-        return self.evaluate(inputs)
+    # def validate(self, inputs):
+    #     return self.evaluate(inputs)
 
 
     def code_of_definition(self, representer):
         # TODO: make derived class for actions implemented in user module
         # and move thic method there
-        from ..dev import dtype_new
 
         type_code = representer.type_code(self.output_type)
-        type_code = representer.make_rel_name(dtype_new.to_typing(self.output_type).__module__, type_code)
+        type_code = representer.make_rel_name(dtype.to_typing(self.output_type).__module__, type_code)
         params_code = ", ".join([representer.parameter(p, indent = 0) for p in self.parameters])
         lines = [
             "@wf.action_def",

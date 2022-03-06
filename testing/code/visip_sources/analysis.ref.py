@@ -16,7 +16,7 @@ class Point:
 
 
 @wf.workflow
-def test_class(self, a, b):
+def test_class(self, a: Point, b: Point):
     self.a_x = a.x
     self.b_y = b.y
     Point_1 = Point(x=self.a_x, y=self.b_y)
