@@ -40,6 +40,9 @@ valid_data_types = (*valid_base_types, list, dict, DataClassBase)
 
 
 class DType:
+    """
+    Base class for all typing classes.
+    """
     def typevar_set(self):
         """
         Returns set of all TypeVars from type.
@@ -49,10 +52,16 @@ class DType:
 
 
 class DTypeBase(DType):
+    """
+    Base class for elementary typing classes.
+    """
     pass
 
 
 class DTypeGeneric(DType):
+    """
+    Base class for composed typing classes.
+    """
     def get_args(self):
         assert False, "Not implemented."
 
