@@ -3,6 +3,8 @@ from ..dev import dtype
 from . import formating
 from ..dev import parameters
 
+import typing_inspect
+
 class Representer:
     """
     Auxiliary class for various common tools
@@ -37,6 +39,8 @@ class Representer:
             return 'None'
         elif ti.is_any(type_hint):
             return self.make_rel_name('typing', 'Any')
+        elif typing_inspect.is_typevar(type_hint):
+            return self.make_rel_name('typing', 'TypeVar')
         elif ti.is_base_type(type_hint):
             return type_hint.__name__
         elif ti.is_dataclass(type_hint):

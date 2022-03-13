@@ -32,33 +32,6 @@ def workflow(func) -> DummyAction:
     """
     Decorator to crate a Workflow class from a function.
     """
-    # workflow_name = func.__name__
-    #
-    # params, output_type = base.extract_func_signature(func, skip_self=False)
-    # param_names = [param.name for param in params]
-    # func_args = []
-    # variables = _Variables()
-    # if param_names and param_names[0] == 'self':
-    #     func_args.append(variables)
-    #     param_names = param_names[1:]
-    #     new_params = Parameters()
-    #     for i in range(1, params.size()):
-    #         new_params.append(params.get_index(i))
-    #     params = new_params
-    #
-    # output_type = output_type if output_type is not None else dtype_new.TypeVar("T")
-    #
-    # slots = [wf._SlotCall(name, param.type if param.type is not None else dtype_new.TypeVar("T")) for name, param in zip(param_names, params)]
-    # dummies = [dummy.Dummy(slot) for slot in slots]
-    # func_args.extend(dummies)
-    # #print(func)
-    # output_action = wrap.into_action(func(*func_args))
-    # new_workflow = wf._Workflow(workflow_name)
-    # new_workflow.set_from_source(slots, output_type, output_action)
-    # new_workflow.__module__ = func.__module__
-    # new_workflow.__name__ = func.__name__
-    # return wrap.public_action(new_workflow)
-
     return DummyWorkflow(ActionFactory.instance(), func)
 
 

@@ -254,7 +254,9 @@ class ActionCall:
             else:
                 status = ActionInputStatus.error_type
 
-        return ActionArgument(self, i_arg, key, value, param, is_default, status)
+        actual_type, self._type_var_map = dtype.substitute_type_vars(param.type, self._type_var_map, create_new=True)
+
+        return ActionArgument(self, i_arg, key, value, param, is_default, status, None, actual_type)
 
     @staticmethod
     def _arg_split(bound_args):

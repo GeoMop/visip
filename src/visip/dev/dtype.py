@@ -187,6 +187,8 @@ class TypeVar(DTypeBase):
     def __init__(self, origin_type=None, name="T"):
         if origin_type is None:
             origin_type = typing.TypeVar(name)
+        else:
+            assert typing_inspect.is_typevar(origin_type)
         self.origin_type = origin_type
 
     def __hash__(self):
@@ -512,7 +514,9 @@ def is_subtype_map(subtype, type, var_map, restraints, const=False):
             b, restraints = _restraints_merge(restraints, rest)
             if not b:
                 return False, {}, {}
-        return True, _vm_merge(var_map, {type: subtype}), restraints
+        if subtype != type:
+            var_map = _vm_merge(var_map, {type: subtype})
+        return True, var_map, restraints
 
     # if subtype is TypeVar, append restraint
     elif isinstance(subtype, TypeVar):
@@ -754,7 +758,7 @@ class TypeInspector:
         return type.arg
 
     def have_attributes(self, type):
-        return isinstance(type, Any) or isinstance(type, Class) or isinstance(type, Dict) or \
+        return isinstance(type, Any) or isinstance(type, TypeVar) or isinstance(type, Class) or isinstance(type, Dict) or \
                type is typing.Any or (inspect.isclass(type) and issubclass(type, DataClassBase)) or type in [typing.Dict, dict]
 
 
@@ -796,7 +800,7 @@ def substitute_type_vars(type, var_map, create_new=False, recursive=False):
             else:
                 return var_map[type], var_map
         if create_new:
-            t = TypeVar(type.origin_type.__name__)
+            t = TypeVar(name=type.origin_type.__name__)
             var_map = var_map.copy()
             var_map[type] = t
             return t, var_map

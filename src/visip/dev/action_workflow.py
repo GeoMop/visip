@@ -144,6 +144,10 @@ class _Workflow(meta.MetaAction):
         # type_var mapping
         self._type_var_restraints = {}
         # type_var restraints
+        self._type_error_list = []
+        # list of errors after _check_types
+        self._unable_check_types = False
+        # if True types cannot be checked
 
 
     @property
@@ -172,6 +176,14 @@ class _Workflow(meta.MetaAction):
             func_signature = _extract_signature(func, omit_self=True)
         except exceptions.ExcTypeBase as e:
             raise exceptions.ExcTypeBase(f"Wrong signature of workflow:  {func.__module__}.{func.__name__}") from e
+
+        # if params or output type are Any, change to TypeVar
+        for par in func_signature.parameters:
+            if isinstance(par.type, dtype.Any):
+                par._type = dtype.TypeVar(name="T")
+        if isinstance(func_signature.return_type, dtype.Any):
+            func_signature._return_type = dtype.TypeVar(name="T")
+
         self._parameters = func_signature
 
         self._status = self.Status.no_result
@@ -244,6 +256,7 @@ class _Workflow(meta.MetaAction):
         self._action_calls = actions
         self._sorted_calls = topology_sort
 
+        #if self._status != self.Status.cycle:
         self._check_types()
 
         return self.status
@@ -252,28 +265,33 @@ class _Workflow(meta.MetaAction):
         self._type_var_map = {}
         self._type_var_restraints = {}
         types_ok = True
-        error_list = []
+        self._type_error_list = []
+        self._unable_check_types = False
 
         # backward
-        for call in reversed(self._sorted_calls):
-            if isinstance(call, _SlotCall):
-                # restraints in _SlotCall convert to type_var map
-                vts = call._type_var_map.values()
-                for vt in vts:
-                    if vt in self._type_var_restraints:
-                        self._type_var_map[vt] = self._type_var_restraints[vt]
-                continue
+        try:
+            for call in reversed(self._sorted_calls):
+                if isinstance(call, _SlotCall):
+                    # restraints in _SlotCall convert to type_var map
+                    vts = call._type_var_map.values()
+                    for vt in vts:
+                        if vt in self._type_var_restraints:
+                            self._type_var_map[vt] = self._type_var_restraints[vt]
+                    continue
 
-            for arg in call.arguments:
-                type_var_map_back = self._type_var_map
-                type_var_restraints_back = self._type_var_restraints
-                b, self._type_var_map, self._type_var_restraints = dtype.is_subtype_map(
-                    arg.value.actual_output_type, arg.actual_type, self._type_var_map, self._type_var_restraints)
-                if not b:
-                    types_ok = False
-                    error_list.append(WorkflowTypeErrorItem(call, arg, arg.value.actual_output_type, arg.actual_type))
-                    self._type_var_map = type_var_map_back
-                    self._type_var_restraints = type_var_restraints_back
+                for arg in call.arguments:
+                    type_var_map_back = self._type_var_map
+                    type_var_restraints_back = self._type_var_restraints
+                    b, self._type_var_map, self._type_var_restraints = dtype.is_subtype_map(
+                        arg.value.actual_output_type, arg.actual_type, self._type_var_map, self._type_var_restraints)
+                    if not b:
+                        types_ok = False
+                        self._type_error_list.append(WorkflowTypeErrorItem(call, arg, arg.value.actual_output_type, arg.actual_type))
+                        self._type_var_map = type_var_map_back
+                        self._type_var_restraints = type_var_restraints_back
+        except TypeError:
+            self._unable_check_types = True
+            return
 
         # if not types_ok:
         #     raise TypeError("Error in workflow typing.")

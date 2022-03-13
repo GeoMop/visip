@@ -636,8 +636,8 @@ def test_common_sub_type():
     assert eq(t, dt.Any())
 
     # TypeVar
-    t = dt.TypeVar("T")
-    u = dt.TypeVar("U")
+    t = dt.TypeVar(name="T")
+    u = dt.TypeVar(name="U")
 
     b, tt = com_sub(t, t)
     assert b
