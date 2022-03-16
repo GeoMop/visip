@@ -141,9 +141,9 @@ class _Workflow(meta.MetaAction):
         self._sorted_calls = []
         # topologically sorted action instance names
         self._type_var_map = {}
-        # type_var mapping
+        # type_var mapping, define lower limit of TypeVar, in algorithm may be raised, like T -> Int to T -> Union[Int, Str]
         self._type_var_restraints = {}
-        # type_var restraints
+        # type_var restraints, define upper limit of TypeVar, in algorithm may be lowered, like T -> Union[Int, Str] to T -> Int
         self._type_error_list = []
         # list of errors after _check_types
         self._unable_check_types = False

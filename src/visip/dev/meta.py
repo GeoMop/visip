@@ -141,7 +141,6 @@ Partial TODO:
    - expand to the task of closure action conected to both X and Y tasks  
 """
 
-PartialReturnType = dtype.TypeVar(name='PartialReturnType')
 class _Closure(MetaAction):
     """
     Action of the ClosureTask.
@@ -255,11 +254,7 @@ class _Lazy(MetaAction):
             return None
 
 
-
-
-
-
-#
+#PartialReturnType = dtype.TypeVar(name='PartialReturnType')
 
 # @decorators.action_def
 # def partial(function:dtype.Callable[..., PartialReturnType], *args:dtype.List[dtype.Any]) -> dtype.Callable[..., PartialReturnType]:

@@ -4,9 +4,6 @@ from ..dev import dtype
 from ..dev.extract_signature import  _extract_signature
 
 
-var_type_t = dtype.TypeVar(name="T")
-
-
 class GetAttribute(base.ActionBase):
     """
     Return a class attribute for given fixed key.
@@ -35,6 +32,8 @@ class GetItem(base.ActionBase):
     Return item of a list or dict given by index or key.
     Note: Possibly we can distinguish GetItem and GetKey and have better typechecking for the index.
     """
+    var_type_t = dtype.TypeVar(name="T")
+
     def __init__(self):
         signature = _extract_signature(self._evaluate)
         super().__init__(signature=signature)

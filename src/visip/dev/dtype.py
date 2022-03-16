@@ -797,7 +797,7 @@ def check_type_var(input, output):
 def substitute_type_vars(type, var_map, create_new=False, recursive=False):
     """
     If type contains type_var which is in var_map than substitutes it.
-    If create_new is True than every type_var is substituted with new type_var.
+    If create_new is True than every type_var which is not in var_map is substituted with new type_var.
     """
 
     # TypeVar

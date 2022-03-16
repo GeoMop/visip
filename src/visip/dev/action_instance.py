@@ -148,7 +148,9 @@ class ActionCall:
         """ The Action (instance of _ActionBase), have defined parameter. """
 
         self._type_var_map = {}
+        """Map from TypeVars used in action definition to TypeVars used in Workflow type check."""
         self.actual_output_type, self._type_var_map = dtype.substitute_type_vars(self.output_type, self._type_var_map, create_new=True)
+        """Actual output type after substitution of TypeVars with concrete type in Workflow type check."""
 
         self._arguments : List[ActionArgument] = []
         # input values - connected action calls, avery represented by ActionArgument (action_call, status, param)
