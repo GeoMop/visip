@@ -20,7 +20,7 @@ class Value(ActionBase):
         # TODO: any way we should store action values to a separate storage private to the scheduler
         return data.hash(self.value, previous=salt_hash)
 
-    def _evaluate(self) -> dtype.TypeVar(name="T"):
+    def _evaluate(self):
         return self.value
 
     def call_format(self, representer, action_name, arg_names, arg_values):
@@ -38,7 +38,7 @@ class Pass(ActionBase):
         self.action_kind = base.ActionKind.Generic
         super().__init__('Pass', signature)
 
-    def _evaluate(self, input: dtype.DType) -> dtype.DType:
+    def _evaluate(self, input):
         return input
 
 
@@ -69,7 +69,7 @@ class A_list(_ListBase):
     def call_format(self, representer, action_name, arg_names, arg_values):
         return representer.list("[", "]", [(None, arg) for arg in arg_names])
 
-    def _evaluate(self, *inputs) -> dtype.Any():
+    def _evaluate(self, *inputs):
         return list(inputs)
 
 
@@ -84,7 +84,7 @@ class A_tuple(_ListBase):
     def call_format(self, representer, action_name, arg_names, arg_values):
         return representer.list("(", ")", [(None, arg) for arg in arg_names])
 
-    def _evaluate(self, *inputs) -> dtype.Any():
+    def _evaluate(self, *inputs):
         return tuple(inputs)
 
 
@@ -107,7 +107,7 @@ class A_dict(ActionBase):
 
         return ActionBase.call_format(self, representer, action_name, arg_names, arg_values)
 
-    def _evaluate(self, *inputs) -> dtype.Any():
+    def _evaluate(self, *inputs):
         return {key: val for key, val in inputs}
         #item_pairs = ( (key, val) for key, val in inputs)
         #return dict(item_pairs)

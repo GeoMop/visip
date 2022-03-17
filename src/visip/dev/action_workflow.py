@@ -269,29 +269,32 @@ class _Workflow(meta.MetaAction):
         self._unable_check_types = False
 
         # backward
-        try:
-            for call in reversed(self._sorted_calls):
-                if isinstance(call, _SlotCall):
-                    # restraints in _SlotCall convert to type_var map
-                    vts = call._type_var_map.values()
-                    for vt in vts:
-                        if vt in self._type_var_restraints:
-                            self._type_var_map[vt] = self._type_var_restraints[vt]
-                    continue
+        for call in reversed(self._sorted_calls):
+            if isinstance(call, _SlotCall):
+                # restraints in _SlotCall convert to type_var map
+                vts = call._type_var_map.values()
+                for vt in vts:
+                    if vt in self._type_var_restraints:
+                        self._type_var_map[vt] = self._type_var_restraints[vt]
+                continue
 
-                for arg in call.arguments:
-                    type_var_map_back = self._type_var_map
-                    type_var_restraints_back = self._type_var_restraints
+            for arg in call.arguments:
+                type_var_map_back = self._type_var_map
+                type_var_restraints_back = self._type_var_restraints
+                try:
                     b, self._type_var_map, self._type_var_restraints = dtype.is_subtype_map(
                         arg.value.actual_output_type, arg.actual_type, self._type_var_map, self._type_var_restraints)
                     if not b:
                         types_ok = False
+                        arg.status = ActionInputStatus.error_type
                         self._type_error_list.append(WorkflowTypeErrorItem(call, arg, arg.value.actual_output_type, arg.actual_type))
                         self._type_var_map = type_var_map_back
                         self._type_var_restraints = type_var_restraints_back
-        except TypeError:
-            self._unable_check_types = True
-            return
+                except TypeError:
+                    self._unable_check_types = True
+                    arg.status = ActionInputStatus.seems_ok
+                    self._type_var_map = type_var_map_back
+                    self._type_var_restraints = type_var_restraints_back
 
         # if not types_ok:
         #     raise TypeError("Error in workflow typing.")

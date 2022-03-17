@@ -1,7 +1,8 @@
 from ..dev import base
 from .constructor import Value
 from ..dev import dtype
-from ..dev.extract_signature import  _extract_signature
+from ..dev.extract_signature import _extract_signature
+from ..dev.parameters import Parameters, ActionParameter
 
 
 class GetAttribute(base.ActionBase):
@@ -32,10 +33,12 @@ class GetItem(base.ActionBase):
     Return item of a list or dict given by index or key.
     Note: Possibly we can distinguish GetItem and GetKey and have better typechecking for the index.
     """
-    var_type_t = dtype.TypeVar(name="T")
-
     def __init__(self):
-        signature = _extract_signature(self._evaluate)
+        var_type_t = dtype.TypeVar(name="T")
+        signature = Parameters((
+            ActionParameter('data_list', dtype.List(var_type_t)),
+            ActionParameter('idx', dtype.Int())),
+            var_type_t)
         super().__init__(signature=signature)
         self.action_kind = base.ActionKind.Generic
 
@@ -43,7 +46,7 @@ class GetItem(base.ActionBase):
         assert len(arg_names) == 2
         return representer.format(representer.token(arg_names[0]), "[", representer.token(arg_names[1]), "]")
 
-    def _evaluate(self, data_list: dtype.List(var_type_t), idx: dtype.Int()) -> var_type_t:
+    def _evaluate(self, data_list, idx):
         return data_list[idx]
 
 
