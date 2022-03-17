@@ -179,9 +179,9 @@ class _Workflow(meta.MetaAction):
 
         # if params or output type are Any, change to TypeVar
         for par in func_signature.parameters:
-            if isinstance(par.type, dtype.Any):
+            if par._type is None:
                 par._type = dtype.TypeVar(name="T")
-        if isinstance(func_signature.return_type, dtype.Any):
+        if func_signature._return_type is None:
             func_signature._return_type = dtype.TypeVar(name="T")
 
         self._parameters = func_signature

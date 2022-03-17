@@ -193,12 +193,13 @@ class Const(DTypeGeneric):
 
 
 class TypeVar(DTypeBase):
-    def __init__(self, origin_type=None, name="T"):
+    def __init__(self, origin_type=None, name="T", converted_from_none=False):
         if origin_type is None:
             origin_type = typing.TypeVar(name)
         else:
             assert typing_inspect.is_typevar(origin_type)
         self.origin_type = origin_type
+        self.converted_from_none = converted_from_none
 
     def __hash__(self):
         return self.origin_type.__hash__()
