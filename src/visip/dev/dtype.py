@@ -68,7 +68,8 @@ class DTypeGeneric(DType):
     def typevar_set(self):
         ret = set()
         for arg in self.get_args():
-            ret.update(arg.typevar_set())
+            if isinstance(arg, DType):
+                ret.update(arg.typevar_set())
         return ret
 
 
