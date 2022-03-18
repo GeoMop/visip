@@ -463,14 +463,23 @@ def is_subtype(subtype, type):
 def is_subtype_map(subtype, type, var_map, restraints, check_const=True):
     """
     Checks if subtype is subtype of type.
+
     Add new type_var mapping to var_map.
+    Type var mapping define lower limit of TypeVar, for concrete TypeVar may be raised, like T -> Int to T -> Union[Int, Str].
+    Type var mapping appear if type is TypeVar, for example if type is TypeVar(T) and subtype is Int(),
+    than mapping TypeVar(T) -> Int() is created.
+
     Add new restraint to restraints.
+    Type var restraints define upper limit of TypeVar, for concrete TypeVar may be lowered, like T -> Union[Int, Str] to T -> Int.
+    Type var restraints appear if subtype is TypeVar, for example if subtype is TypeVar(T) and type is Int(),
+    than restraint TypeVar(T) -> Int() is created.
+
+    :param subtype:
     :param type:
-    :param typeinfo:
     :param var_map: {type_var: List[int], ...}
     :param restraints: {type_var: List[int], ...}
     :param check_const: if True and type is Const, than subtype must be Const
-    :return:
+    :return: (is_subtype, var_map, restraints)
     """
 
     # if check_const is True and type is Const, than subtype must be Const
@@ -496,14 +505,13 @@ def is_subtype_map(subtype, type, var_map, restraints, check_const=True):
 
     # if type is TypeVar
     elif isinstance(type, TypeVar):
+        # if exist restraint for type, check if subtype is subtype of that restraint
         if type in restraints:
-            b, vm, rest = is_subtype_map(subtype, restraints[type], var_map, restraints, False)
-            if not b:
-                return False, {}, {}
-            b, restraints = _restraints_merge(restraints, rest)
+            b, vm, restraints = is_subtype_map(subtype, restraints[type], var_map, restraints, False)
             if not b:
                 return False, {}, {}
         if subtype != type:
+            # add new mapping to var map
             var_map = _vm_merge(var_map, {type: subtype})
         return True, var_map, restraints
 
@@ -621,6 +629,13 @@ def _vm_merge(a, b):
 
 
 def _restraints_merge(a, b):
+    """
+    This algorithm has O(n^2) complexity and allowing updates of the map and restraints during the recursive call
+    could improve performance.
+    :param a:
+    :param b:
+    :return: (is_mergeable, merge_result)
+    """
     rest = a.copy()
     for r in b:
         if r in rest:
@@ -635,9 +650,10 @@ def _restraints_merge(a, b):
 def common_sub_type(a, b):
     """
     Returns (True, common_subtype) if subtype exist otherwise (False, None).
+    For example for Union[Int, Str] and Union[Int, Float] is common subtype Int.
     :param a:
     :param b:
-    :return:
+    :return: (True, common_subtype) or (False, None)
     """
 
     # Const
@@ -778,6 +794,13 @@ def substitute_type_vars(type, var_map, create_new=False, recursive=False):
     """
     If type contains type_var which is in var_map than substitutes it.
     If create_new is True than every type_var which is not in var_map is substituted with new type_var.
+    If recursive is True than all type_vars in substituted type are substituted too.
+
+    :param type:
+    :param var_map: 
+    :param create_new: 
+    :param recursive: 
+    :return: (substituted_type, updated_var_map)
     """
 
     # TypeVar
