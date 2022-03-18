@@ -40,6 +40,9 @@ valid_data_types = (*valid_base_types, list, dict, DataClassBase)
 
 
 class DType:
+    """
+    Base class for all typing classes.
+    """
     def typevar_set(self):
         """
         Returns set of all TypeVars from type.
@@ -49,17 +52,24 @@ class DType:
 
 
 class DTypeBase(DType):
+    """
+    Base class for elementary typing classes.
+    """
     pass
 
 
 class DTypeGeneric(DType):
+    """
+    Base class for composed typing classes.
+    """
     def get_args(self):
         assert False, "Not implemented."
 
     def typevar_set(self):
         ret = set()
         for arg in self.get_args():
-            ret.update(arg.typevar_set())
+            if isinstance(arg, DType):
+                ret.update(arg.typevar_set())
         return ret
 
 
@@ -123,18 +133,8 @@ class Union(DTypeGeneric):
 
         # expand nested unions
         for a in args:
-            b = a
-            const = False
-            if isinstance(b, Const):
-                const = True
-                while isinstance(b, Const):
-                    b = b.arg
-            if isinstance(b, Union):
-                if const:
-                    ext = [Const(a) for a in b.args]
-                else:
-                    ext = a.args
-                self.args.extend(ext)
+            if isinstance(a, Union):
+                self.args.extend(a.args)
             else:
                 self.args.append(a)
 
@@ -173,10 +173,7 @@ class Const(DTypeGeneric):
     def __init__(self, arg):
         if not isinstance(arg, DType):
             arg = from_typing(arg)
-        if isinstance(arg, Const):
-            self.arg = arg.arg
-        else:
-            self.arg = arg
+        self.arg = arg
         assert not isinstance(self.arg, Const)
 
     def get_args(self):
@@ -184,10 +181,13 @@ class Const(DTypeGeneric):
 
 
 class TypeVar(DTypeBase):
-    def __init__(self, origin_type=None):
+    def __init__(self, origin_type=None, name="T", converted_from_none=False):
         if origin_type is None:
-            origin_type = typing.TypeVar("T")
+            origin_type = typing.TypeVar(name)
+        else:
+            assert typing_inspect.is_typevar(origin_type)
         self.origin_type = origin_type
+        self.converted_from_none = converted_from_none
 
     def __hash__(self):
         return self.origin_type.__hash__()
@@ -204,6 +204,8 @@ class TypeVar(DTypeBase):
 class NewType(DTypeBase):
     def __init__(self, supertype, name=""):
         if isinstance(supertype, DType):
+            if supertype.typevar_set():
+                raise TypeError("TypeVars are not allowed in NewType.")
             self.origin_type = None
             self.supertype = supertype
             self.name = name
@@ -212,10 +214,9 @@ class NewType(DTypeBase):
             assert typing_inspect.is_new_type(origin_type)
             self.origin_type = origin_type
             self.supertype = from_typing(origin_type.__supertype__)
+            if self.supertype.typevar_set():
+                raise TypeError("TypeVars are not allowed in NewType.")
             self.name = origin_type.__name__
-
-    def typevar_set(self):
-        return self.supertype.typevar_set()
 
 
 class Any(DTypeBase, metaclass=Singleton):
@@ -388,10 +389,6 @@ def is_equaltype(type, other):
     if isinstance(type, Const):
         if isinstance(other, Const):
             return is_equaltype(type.arg, other.arg)
-        elif isinstance(type.arg, Union):
-            return is_equaltype(Union(type), other)
-        elif isinstance(other, Union):
-            return is_equaltype(other, type)
 
     # Any
     elif isinstance(type, Any):
@@ -460,103 +457,166 @@ def is_equaltype(type, other):
 
 
 def is_subtype(subtype, type):
-    b, _ = is_subtype_map(subtype, type, {})
+    b, _, _ = is_subtype_map(subtype, type, {}, {})
     return b
 
 
-def is_subtype_map(subtype, type, var_map, const=False):
-    # if subtype is Const, call recursively with const=True
-    if isinstance(subtype, Const):
-        return is_subtype_map(subtype.arg, type, var_map, True)
+def is_subtype_map(subtype, type, var_map, restraints, check_const=True):
+    """
+    Checks if subtype is subtype of type.
 
-    # if type is Const, check if const==True then call recursively
-    elif isinstance(type, Const):
-        if const:
-            return is_subtype_map(subtype, type.arg, var_map, True)
+    Add new type_var mapping to var_map.
+    Type var mapping define lower limit of TypeVar, for concrete TypeVar may be raised, like T -> Int to T -> Union[Int, Str].
+    Type var mapping appear if type is TypeVar, for example if type is TypeVar(T) and subtype is Int(),
+    than mapping TypeVar(T) -> Int() is created.
+
+    Add new restraint to restraints.
+    Type var restraints define upper limit of TypeVar, for concrete TypeVar may be lowered, like T -> Union[Int, Str] to T -> Int.
+    Type var restraints appear if subtype is TypeVar, for example if subtype is TypeVar(T) and type is Int(),
+    than restraint TypeVar(T) -> Int() is created.
+
+    :param subtype:
+    :param type:
+    :param var_map: {type_var: List[int], ...}
+    :param restraints: {type_var: List[int], ...}
+    :param check_const: if True and type is Const, than subtype must be Const
+    :return: (is_subtype, var_map, restraints)
+    """
+
+    # if check_const is True and type is Const, than subtype must be Const
+    if isinstance(type, Const) and check_const:
+        if isinstance(subtype, Const):
+            return is_subtype_map(subtype.arg, type.arg, var_map, restraints, False)
+        elif not check_const:
+            return is_subtype_map(subtype, type.arg, var_map, restraints, False)
+        else:
+            return False, {}, {}
+
+    # if subtype is Const, call recursive
+    elif isinstance(subtype, Const):
+        return is_subtype_map(subtype.arg, type, var_map, restraints, False)
+
+    # if type is NewType, than call recursively
+    elif isinstance(type, NewType):
+        return is_subtype_map(subtype, type.supertype, var_map, restraints, False)
 
     # if type is Any, always True
     elif isinstance(type, Any):
-        return True, var_map
+        return True, var_map, restraints
 
-    # if type is TypeVar, always True
+    # if type is TypeVar
     elif isinstance(type, TypeVar):
-        return True, _vm_merge(var_map, {type: Union(subtype)})
+        # if exist restraint for type, check if subtype is subtype of that restraint
+        if type in restraints:
+            b, vm, restraints = is_subtype_map(subtype, restraints[type], var_map, restraints, False)
+            if not b:
+                return False, {}, {}
+        if subtype != type:
+            # add new mapping to var map
+            var_map = _vm_merge(var_map, {type: subtype})
+        return True, var_map, restraints
+
+    # if subtype is TypeVar, append restraint
+    elif isinstance(subtype, TypeVar):
+        rest = {subtype: substitute_type_vars(type, restraints)[0]}
+        b, restraints = _restraints_merge(restraints, rest)
+        if not b:
+            return False, {}, {}
+        return True, var_map, restraints
 
     # if subtype is Union, must be satisfied for all args
     elif isinstance(subtype, Union):
         for arg in subtype.args:
-            b, vm = is_subtype_map(arg, type, var_map, const)
+            b, vm, rest = is_subtype_map(arg, type, var_map, restraints, False)
             if not b:
-                return False, {}
+                return False, {}, {}
             var_map = _vm_merge(var_map, vm)
-        return True, var_map
+            b, restraints = _restraints_merge(restraints, rest)
+            if not b:
+                return False, {}, {}
+        return True, var_map, restraints
 
     # if type is Union, must be satisfied for at least one arg
     elif isinstance(type, Union):
         for arg in type.args:
-            b, vm = is_subtype_map(subtype, arg, var_map, const)
+            b, vm, rest = is_subtype_map(subtype, arg, var_map, restraints, False)
             if b:
-                return True, _vm_merge(var_map, vm)
+                b, restraints = _restraints_merge(restraints, rest)
+                if not b:
+                    return False, {}, {}
+                return True, _vm_merge(var_map, vm), restraints
 
     # if type is NewType, than subtype must be appropriate NewType or subtype of supertype
     elif isinstance(subtype, NewType):
         if isinstance(type, NewType):
             if type is subtype or (type.origin_type is not None and subtype.origin_type is not None and
                                    type.origin_type is subtype.origin_type):
-                return True, var_map
+                return True, var_map, restraints
         else:
-            return is_subtype_map(subtype.supertype, type, var_map, const)
+            return is_subtype_map(subtype.supertype, type, var_map, restraints, False)
 
     # if subtype is Int, Float, Str, NoneType, type must be the same
     elif isinstance(subtype, (Int, Float, Str, NoneType)):
         if type is subtype:
-            return True, var_map
+            return True, var_map, restraints
 
     # if subtype is Bool, type must be Bool or Int
     elif isinstance(subtype, Bool):
         if isinstance(type, (Bool, Int)):
-            return True, var_map
+            return True, var_map, restraints
 
     # if subtype is Class, type must be Class and subtype.origin_type must be subclass of type.origin_type
     elif isinstance(subtype, Class):
         if isinstance(type, Class) and issubclass(subtype.origin_type, type.origin_type):
-            return True, var_map
+            return True, var_map, restraints
 
     # if subtype is Enum, type must be Enum and subtype.origin_type must be subclass of type.origin_type or type must be Int
     elif isinstance(subtype, Enum):
         if isinstance(type, Enum) and issubclass(subtype.origin_type, type.origin_type) \
                 or isinstance(type, Int):
-            return True, var_map
+            return True, var_map, restraints
 
     # if subtype is Tuple, type must be Tuple and all args must be subtype
     elif isinstance(subtype, Tuple):
         if isinstance(type, Tuple) and len(subtype.args) == len(type.args):
             for arg, arginfo in zip(subtype.args, type.args):
-                b, vm = is_subtype_map(arg, arginfo, var_map, const)
+                b, vm, rest = is_subtype_map(arg, arginfo, var_map, restraints, False)
                 if not b:
-                    return False, {}
+                    return False, {}, {}
                 var_map = _vm_merge(var_map, vm)
-            return True, var_map
+                b, restraints = _restraints_merge(restraints, rest)
+                if not b:
+                    return False, {}, {}
+            return True, var_map, restraints
 
     # if subtype is List, type must be List and args must be subtype
     elif isinstance(subtype, List):
         if isinstance(type, List):
-            b, vm = is_subtype_map(subtype.arg, type.arg, var_map, const)
+            b, vm, rest = is_subtype_map(subtype.arg, type.arg, var_map, restraints, False)
             if b:
-                return True, _vm_merge(var_map, vm)
+                b, restraints = _restraints_merge(restraints, rest)
+                if not b:
+                    return False, {}, {}
+                return True, _vm_merge(var_map, vm), restraints
 
     # if subtype is Dict, type must be Dict and keys, values must be subtype
     elif isinstance(subtype, Dict):
         if isinstance(type, Dict):
-            b, vm = is_subtype_map(subtype.key, type.key, var_map, const)
+            b, vm, rest = is_subtype_map(subtype.key, type.key, var_map, restraints, False)
             if b:
                 var_map = _vm_merge(var_map, vm)
-                b, vm = is_subtype_map(subtype.value, type.value, var_map, const)
+                b, restraints = _restraints_merge(restraints, rest)
+                if not b:
+                    return False, {}, {}
+                b, vm, rest = is_subtype_map(subtype.value, type.value, var_map, restraints, False)
                 if b:
                     var_map = _vm_merge(var_map, vm)
-                    return True, var_map
+                    b, restraints = _restraints_merge(restraints, rest)
+                    if not b:
+                        return False, {}, {}
+                    return True, var_map, restraints
 
-    return False, {}
+    return False, {}, {}
 
 
 def _vm_merge(a, b):
@@ -565,8 +625,135 @@ def _vm_merge(a, b):
         if t in var_map:
             var_map[t] = Union(var_map[t], b[t])
         else:
-            var_map[t] = Union(b[t])
+            var_map[t] = b[t]
     return var_map
+
+
+def _restraints_merge(a, b):
+    """
+    This algorithm has O(n^2) complexity and allowing updates of the map and restraints during the recursive call
+    could improve performance.
+    :param a:
+    :param b:
+    :return: (is_mergeable, merge_result)
+    """
+    rest = a.copy()
+    for r in b:
+        if r in rest:
+            bb, rest[r] = common_sub_type(rest[r], b[r])
+            if not bb:
+                return False, {}
+        else:
+            rest[r] = b[r]
+    return True, rest
+
+
+def common_sub_type(a, b):
+    """
+    Returns (True, common_subtype) if subtype exist otherwise (False, None).
+    For example for Union[Int, Str] and Union[Int, Float] is common subtype Int.
+    :param a:
+    :param b:
+    :return: (True, common_subtype) or (False, None)
+    """
+
+    # Const
+    if isinstance(a, Const):
+        if isinstance(b, Const):
+            bb, sub = common_sub_type(a.arg, b.arg)
+        else:
+            bb, sub = common_sub_type(a.arg, b)
+        if bb:
+            return True, Const(sub)
+
+    elif isinstance(b, Const):
+        return common_sub_type(b, a)
+
+    # Any
+    elif isinstance(a, Any):
+        return True, b
+
+    # TypeVar
+    elif isinstance(a, TypeVar):
+        if a is b:
+            return True, a
+
+    # Union
+    elif isinstance(a, Union):
+        if isinstance(b, Union):
+            com = []
+            for a_arg in a.args:
+                for b_arg in b.args:
+                    bb, sub = common_sub_type(a_arg, b_arg)
+                    if bb:
+                        com.append(sub)
+            return True, Union(*com)
+        else:
+            return common_sub_type(a, Union(b))
+
+    elif isinstance(b, Union):
+        return common_sub_type(b, a)
+
+    # NewType
+    elif isinstance(a, NewType):
+        if a is b:
+            return True, a
+
+    # Float, Str, NoneType
+    elif isinstance(a, (Float, Str, NoneType)):
+        if a is b:
+            return True, a
+
+    # Int
+    elif isinstance(a, Int):
+        if isinstance(b, (Int, Bool)):
+            return True, a
+
+    # Bool
+    elif isinstance(a, Bool):
+        if isinstance(b, Bool):
+            return True, a
+        elif isinstance(b, Int):
+            return True, b
+
+    # Class
+    elif isinstance(a, Class):
+        if isinstance(b, Class) and a.origin_type is b.origin_type:
+            return True, a
+
+    # Enum
+    elif isinstance(a, Enum):
+        if isinstance(b, Enum) and a.origin_type is b.origin_type:
+            return True, a
+
+    # Tuple
+    elif isinstance(a, Tuple):
+        if isinstance(b, Tuple) and len(a.args) == len(b.args):
+            com_args = []
+            for a_arg, b_arg in zip(a.args, b.args):
+                bb, com_arg = common_sub_type(a_arg, b_arg)
+                if not bb:
+                    return False, None
+                com_args.append(com_arg)
+            return True, Tuple(*com_args)
+
+    # List
+    elif isinstance(a, List):
+        if isinstance(b, List):
+            bb, com_arg = common_sub_type(a.arg, b.arg)
+            if bb:
+                return True, List(com_arg)
+
+    # Dict
+    elif isinstance(a, Dict):
+        if isinstance(b, Dict):
+            bb, com_key = common_sub_type(a.key, b.key)
+            if bb:
+                bb, com_val = common_sub_type(a.value, b.value)
+                if bb:
+                    return True, Dict(com_key, com_val)
+
+    return False, None
 
 
 class TypeInspector:
@@ -577,7 +764,7 @@ class TypeInspector:
         return type.arg
 
     def have_attributes(self, type):
-        return isinstance(type, Any) or isinstance(type, Class) or isinstance(type, Dict) or \
+        return isinstance(type, Any) or isinstance(type, TypeVar) or isinstance(type, Class) or isinstance(type, Dict) or \
                type is typing.Any or (inspect.isclass(type) and issubclass(type, DataClassBase)) or type in [typing.Dict, dict]
 
 
@@ -602,3 +789,81 @@ def check_type_var(input, output):
     in_set = extract_type_var(input)
     out_set = extract_type_var(output)
     return out_set.issubset(in_set)
+
+
+def substitute_type_vars(type, var_map, create_new=False, recursive=False):
+    """
+    If type contains type_var which is in var_map than substitutes it.
+    If create_new is True than every type_var which is not in var_map is substituted with new type_var.
+    If recursive is True than all type_vars in substituted type are substituted too.
+
+    :param type:
+    :param var_map: 
+    :param create_new: 
+    :param recursive: 
+    :return: (substituted_type, updated_var_map)
+    """
+
+    # TypeVar
+    if isinstance(type, TypeVar):
+        if type in var_map:
+            if recursive:
+                sub, var_map = substitute_type_vars(var_map[type], var_map, create_new, True)
+                return sub, var_map
+            else:
+                return var_map[type], var_map
+        if create_new:
+            t = TypeVar(name=type.origin_type.__name__)
+            var_map = var_map.copy()
+            var_map[type] = t
+            return t, var_map
+        else:
+            return type, var_map
+
+    # Tuple
+    if isinstance(type, Tuple):
+        args = []
+        for a in type.args:
+            t, var_map = substitute_type_vars(a, var_map, create_new, recursive)
+            args.append(t)
+        return Tuple(*args), var_map
+
+    # Union
+    if isinstance(type, Union):
+        args = []
+        for a in type.args:
+            t, var_map = substitute_type_vars(a, var_map, create_new, recursive)
+            args.append(t)
+        return Union(*args), var_map
+
+    # List
+    if isinstance(type, List):
+        t, var_map = substitute_type_vars(type.arg, var_map, create_new, recursive)
+        return List(t), var_map
+
+    # Dict
+    if isinstance(type, Dict):
+        k, var_map = substitute_type_vars(type.key, var_map, create_new, recursive)
+        v, var_map = substitute_type_vars(type.value, var_map, create_new, recursive)
+        return Dict(k, v), var_map
+
+    # Const
+    if isinstance(type, Const):
+        t, var_map = substitute_type_vars(type.arg, var_map, create_new, recursive)
+        return Const(t), var_map
+
+    # others
+    return type, var_map
+
+
+def expand_var_map(var_map):
+    """
+    Expand all type_var in var_map recursively.
+    :param var_map:
+    :return:
+    """
+    exp_var_map = {}
+    for var, t in var_map.items():
+        sub, _ = substitute_type_vars(t, var_map, recursive=True)
+        exp_var_map[var] = sub
+    return exp_var_map

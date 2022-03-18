@@ -155,7 +155,6 @@ class Parameters:
         """
         return (p for p in self.parameters if p.kind in self._positional_kinds)
 
-
     def __iter__(self):
         """
         For backward compatibility.

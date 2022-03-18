@@ -23,11 +23,6 @@ def test_action_call():
     assert len(ac.arguments) == 3
 
 
-def test_action_call_str():
-    ac = wf.list(1, 2, 3)
-    print("List Action Call: ", str(ac._action_call))
-
-
 def call(action, *args, **kwargs):
     args = [ActionCall.into_action(a) for a in args]
 

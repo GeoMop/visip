@@ -10,6 +10,7 @@ from .exceptions import ExcTypeBase, ExcArgumentBindError, ExcConstantKey, ExcAc
 from ..code.dummy import Dummy, DummyAction, DummyWorkflow
 from . import dtype
 
+
 class ActionInputStatus(enum.IntEnum):
     error_default =  -5  # Invalid default value.
     error_impl  = -4     # Missing type hint or other error in the action implementation.
@@ -50,7 +51,7 @@ class ActionArgument:
     # binding correctenss status
     type_exception: ExcTypeBase = None
     # exception or other kind of error specification
-
+    actual_type: Optional[dtype.DType] = None
 
 
 class ActionCall:
@@ -145,7 +146,12 @@ class ActionCall:
 
         self.action = action
         """ The Action (instance of _ActionBase), have defined parameter. """
-        
+
+        self._type_var_map = {}
+        """Map from TypeVars used in action definition to TypeVars used in Workflow type check."""
+        self.actual_output_type, self._type_var_map = dtype.substitute_type_vars(self.output_type, self._type_var_map, create_new=True)
+        """Actual output type after substitution of TypeVars with concrete type in Workflow type check."""
+
         self._arguments : List[ActionArgument] = []
         # input values - connected action calls, avery represented by ActionArgument (action_call, status, param)
         # ActionCall is marked invalid by setting _arguments to None
@@ -250,8 +256,9 @@ class ActionCall:
             else:
                 status = ActionInputStatus.error_type
 
-        return ActionArgument(self, i_arg, key, value, param, is_default, status)
+        actual_type, self._type_var_map = dtype.substitute_type_vars(param.type, self._type_var_map, create_new=True)
 
+        return ActionArgument(self, i_arg, key, value, param, is_default, status, None, actual_type)
 
     @staticmethod
     def _arg_split(bound_args):
