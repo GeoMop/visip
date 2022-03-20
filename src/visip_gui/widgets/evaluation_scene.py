@@ -8,13 +8,12 @@ from PyQt5.QtCore import QPoint
 from visip import _Value
 from visip.dev.action_instance import ActionCall
 from visip.dev.action_workflow import _SlotCall
-from visip.dev.base import _ActionBase
+from visip.dev import dtype
 from visip.dev.task import Status
 from visip_gui.data.g_action_data_model import GActionData
 from visip_gui.graphical_items.g_action import GAction
 from visip_gui.graphical_items.g_action_background import ActionStatus
 from visip_gui.graphical_items.g_action_ref import GActionRef
-from visip_gui.graphical_items.g_connection import GConnection
 from visip_gui.graphical_items.g_input_action import GInputAction
 from visip_gui.widgets.base.g_base_model_scene import GBaseModelScene
 from visip_gui.widgets.composite_type_view import CompositeTypeView
@@ -57,7 +56,7 @@ class EvaluationScene(GBaseModelScene):
         if action is None:
             action = self.unconnected_actions.get(item.data(GActionData.NAME))
 
-        if not isinstance(action.action, _Value) or isinstance(action.action.value, _ActionBase):
+        if not isinstance(action.action, _Value) or isinstance(action.action.value, dtype._ActionBase):
             if isinstance(action, _SlotCall):
                 self.actions.append(GInputAction(item, action, self.root_item, self.eval_gui, False))
             elif isinstance(action, ActionCall):
@@ -76,7 +75,7 @@ class EvaluationScene(GBaseModelScene):
         if self.task.childs is not None:
             for instance_name, instance in self.task.childs.items():
                 if isinstance(instance.action, _Value):
-                    if not isinstance(instance.action.value, _ActionBase):
+                    if not isinstance(instance.action.value, dtype._ActionBase):
                         continue
 
                 action = self.get_action(instance_name)

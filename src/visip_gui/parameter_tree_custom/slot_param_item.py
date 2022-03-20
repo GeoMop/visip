@@ -1,8 +1,5 @@
-from PyQt5 import QtGui, QtCore
-from PyQt5.QtWidgets import QSizePolicy
-from pyqtgraph import parametertree
-from visip.dev.action_workflow import _Workflow
-from visip.dev.base import _ActionBase
+from PyQt5 import QtGui
+from visip.dev import dtype
 
 from visip_gui.parameter_tree_custom.base_widget_param_item import BaseWidgetParamItem
 from visip import _Value
@@ -50,7 +47,7 @@ class SlotParamItem(BaseWidgetParamItem):
                 self.param.arg is not None and\
                 self.param.arg.value is not None and\
                 isinstance(self.param.arg.value.action, _Value) and\
-                not isinstance(self.param.arg.value.action.value, _ActionBase):
+                not isinstance(self.param.arg.value.action.value, dtype._ActionBase):
             action = self.param.arg.value.action
             try:
                 action.value = int(val)

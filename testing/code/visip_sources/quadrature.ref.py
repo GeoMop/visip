@@ -14,7 +14,7 @@ class Quadrature:
 
 
 @wf.workflow
-def mid_rule(self):
+def mid_rule(self) -> Quadrature:
     self.weights = [1]
     Quadrature_1 = Quadrature(points=[Point(x=0.5, y=0.5)], weights=self.weights)
     return Quadrature_1
