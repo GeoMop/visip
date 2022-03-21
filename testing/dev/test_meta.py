@@ -196,3 +196,18 @@ def test_nested_wf():
 # def test_while():
 #     result = evaluation.run(linspace, 1.1, 3.4, 0.6)
 #     assert result == ([1.1, 1.7, 2.3, 2.9], 3.5)
+
+"""
+def fib_cond(iter):
+    return iter[3] > 0
+
+@vs.workflow
+def fib_body(iter):
+    return (iter[1], iter[0] + iter[1], iter[2]-1)
+    
+@vs.workflow
+def fibonaci(n:int, pair:) -> pair
+    init = (pair[0], pair[1], n) 
+    vs.While(init, fib_cond, fib_body)
+    return
+"""

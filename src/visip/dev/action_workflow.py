@@ -129,7 +129,7 @@ class _Workflow(meta.MetaAction):
         self._action_calls = {self._result_call}
         # Dict:  unique action instance name -> action instance.
         self._sorted_calls = []
-        # topologically sorted action instance names
+        # topologically sorted action instance names (result last)
 
 
     @property

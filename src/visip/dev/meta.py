@@ -350,3 +350,12 @@ class While(MetaAction):
     def __init__(self):
         pass
 
+"""
+@vs.workflow
+def While(condition, body, init):
+    true_body = vs.lazy(While, body(init)
+    vs.If(condition(init), true_body = vs.lazy(my_plus, x, x)
+    false_body = vs.lazy(my_plus, y, y) 
+    return vs.If(x > y, true_body, false_body)
+
+"""

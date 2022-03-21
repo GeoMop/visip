@@ -22,10 +22,15 @@ def test_action_call():
     ac.set_inputs(args)
     assert len(ac.arguments) == 3
 
-
+"""
+Following test fails becase ac is not DataClass.
+"""
 def test_action_call_str():
     ac = wf.list(1, 2, 3)
     print("List Action Call: ", str(ac._action_call))
+
+
+
 
 
 def call(action, *args, **kwargs):
