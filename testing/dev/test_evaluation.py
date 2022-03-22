@@ -23,9 +23,9 @@ def test_evaluation(src_file):
     # Implement it as a function that creates a bind workflow consisting of the
     # binded action and few Value action instances.
     # Then make_analysis (which binds all parameters) can be replaced this more general feature.
-    analysis = evaluation.Evaluation.make_analysis(wf_test_class, [pa, pb])
-    assert sorted(list(analysis.action_call_dict.keys())) == ['Value_1', 'Value_2', '__result__', 'test_class_1']
     eval = evaluation.Evaluation()
+    analysis = eval._make_analysis(wf_test_class, [pa, pb], {})
+    assert sorted(list(analysis.action_call_dict.keys())) == ['Value_1', 'Value_2', '__result__', 'test_class_1']
     result = eval.execute(analysis)
 
     assert isinstance(result._task, task.Composed)

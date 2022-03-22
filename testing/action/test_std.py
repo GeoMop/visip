@@ -5,6 +5,10 @@ import visip as wf
 from visip.dev import evaluation
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
+def eval():
+    return evaluation.Evaluation(workspace=script_dir)
+
+
 @wf.action_def
 def read_file(input: wf.FileIn) -> int:
     with open(input.path, "r") as f:
@@ -51,7 +55,7 @@ def test_system():
 
     print("Root workspace: ", os.getcwd())
     script_name = "_mock_script_test_system.py"
-    result = evaluation.run(system_test_wf, [script_name], workspace=script_dir)
+    result = eval().run(system_test_wf, script_name).result
     assert result.stdout == b"I'm here.\n"
 
 
@@ -67,8 +71,9 @@ def prepare_workspace_template():
 
 def test_file_from_template():
     prepare_workspace_template()
-    result = evaluation.run(wf.file_from_template,
-                            [wf.file_in('_workspace/darcy_flow.yaml.tmpl'), dict(MESH='my_mesh.msh')], workspace=script_dir)
+    result = eval().run(wf.file_from_template,
+                            wf.file_in('_workspace/darcy_flow.yaml.tmpl'),
+                            dict(MESH='my_mesh.msh')).result
 
     with open(os.path.join(script_dir, "_workspace", "darcy_flow.yaml"), "r") as f:
         content = f.read()
@@ -81,7 +86,7 @@ def my_mesh_yaml():
 
 def test_file_from_template_wf():
     prepare_workspace_template()
-    result = evaluation.run(my_mesh_yaml, workspace=script_dir)
+    result = eval().run(my_mesh_yaml).result
     with open(os.path.join(script_dir, "_workspace", "darcy_flow.yaml"), "r") as f:
         content = f.read()
     assert content.find('my_mesh.msh')

@@ -37,7 +37,7 @@ class SlotParam(parametertree.parameterTypes.GroupParameter):
         super(SlotParam, self).__init__(**opts)
 
         if arg is not None and arg.value is not None:
-            if isinstance(arg.value.action, _Value):
+            if isinstance(arg.value.action, Value):
                 self.fill_data_info(self.arg.value.action.value.__repr__)
 
 

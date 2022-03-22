@@ -3,7 +3,6 @@ from . import data
 from . import dtype
 from .parameters import Parameters
 from ..dev import dtype
-from .exceptions import ExcActionExpected
 # Name for the first parameter of the workflow definiton function that is used
 # to capture instance names.
 _VAR_="self"

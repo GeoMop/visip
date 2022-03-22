@@ -212,7 +212,7 @@ class Module:
         while module_queue:
 
             mod_obj, mod_alias = module_queue.popleft()
-            print("Processing module: ", mod_obj.__name__, mod_alias)
+            #print("Processing module: ", mod_obj.__name__, mod_alias)
 
             # process new module
             package = mod_obj.__name__.split('.')[0]

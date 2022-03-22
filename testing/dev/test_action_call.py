@@ -22,6 +22,11 @@ def test_action_call():
     ac.set_inputs(args)
     assert len(ac.arguments) == 3
 
+"""
+Following test fails becase ac is not DataClass.
+"""
+
+
 
 def call(action, *args, **kwargs):
     args = [ActionCall.into_action(a) for a in args]

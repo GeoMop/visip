@@ -153,7 +153,7 @@ class ActionCall:
         """Actual output type after substitution of TypeVars with concrete type in Workflow type check."""
 
         self._arguments : List[ActionArgument] = []
-        # input values - connected action calls, avery represented by ActionArgument (action_call, status, param)
+        # input values - connected action calls, every represented by ActionArgument (action_call, status, param)
         # ActionCall is marked invalid by setting _arguments to None
 
 
