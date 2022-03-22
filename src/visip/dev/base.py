@@ -2,7 +2,7 @@ import enum
 from . import data
 from . import dtype
 from .parameters import Parameters
-
+from ..dev import dtype
 # Name for the first parameter of the workflow definiton function that is used
 # to capture instance names.
 _VAR_="self"
@@ -164,8 +164,9 @@ class ActionBase(dtype._ActionBase):
     def code_of_definition(self, representer):
         # TODO: make derived class for actions implemented in user module
         # and move thic method there
+
         type_code = representer.type_code(self.output_type)
-        type_code = representer.make_rel_name(self.output_type.__module__, type_code)
+        type_code = representer.make_rel_name(dtype.to_typing(self.output_type).__module__, type_code)
         params_code = ", ".join([representer.parameter(p, indent = 0) for p in self.parameters])
         lines = [
             "@wf.action_def",

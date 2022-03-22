@@ -36,7 +36,7 @@ class _Result(_ListBase):
         params = []
         params.append(ActionParameter(name="result", p_type=out_type, default=ActionParameter.no_default))
         # The return value, there should be always some return value, as we want to use "functional style".
-        params.append(ActionParameter(name='args', p_type=Any, default=ActionParameter.no_default,
+        params.append(ActionParameter(name='args', p_type=dtype.TypeVar(name="U"), default=ActionParameter.no_default,
                                       kind=ActionParameter.VAR_POSITIONAL))
         self._parameters = Parameters(params, return_type=out_type)
         # The "side effects" of the workflow.
@@ -52,10 +52,20 @@ class _Result(_ListBase):
 
 class _ResultCall(ActionCall):
     """ Auxiliary result action instance, used to treat the result connecting in the consistnet way."""
-
     def __init__(self, output_action, out_type):
         super().__init__(_Result(out_type), "__result__")
         self.set_inputs([output_action])
+
+
+class WorkflowTypeErrorItem:
+    def __init__(self, call, arg, subtype, type):
+        self.call = call
+        self.arg = arg
+        self.subtype = subtype
+        self.type = type
+
+    def __repr__(self):
+        return "In {} {}, {} is not subtype of {}".format(self.call, self.arg, self.subtype, self.type)
 
 
 class _Workflow(meta.MetaAction):
@@ -129,7 +139,15 @@ class _Workflow(meta.MetaAction):
         self._action_calls = {self._result_call}
         # Dict:  unique action instance name -> action instance.
         self._sorted_calls = []
-        # topologically sorted action instance names
+        # topologically sorted action instance names (result last)
+        self._type_var_map = {}
+        # type_var mapping, define lower limit of TypeVar, in algorithm may be raised, like T -> Int to T -> Union[Int, Str]
+        self._type_var_restraints = {}
+        # type_var restraints, define upper limit of TypeVar, in algorithm may be lowered, like T -> Union[Int, Str] to T -> Int
+        self._type_error_list = []
+        # list of errors after _check_types
+        self._unable_check_types = False
+        # if True types cannot be checked
 
 
     @property
@@ -158,6 +176,14 @@ class _Workflow(meta.MetaAction):
             func_signature = _extract_signature(func, omit_self=True)
         except exceptions.ExcTypeBase as e:
             raise exceptions.ExcTypeBase(f"Wrong signature of workflow:  {func.__module__}.{func.__name__}") from e
+
+        # if params or output type are Any, change to TypeVar
+        for par in func_signature.parameters:
+            if par._type is None:
+                par._type = dtype.TypeVar(name="T")
+        if func_signature._return_type is None:
+            func_signature._return_type = dtype.TypeVar(name="T")
+
         self._parameters = func_signature
 
         self._status = self.Status.no_result
@@ -230,7 +256,56 @@ class _Workflow(meta.MetaAction):
         self._action_calls = actions
         self._sorted_calls = topology_sort
 
+        #if self._status != self.Status.cycle:
+        self._check_types()
+
         return self.status
+
+    def _check_types(self):
+        self._type_var_map = {}
+        self._type_var_restraints = {}
+        types_ok = True
+        self._type_error_list = []
+        self._unable_check_types = False
+
+        # backward
+        for call in reversed(self._sorted_calls):
+            if isinstance(call, _SlotCall):
+                # restraints in _SlotCall convert to type_var map
+                vts = call._type_var_map.values()
+                for vt in vts:
+                    if vt in self._type_var_restraints:
+                        self._type_var_map[vt] = self._type_var_restraints[vt]
+                continue
+
+            for arg in call.arguments:
+                type_var_map_back = self._type_var_map
+                type_var_restraints_back = self._type_var_restraints
+                try:
+                    b, self._type_var_map, self._type_var_restraints = dtype.is_subtype_map(
+                        arg.value.actual_output_type, arg.actual_type, self._type_var_map, self._type_var_restraints)
+                    if not b:
+                        types_ok = False
+                        arg.status = ActionInputStatus.error_type
+                        self._type_error_list.append(WorkflowTypeErrorItem(call, arg, arg.value.actual_output_type, arg.actual_type))
+                        self._type_var_map = type_var_map_back
+                        self._type_var_restraints = type_var_restraints_back
+                except TypeError:
+                    self._unable_check_types = True
+                    arg.status = ActionInputStatus.seems_ok
+                    self._type_var_map = type_var_map_back
+                    self._type_var_restraints = type_var_restraints_back
+
+        # if not types_ok:
+        #     raise TypeError("Error in workflow typing.")
+
+        self._type_var_map = dtype.expand_var_map(self._type_var_map)
+
+        # forward
+        for call in self._sorted_calls:
+            for arg in call.arguments:
+                arg.actual_type, _ = dtype.substitute_type_vars(arg.actual_type, self._type_var_map)
+            call.actual_output_type, _ = dtype.substitute_type_vars(call.actual_output_type, self._type_var_map)
 
     def dependencies(self):
         """
@@ -353,7 +428,7 @@ class _Workflow(meta.MetaAction):
         body.append("{}return {}".format(indent, result_action_call.get_code_instance_name()))
         return "\n".join(body)
 
-    def insert_slot(self, i_slot: int, name: str, p_type: dtype.TypeBase,
+    def insert_slot(self, i_slot: int, name: str, p_type: dtype.DType,
                     default: Any = ActionParameter.no_default,
                     kind: int = ActionParameter.POSITIONAL_OR_KEYWORD) -> None:
         """

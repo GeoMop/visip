@@ -19,7 +19,7 @@ def read_file(input: wf.FileIn) -> int:
 MY_FILE = "my_file.txt"
 WORKSPACE = "_workspace"
 @wf.analysis
-def my_file_count() -> None:
+def my_file_count() -> int:
     return read_file(wf.file_in(MY_FILE, workspace=WORKSPACE))
 
 def test_file():
@@ -40,7 +40,7 @@ def system_test_wf(self, script_name: str)  -> wf.ExecResult:
         ['echo', "Hallo world"],
         stdout=wf.file_out('msg_file.txt'))
     self.msg_file = wf.file_in('msg_file.txt', self.res.workdir)
-    self.res = wf.system(['python', script, "-m", self.msg_file, 123], stdout=wf.SysFile.PIPE, stderr=wf.SysFile.STDOUT)
+    self.res = wf.system(['python', script, "-m", self.msg_file, "123"], stdout=wf.SysFile.PIPE, stderr=wf.SysFile.STDOUT)
     return self.res
 
 def test_system():

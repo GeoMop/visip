@@ -17,7 +17,7 @@ import heapq
 import time
 import itertools
 
-from . import data, task as task_mod, base, dfs,  dtype as dtype, action_instance as instance
+from . import data, task as task_mod, base, dfs, action_instance as instance, dtype
 from .task_result import TaskResult
 from .action_workflow import _Workflow
 from ..eval.cache import ResultCache
@@ -275,8 +275,7 @@ class Scheduler:
 
 
 ActionOrDummy = Union[dtype._ActionBase, DummyAction, DummyWorkflow]
-DataOrDummy = Union[dtype.DataType, Dummy, DummyAction, DummyWorkflow]
-
+DataOrDummy = Union[dtype.DType, Dummy, DummyAction, DummyWorkflow]
 
 class Evaluation:
     """/
@@ -533,7 +532,7 @@ class Evaluation:
 
 def run(action: Union[dtype._ActionBase, DummyAction],
         *args: DataOrDummy,
-        **kwargs: DataOrDummy) -> dtype.DataType:
+        **kwargs: DataOrDummy) -> dtype.DType:
     """
     Use default evaluation setup (local resource only) to evaluate the
     'action' with given arguments 'args' and 'kwargs',

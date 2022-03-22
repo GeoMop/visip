@@ -1,5 +1,6 @@
 from typing import *
 import inspect
+import builtins
 from . import dtype
 from . import data
 
@@ -18,7 +19,7 @@ class ActionParameter:
     VAR_KEYWORD             = inspect.Parameter.VAR_KEYWORD
 
     # Class attribute. Single instance object representing no default value.
-    def __init__(self, name:str, p_type: dtype.TypeBase, default: object = no_default, kind=POSITIONAL_OR_KEYWORD):
+    def __init__(self, name:str, p_type: dtype.DType, default: object = no_default, kind=POSITIONAL_OR_KEYWORD):
         self._name : str = name
         # Name of the parameter, None for positional only.
         self._default = default
@@ -27,8 +28,8 @@ class ActionParameter:
         # Indicates that the parameter must be constant wrapped into Value action.
         self._kind = kind
         # Kind of the parameter to be consistent with Python implementation
-        if p_type == ActionParameter.no_default:
-            p_type = None
+        # if p_type == ActionParameter.no_default:
+        #     p_type = None
         self._type = p_type
         # Type annotation of the parameter, None means missing annotation, but interpreted as Any.
 
@@ -39,7 +40,7 @@ class ActionParameter:
     @property
     def type(self):
         if self._type is None:
-            return Any
+            return dtype.Any()
         else:
             return self._type
 
@@ -87,7 +88,7 @@ class Parameters:
     def return_type(self):
         rt = self._return_type
         if rt is None:
-            return Any
+            return dtype.Any()
         else:
             return rt
 
@@ -153,7 +154,6 @@ class Parameters:
         :return:
         """
         return (p for p in self.parameters if p.kind in self._positional_kinds)
-
 
     def __iter__(self):
         """

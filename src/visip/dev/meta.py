@@ -50,6 +50,8 @@ from .action_instance import ActionCall, ActionInputStatus
 from ..action.constructor import Pass
 from typing import *
 
+import typing
+
 
 class MetaAction(base.ActionBase):
     """
@@ -139,7 +141,6 @@ Partial TODO:
    - expand to the task of closure action conected to both X and Y tasks  
 """
 
-PartialReturnType = dtype.TypeVar('PartialReturnType')
 class _Closure(MetaAction):
     """
     Action of the ClosureTask.
@@ -205,10 +206,10 @@ class _Lazy(MetaAction):
         """
         """
         super().__init__("lazy")
-        ReturnType = dtype.TypeVar('ReturnType')
-        params = [ActionParameter("action", dtype.Callable[...,ReturnType]),
-                  ActionParameter("args", dtype.Any, kind=ActionParameter.VAR_POSITIONAL),
-                  ActionParameter("kwargs", dtype.Any, kind=ActionParameter.VAR_KEYWORD),
+        ReturnType = typing.TypeVar('ReturnType')
+        params = [ActionParameter("action", typing.Callable[...,ReturnType]),
+                  ActionParameter("args", dtype.Any(), kind=ActionParameter.VAR_POSITIONAL),
+                  ActionParameter("kwargs", dtype.Any(), kind=ActionParameter.VAR_KEYWORD),
                   ]
         self._parameters = Parameters(params, ReturnType)
 
@@ -253,11 +254,7 @@ class _Lazy(MetaAction):
             return None
 
 
-
-
-
-
-#
+#PartialReturnType = dtype.TypeVar(name='PartialReturnType')
 
 # @decorators.action_def
 # def partial(function:dtype.Callable[..., PartialReturnType], *args:dtype.List[dtype.Any]) -> dtype.Callable[..., PartialReturnType]:
@@ -287,10 +284,10 @@ class DynamicCall(MetaAction):
         """
         super().__init__("DynamicCall")
 
-        ReturnType = dtype.TypeVar('ReturnType')
-        params = [ActionParameter(name="function", p_type=dtype.Callable[..., ReturnType]),
-                  ActionParameter(name="args", p_type=dtype.Any, kind=ActionParameter.VAR_POSITIONAL),
-                  ActionParameter(name="kwargs", p_type=dtype.Any, kind=ActionParameter.VAR_KEYWORD)]
+        ReturnType = typing.TypeVar('ReturnType')
+        params = [ActionParameter(name="function", p_type=typing.Callable[..., ReturnType]),
+                  ActionParameter(name="args", p_type=dtype.Any(), kind=ActionParameter.VAR_POSITIONAL),
+                  ActionParameter(name="kwargs", p_type=dtype.Any(), kind=ActionParameter.VAR_KEYWORD)]
         self._parameters = Parameters(params, ReturnType)
         # TODO: Support for kwargs forwarding.
         # TODO: Match 'function' parameters and given arguments.
@@ -321,13 +318,13 @@ class _If(MetaAction):
     def __init__(self):
         super().__init__("If")
         params = []
-        ReturnType = dtype.TypeVar('ReturnType')
+        ReturnType = typing.TypeVar('ReturnType')
         params.append(
-            ActionParameter(name="condition", p_type=bool))
+            ActionParameter(name="condition", p_type=dtype.Bool()))
         params.append(
-            ActionParameter(name="true_body", p_type=dtype.Callable[..., ReturnType]))
+            ActionParameter(name="true_body", p_type=typing.Callable[..., ReturnType]))
         params.append(
-            ActionParameter(name="false_body", p_type=dtype.Callable[..., ReturnType]))
+            ActionParameter(name="false_body", p_type=typing.Callable[..., ReturnType]))
         self._parameters = Parameters(params, ReturnType)
 
     def expand(self, task, task_creator, cache):
@@ -348,3 +345,12 @@ class While(MetaAction):
     def __init__(self):
         pass
 
+"""
+@vs.workflow
+def While(condition, body, init):
+    true_body = vs.lazy(While, body(init)
+    vs.If(condition(init), true_body = vs.lazy(my_plus, x, x)
+    false_body = vs.lazy(my_plus, y, y) 
+    return vs.If(x > y, true_body, false_body)
+
+"""

@@ -25,29 +25,34 @@ def unwrap_type(type_hint):
         return None   #raise TypeError("Type annotation is required.")
     #elif type_hint is type(None):
     #    return None
-    elif ti.is_any(type_hint):
+    elif isinstance(type_hint, dtype.DTypeBase):
         return type_hint
-    elif ti.is_base_type(type_hint):
-        return type_hint
-    elif ti.is_dataclass(type_hint):
-        return type_hint
-    elif ti.is_newtype(type_hint):
-        return type_hint
-    else:
-        args = ti.get_args(type_hint)
+    elif isinstance(type_hint, dtype.DTypeGeneric):
+        args = type_hint.get_args()
         if args:
             # Is a generic, process its parameters recursively.
             uargs = tuple(unwrap_type(arg) for arg in args)
-            typing_origin = ti.get_typing_origin(type_hint)
-            return typing_origin[uargs]
+            typing_origin = type(type_hint)
+            return typing_origin(*uargs)
         else:
             raise ExcTypeBase(f"Unknown type annotation: {type_hint}")
 
 
 
 def _parameter_from_inspect(param: inspect.Parameter) -> 'ActionParameter':
-    param_type = unwrap_type(param.annotation)
+    assert param.annotation is not None
+    param_type = unwrap_type(dtype.from_typing(param.annotation))
     return ActionParameter(param.name, param_type, param.default, param.kind)
+
+
+def _check_type_var(parameters):
+    # todo: possible move to class Parameters
+    in_set = set()
+    for param in parameters.parameters:
+        in_set.update(dtype.extract_type_var(param.type))
+    out_set = dtype.extract_type_var(parameters.return_type)
+    assert out_set.issubset(in_set), "All TypeVars at output there are not also at input."
+
 
 def _extract_signature(func, omit_self=False):
     """
@@ -57,11 +62,16 @@ def _extract_signature(func, omit_self=False):
     :return:
     """
     signature = inspect.signature(func)
-    params = [_parameter_from_inspect(param) for param in signature.parameters.values()]
+    params = []
     had_self = False
-    if omit_self and params and params[0].name == 'self':
-        params = params[1:]
-        had_self = True
-    return_type = unwrap_type(signature.return_annotation)
-    return Parameters(params, return_type , had_self)
+    for i, param in enumerate(signature.parameters.values()):
+        if omit_self and i == 0 and param.name == 'self':
+            had_self = True
+            continue
+        params.append(_parameter_from_inspect(param))
+    #assert signature.return_annotation is not None
+    return_type = unwrap_type(dtype.from_typing(signature.return_annotation))
+    parameters = Parameters(params, return_type , had_self)
+    _check_type_var(parameters)
+    return parameters
 

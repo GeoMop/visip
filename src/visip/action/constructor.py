@@ -1,6 +1,5 @@
-import typing
 from ..dev.base import ActionBase
-from ..dev import dtype as dtype
+from ..dev import dtype
 from ..dev.parameters import Parameters, ActionParameter
 from ..dev import data
 from ..dev import base
@@ -9,7 +8,7 @@ from ..dev import base
 class Value(ActionBase):
     def __init__(self, value):
         name = "Value"
-        params = Parameters([], typing.Any)
+        params = Parameters([], dtype.from_typing(type(value)))
         super().__init__(name, params)
         self.action_kind = base.ActionKind.Meta
         self.value = value
@@ -33,13 +32,13 @@ class Pass(ActionBase):
     Propagate given single argument. Do nothing action. Meant for internal usage in particular.
     """
     def __init__(self):
-    	# TODO: TypeVar
-        p = ActionParameter('input', typing.Any)
-        signature = Parameters((p,), typing.Any)
+        t = dtype.TypeVar(name="T")
+        p = ActionParameter('input', t)
+        signature = Parameters((p,), t)
         self.action_kind = base.ActionKind.Generic
         super().__init__('Pass', signature)
 
-    def _evaluate(self, input: dtype.DataType) -> dtype.DataType:
+    def _evaluate(self, input):
         return input
 
 
@@ -55,13 +54,12 @@ class _ListBase(ActionBase):
     # in this case. After reinit one should use only self.arguments.
 
     def __init__(self, action_name):
-        # TODO: TypeVar
         self.action_kind = base.ActionKind.Generic
-        p = ActionParameter(name='args', p_type=typing.Any,
-                             default=ActionParameter.no_default, kind=ActionParameter.VAR_POSITIONAL)
-        params = Parameters((p,), return_type=typing.Any)
+        t = dtype.TypeVar(name="T")
+        p = ActionParameter(name='args', p_type=t,
+                            default=ActionParameter.no_default, kind=ActionParameter.VAR_POSITIONAL)
+        params = Parameters((p,), return_type=dtype.List(t))
         super().__init__(action_name, params)
-        #self._output_type = typing.Any
 
 
 class A_list(_ListBase):
@@ -71,7 +69,7 @@ class A_list(_ListBase):
     def call_format(self, representer, action_name, arg_names, arg_values):
         return representer.list("[", "]", [(None, arg) for arg in arg_names])
 
-    def _evaluate(self, *inputs) -> typing.Any:
+    def _evaluate(self, *inputs):
         return list(inputs)
 
 
@@ -86,17 +84,17 @@ class A_tuple(_ListBase):
     def call_format(self, representer, action_name, arg_names, arg_values):
         return representer.list("(", ")", [(None, arg) for arg in arg_names])
 
-    def _evaluate(self, *inputs) -> typing.Any:
+    def _evaluate(self, *inputs):
         return tuple(inputs)
 
 
 class A_dict(ActionBase):
     def __init__(self):
     	# TODO: TypeVar
-        p =  ActionParameter(name='args', p_type=typing.Tuple[typing.Any, typing.Any],
+        p =  ActionParameter(name='args', p_type=dtype.Tuple(dtype.Any(), dtype.Any()),
                             default=ActionParameter.no_default, kind=ActionParameter.VAR_POSITIONAL)
         self.action_kind = base.ActionKind.Generic
-        signature = Parameters((p, ), return_type=typing.Any)
+        signature = Parameters((p, ), return_type=dtype.Any())
         super().__init__('dict', signature)
 
 
@@ -109,7 +107,7 @@ class A_dict(ActionBase):
 
         return ActionBase.call_format(self, representer, action_name, arg_names, arg_values)
 
-    def _evaluate(self, *inputs) -> typing.Any:
+    def _evaluate(self, *inputs):
         return {key: val for key, val in inputs}
         #item_pairs = ( (key, val) for key, val in inputs)
         #return dict(item_pairs)

@@ -11,8 +11,9 @@ from ..action import constructor
 #from ..code import wrap
 from ..code.dummy import DummyAction, DummyWorkflow
 from ..code.representer import Representer
-from . import base, action_workflow as wf, dtype as dtype
+from . import base, action_workflow as wf
 from .action_instance import ActionCall
+from . import dtype
 
 
 
@@ -211,7 +212,7 @@ class Module:
         while module_queue:
 
             mod_obj, mod_alias = module_queue.popleft()
-            print("Processing module: ", mod_obj.__name__, mod_alias)
+            #print("Processing module: ", mod_obj.__name__, mod_alias)
 
             # process new module
             package = mod_obj.__name__.split('.')[0]
