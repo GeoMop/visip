@@ -68,6 +68,9 @@ class _TaskBase:
 
 
 class TaskSchedule:
+    """
+    Task used by Scheduler.
+    """
     def __init__(self, parent: 'Composed', task_binding: TaskBinding):
 
         input_hashes = [input.result_hash for input in task_binding.inputs]

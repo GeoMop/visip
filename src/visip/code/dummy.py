@@ -1,4 +1,7 @@
+import inspect
+import dis
 from typing import *
+
 
 class DummyAction:
     """
@@ -115,6 +118,26 @@ class Dummy:
         """
         return Dummy(self._af, self._af.create_dynamic_call(self._value, *args, **kwargs))
 
+    def _expecting(self, offset=0):
+        """Return how many values the caller is expecting"""
+        f = inspect.currentframe().f_back.f_back
+        i = f.f_lasti + offset
+        bytecode = f.f_code.co_code
+        instruction = bytecode[i]
+        if instruction == dis.opmap['UNPACK_SEQUENCE']:
+            return bytecode[i + 1]
+        elif instruction == dis.opmap['POP_TOP']:
+            return 0
+        else:
+            return 1
+    def __iter__(self):
+        """
+        Unpack Dummy as a tuple.
+        :return:
+        """
+        # offset = 3 bytecodes from the call op to the unpack op
+        for i in range(self._expecting(offset=0)):
+            yield Dummy(self._af, self._af.GetItem(self._value, i))
 
     # Binary
     # Operators

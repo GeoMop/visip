@@ -13,6 +13,7 @@ from ..dev import dtype
 dict = public_action(constructor.A_dict())
 list = public_action(constructor.A_list())
 tuple = public_action(constructor.A_tuple())
+Pass = public_action(constructor.Pass())
 
 If = public_action(meta._If())
 """

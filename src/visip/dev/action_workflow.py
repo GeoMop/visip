@@ -257,7 +257,7 @@ class _Workflow(meta.MetaAction):
         self._sorted_calls = topology_sort
 
         #if self._status != self.Status.cycle:
-        self._check_types()
+        #self._check_types()
 
         return self.status
 
@@ -569,6 +569,7 @@ class _Workflow(meta.MetaAction):
 
             In particular slots are named by corresponding parameter name and result task have name '__result__'
         """
+        print("expand wf: ", self.name)
         if self.update() != self.Status.ok:
             raise exceptions.ExcInvalidWorkflow
         childs = {}

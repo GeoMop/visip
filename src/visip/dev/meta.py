@@ -167,9 +167,9 @@ class _Closure(MetaAction):
         assert task.action is self
         def is_empty(task_in):
             try:
-                return task_in.action.value is dtype.empty
+                return isinstance(task_in.action, Value) and task_in.action.value is dtype.empty
             except AttributeError:
-                raise AttributeError(f"{task.action}")
+                raise AttributeError(f"{task_in.action}")
 
 
         new_args, new_kwargs = tools.compose_arguments(task.id_args_pair, task.inputs)
@@ -347,10 +347,68 @@ class While(MetaAction):
 
 """
 @vs.workflow
-def While(condition, body, init):
-    true_body = vs.lazy(While, body(init)
-    vs.If(condition(init), true_body = vs.lazy(my_plus, x, x)
-    false_body = vs.lazy(my_plus, y, y) 
-    return vs.If(x > y, true_body, false_body)
+def _true_while_body(condition, body, previous):
+    return While(condition, body, body(previous)
+
+@vs.workflow
+def While(condition, body, previous):
+    cond = condition(previous)    
+    true_body = vs.lazy(_true_while_body, condition, body, previous)
+    false_body = vs.lazy(Pass, previous) 
+    return vs.If(cond, true_body, false_body)
+
+# Usage
+
+def fibonacci(prev):
+    i, a, b = prev
+    return i - 1, b, a + b
+    
+fib = While(vs.Slot[0][0] > 0, fibonacci, (i, 1, 1) ) 
+return fib[1]
+"""
+
+
+"""
+@vs.workflow
+def While(body, previous):
+    next = body(previous)    
+    true_body = vs.lazy(While, body, next)
+    false_body = vs.lazy(Pass, previous) 
+    return vs.If(is_none(next), true_body, false_body)
+
+# Usage
+
+def fib_body(prev)
+    
+    
+def fibonacci(prev):
+    i, a, b = prev    
+    false_body = vs.lazy(Pass, None)
+    return If(i > 0, fib_true, None) 
+    
+fib = While(fibonacci, (i, 1, 1) ) 
+return fib[1]
+"""
+
+
+"""
+@vs.workflow
+def _true_generate_body(body, previous):
+    return _GenerateLoop(body, body(previous)
+
+    
+@vs.workflow
+def _GenerateLoop(condition, body, previous):
+    list, last = previous
+    cond = condition(last)
+    new_list = append(list, last)
+    true_body = vs.lazy(_GenerateLoop, body, (new_list, body(previous)))
+    false_body = vs.lazy(Pass, previous) 
+    return vs.If(cond, true_body, false_body)
+    return 
+    
+    
+def Generate(condition, body, init):
+    
 
 """
