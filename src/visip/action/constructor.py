@@ -1,35 +1,44 @@
-import attr
-import typing
-
-from ..dev.base import _ActionBase
-from ..dev import dtype as dtype
-from ..dev.parameters import Parameters, ActionParameter, extract_func_signature
+from ..dev.base import ActionBase
+from ..dev import dtype
+from ..dev.parameters import Parameters, ActionParameter
 from ..dev import data
+from ..dev import base
 
 
-class Value(_ActionBase):
+class Value(ActionBase):
     def __init__(self, value):
-        super().__init__()
+        name = "Value"
+        params = Parameters([], dtype.from_typing(type(value)))
+        super().__init__(name, params)
+        self.action_kind = base.ActionKind.Meta
         self.value = value
 
     def action_hash(self):
-        return data.hash(self.value)
+        salt_hash = data.hash("Value")
+        # In the case of "action" value with action having no parameters, we have to distinguish
+        # hash of the result of action from the hash of the action itself (result of the Value action).
+        # TODO: any way we should store action values to a separate storage private to the scheduler
+        return data.hash(self.value, previous=salt_hash)
 
-    def _evaluate(self) -> typing.Any:
+    def _evaluate(self):
         return self.value
 
     def call_format(self, representer, action_name, arg_names, arg_values):
         return representer.value_code(self.value)
 
 
-class Pass(_ActionBase):
+class Pass(ActionBase):
     """
-    Do nothing action. Meant for internal usage in particular.
+    Propagate given single argument. Do nothing action. Meant for internal usage in particular.
     """
     def __init__(self):
-        super().__init__()
+        t = dtype.TypeVar(name="T")
+        p = ActionParameter('input', t)
+        signature = Parameters((p,), t)
+        self.action_kind = base.ActionKind.Generic
+        super().__init__('Pass', signature)
 
-    def _evaluate(self, input: dtype.DataType):
+    def _evaluate(self, input):
         return input
 
 
@@ -37,7 +46,7 @@ class Pass(_ActionBase):
 
 
 
-class _ListBase(_ActionBase):
+class _ListBase(ActionBase):
     """
     Base action class for actions accepting any number of unnamed parameters.
     """
@@ -45,12 +54,12 @@ class _ListBase(_ActionBase):
     # in this case. After reinit one should use only self.arguments.
 
     def __init__(self, action_name):
-        super().__init__(action_name)
-        self._parameters = Parameters()
-        self._parameters.append(
-            ActionParameter(name=None, type=typing.Any,
-                                       default=ActionParameter.no_default))
-        self._output_type = typing.Any
+        self.action_kind = base.ActionKind.Generic
+        t = dtype.TypeVar(name="T")
+        p = ActionParameter(name='args', p_type=t,
+                            default=ActionParameter.no_default, kind=ActionParameter.VAR_POSITIONAL)
+        params = Parameters((p,), return_type=dtype.List(t))
+        super().__init__(action_name, params)
 
 
 class A_list(_ListBase):
@@ -60,7 +69,7 @@ class A_list(_ListBase):
     def call_format(self, representer, action_name, arg_names, arg_values):
         return representer.list("[", "]", [(None, arg) for arg in arg_names])
 
-    def evaluate(self, inputs) -> typing.Any:
+    def _evaluate(self, *inputs):
         return list(inputs)
 
 
@@ -75,27 +84,30 @@ class A_tuple(_ListBase):
     def call_format(self, representer, action_name, arg_names, arg_values):
         return representer.list("(", ")", [(None, arg) for arg in arg_names])
 
-    def evaluate(self, inputs) -> typing.Any:
+    def _evaluate(self, *inputs):
         return tuple(inputs)
 
 
-class A_dict(_ActionBase):
+class A_dict(ActionBase):
     def __init__(self):
-        super().__init__(action_name='dict')
-        self._parameters = Parameters()
-        self._parameters.append(
-            ActionParameter(name=None, type=typing.Tuple[typing.Any, typing.Any],
-                            default=ActionParameter.no_default))
-        self._output_type = typing.Any
+    	# TODO: TypeVar
+        p =  ActionParameter(name='args', p_type=dtype.Tuple(dtype.Any(), dtype.Any()),
+                            default=ActionParameter.no_default, kind=ActionParameter.VAR_POSITIONAL)
+        self.action_kind = base.ActionKind.Generic
+        signature = Parameters((p, ), return_type=dtype.Any())
+        super().__init__('dict', signature)
+
+
+
 
     def call_format(self, representer, action_name, arg_names, arg_values):
         # TODO: dict as action_name with prefix
         # Todo: check that inputs are pairs, extract key/value
         #return format.Format.list("{", "}", [(None, arg) for arg in arg_names])
 
-        return _ActionBase.call_format(self, representer, action_name, arg_names, arg_values)
+        return ActionBase.call_format(self, representer, action_name, arg_names, arg_values)
 
-    def evaluate(self, inputs) -> typing.Any:
+    def _evaluate(self, *inputs):
         return {key: val for key, val in inputs}
         #item_pairs = ( (key, val) for key, val in inputs)
         #return dict(item_pairs)
@@ -109,55 +121,21 @@ TODO:
 
 
 
-class ClassActionBase(_ActionBase):
+class ClassActionBase(ActionBase):
     base_data_type = dtype.DataClassBase
     """
     Action constructs particular Dataclass given in constructor.
     So the action is parametrized by the 'data_class'.
     """
-    def __init__(self, data_class):
-        super().__init__(data_class.__name__)
+    def __init__(self, data_class, signature):
+        super().__init__(data_class.__name__, signature)
         self._data_class = data_class
         # Attr.s dataclass
         self.__visip_module__ = self._data_class.__module__
         # module where the data class is defined
 
-        self._parameters, _ = extract_func_signature(data_class.__init__, skip_self=True)
-        self._output_type = data_class
-        # Initialize parameters of the action.
-
-
-    @staticmethod
-    def dataclass_from_params(name: str, params: Parameters, module=None):
-        attributes = {}
-        for param in params:
-            attributes[param.name] = attr.ib(default=param.default, type=param.type)
-        # 'yaml_tag' is not processed by attr.s and thus ignored by visip code representer.
-        # however it allows correct serialization to yaml
-        # Note: replaced by the DataClassBase classproperty 'yaml_tag'.
-        #attributes['yaml_tag'] = u'!{}'.format(name)
-        data_class = type(name, (dtype.DataClassBase,), attributes)
-        if module:
-            data_class.__module__ = module
-
-        return attr.s(data_class)
-
-    @classmethod
-    def construct_from_params(cls, name: str, params: Parameters, module=None):
-        """
-        Use Params to consturct the data_class and then instance of ClassActionBase.
-        :param name: name of the class
-        :param params: instance of Parameters
-        :return:
-        """
-        return cls(cls.dataclass_from_params(name, params, module))
-
-    @property
-    def constructor(self):
-        return self._data_class
-
-    def _evaluate(self, *args) -> dtype.DataClassBase:
-        return self.constructor(*args)
+    def _evaluate(self, *args, **kwargs) -> dtype.DataClassBase:
+        return self._data_class(*args, **kwargs)
 
     def code_of_definition(self, representer):
         """
@@ -179,4 +157,4 @@ class ClassActionBase(_ActionBase):
         a_hash = data.hash(self.name)
         for param in self.parameters:
             a_hash = data.hash(param.name, previous=a_hash)
-            a_hash = data.hash(param.name, previous=a_hash)
+        return a_hash

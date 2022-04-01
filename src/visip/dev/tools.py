@@ -1,6 +1,8 @@
 import os
 import sys
+import attr
 from typing import *
+
 
 class classproperty(object):
     """
@@ -44,4 +46,55 @@ class change_cwd:
     def __exit__(self, exc_type, exc_value, traceback):
         if self.orig_cwd:
             os.chdir(self.orig_cwd)
+############################################################
+
+ArgsValue = TypeVar('ArgsValue')
+ArgsPair = Tuple[List[ArgsValue], Dict[str, ArgsValue]]
+
+DecomposedValue = TypeVar('DecomposedValue')
+def decompose_arguments(args_pair: ArgsPair[DecomposedValue]) -> Tuple[ArgsPair[int], List[DecomposedValue]]:
+    """
+    Separate the arguments structure and argument values.
+    Returns arguments pair (args, kwargs) with values replaced by IDs
+            and list of the values inorder of IDs.
+    :param args_pair: (args, kwargs) with values
+    :return: (id_args, id_kwargs), values
+    """
+    args, kwargs = args_pair
+    values = []
+    id_args = []
+    for a in args:
+        id_args.append(len(values))
+        values.append(a)
+    id_kwargs = {}
+    for k, a in kwargs.items():
+        id_kwargs[k] = len(values)
+        values.append(a)
+    return  (id_args, id_kwargs), values
+
+
+ComposedValue = TypeVar('ComposedValue')
+def compose_arguments(id_args_pair: ArgsPair[int],
+            values: [ComposedValue]) -> ArgsPair[ComposedValue]:
+    """
+    For given (id_args, id_kwargs) and list of values
+    return (args, kwargs) with values.
+    :param id_args_pair:
+    :param values:
+    :return:
+    """
+    id_args, id_kwargs = id_args_pair
+    args = [values[ia] for ia in id_args]
+    kwargs = { k: values[ia] for k, ia in id_kwargs.items()}
+    return args, kwargs
+
+
+##########################################################
+
+@attr.s(auto_attribs=True)
+class TaskBinding:
+    child_name: str
+    action: '_ActionBase'
+    id_args_pair: ArgsPair[int]
+    inputs: List['Task']
 

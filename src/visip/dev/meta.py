@@ -2,27 +2,58 @@
 Implementation of meta actions other then Workflow.
 
 We need syntax for inline workflow definitions.
-
 Like Lambda(x=a, y=b, x[0] + y[1])
 
-result = If(cond, true_res, false_res)
-# possibly detect expressions as minimum independent chains
 
-result = If(cond, true_wf, false_wf)(input)
+TODO:
+1. Try to implement partial as it provides most of the needed functionality with
+the simplest API for the implementation as it is a regular function call in Python.
 
-While(body_
+2. Test recursion.
+
+2. We can introduce sort of free parameter placeholder and then define the lambda like:
+
+a = Slot('X') + 1
+b = Slot('Y')
+f = Lambda(foo, a , b , 3)
+
+So that is better then partial as you can specify free positional arguments.
+However this way the Signature of the resulting function is not clear with that `+ 1`.
+Other possibility is:
+
+a = Slot('X') + 5
+b = a + Slot('Y')
+f = Lambda(b, alpha='Y', beta='X')
+
+equivalent to:
+def f(alpha, beta):
+    a = beta + 5
+    b = a + alpha
+    return b
+
+So that Lambda collects all free slots and prescribes the signature of the resulting function.
+
+Try also if we can manage to define new workflow inside other workflow as that is more natural way
+how to define a more complex closure funcitons.
+
 
 
 """
 from . import base
 from . import exceptions
-from ..action import constructor
+from ..action.constructor import Value
 from ..dev.parameters import Parameters, ActionParameter
 from . import dtype
-from ..code import wrap
+from ..code.dummy import DummyAction, Dummy, DummyWorkflow
+from ..dev import tools
+from .action_instance import ActionCall, ActionInputStatus
+from ..action.constructor import Pass
+from typing import *
+
+import typing
 
 
-class MetaAction(base._ActionBase):
+class MetaAction(base.ActionBase):
     """
     Common ancestor of the meta actions.
 
@@ -36,12 +67,13 @@ class MetaAction(base._ActionBase):
     """
     def __init__(self, name):
         super().__init__(name)
+        self.action_kind = base.ActionKind.Meta
 
         self.task_type = base.TaskType.Composed
         # Task type determines how the actions are converted to the tasks.
         # Composed tasks are expanded.
 
-    def expand(self, task: 'Task', task_creator):
+    def expand(self, task: 'Task', task_creator, cache):
         """
         Expansion of the composed task. In order to no break input references of other tasks
         the current task is collapsed to an effective Pass action connected to the expansion __result__ task.
@@ -52,6 +84,7 @@ class MetaAction(base._ActionBase):
         :param task: The complex task to expand.
         :param task_creator: Dependency injection method for creating tasks from the actions:
             task_creator(instance_name:str, action:base._ActionBase, input_tasks:List[Task])
+        :param cache: Result cache instance
         :return:
             None if can not be expanded yet.
 
@@ -60,92 +93,169 @@ class MetaAction(base._ActionBase):
         """
         assert False, "Missing definition."
 
-    def dynamic_action(self, input_task):
+    def dynamic_action(self, input_result):
         """
         Extract a dynamic action from the result of a meta action.
-        :param input_task:
+        :param input_result:
         :return:
         """
-        action = input_task.result
-        if isinstance(action, wrap.ActionWrapper):
-            action = action.action
-        if not isinstance(action, base._ActionBase):
+        action = input_result
+        if isinstance(action, (DummyAction, DummyWorkflow)):
+            action = action._action_value
+        elif isinstance(action, Dummy):
+            action = action._value
+        if isinstance(action, dtype._ActionBase):
+            pass
+        elif isinstance(action, dtype.valid_data_types):
+            action = Value(action)
+        else:
             raise exceptions.ExcInvalidCall(action)
+
         return action
 
 
 """
 Partial TODO:
+- DynamicCall is special case of Closure, with no remebered arguments
+- Closure needs possibly special support in Scheduler as it causes creation of new 
+  task connections at the call side of the closure. 
+- Alternatively the meta actions may create a back reference in the previous tasks providing
+  the actions and the closure could expand only if such references are obtained, not clear if we have all of them.
+- Should be the case that the closure have always actions consuming its value action. 
+- we can see the task DAG in hierarchical way:
+  DAG of composite tasks
+  DAG of big tasks
+  DAG of all tasks
+- The scheduler should 
+  1. plan expansion of composite tasks
+  2. plan big tasks to resources
+  3. associate and possibly duplicate small tasks
+
+
 
 2. Not clear how current expansion make actual task dependent on its childs.
 4. Implement Partial expanding to preliminary evaluation returning the closure complex action containing the captured input tasks X.
+   Partial inputs needs not to be finished at the expansion. 
 5. Implement the closure complex action:
    - have dynamically determined parameters Y
    - expand to the task of closure action conected to both X and Y tasks  
 """
 
+class _Closure(MetaAction):
+    """
+    Action of the ClosureTask.
+    Captures an action and its partially substituted arguments.
+    Expands after DynamicCall which provides remaining arguments.
+    TODO: Suppoert of typechecking, otherwise an error is catched at the task binding creation
+    during expansion to the final Atomic task.
+    TODO: Make DynamicCall special case of _Closure.
+    """
+    def __init__(self, action, args, kwargs):
+        super().__init__("Closure")
+        self.task_type = base.TaskType.Composed
+        self._action : dtype._ActionBase = action
+        self._args : List['_TaskBase'] = args
+        self._kwargs : Dict[str, '_TaskBase'] = kwargs
+        # TODO: get callable type and check given arguments against signature
+        # TODO: how to consistently reports errors at this stage
 
-# class _PartialClosure(MetaAction):
-#
-#     def __init__(self, function: base._ActionBase, args, kwargs):
-#         super().__init__("PartialClosure")
-#         self._function = function
-#         self._arg_tasks = args
-#         self._kwarg_tasks = kwargs
-#         # TODO: filter paratemters set Paratemers
-#         self._parameters = Parameters()
-#         # ?? Probably no need to specify parameters as the closure input substitution works only with tasks.
-#         # But we can make a check in the expansion step.
-#
-#
-#         # This allows DynamicCall to work
-#
-#     def expand(self, task, task_creator):
-#         # Always expand create the task with merged inputs.
-#         #TODO: merge new inputs to partial_args
-#         pass
-#
-#
-#
-# class Partial(MetaAction):
-#     def __init__(self):
-#         """
-#         Partial argument binding, creates a closure.
-#         TODO: support kwargs in visip, necessary for perfect forwarding
-#         """
-#         super().__init__("Partial")
-#         self._parameters = Parameters()
-#         PartialReturnType = dtype.TypeVar('PartialReturnType')
-#
-#         self._parameters.append(
-#             ActionParameter(name="function", type=dtype.Callable[..., PartialReturnType]))
-#         self._parameters.append(
-#             ActionParameter(name=None, type=dtype.Any, default=ActionParameter.no_default))
-#         # TODO: Support for kwargs forwarding.
-#         # TODO: Match 'function' parameters and given arguments.
-#         #self._parameters.append(
-#         #    ActionParameter(name=None, type=typing.Any, default=ActionParameter.no_default))
-#         self._output_type = dtype.Callable[..., PartialReturnType]
-#
-#
-#     def expand(self, task, task_creator):
-#         # TODO: need either support for partial substitution in Action Wrapper or must do it here.
-#         # Parameters of the resulting action must be determined dynamicaly.
-#         # TODO: Here is significant problem with parameter types since all are
-#         # optional
-#         assert len(task.inputs) == self._parameters.size()
-#         if task.inputs[0].is_finished():
-#             # Create the closure and mark the Partial task finished
-#             # independently on the status of the enclosed intputs.
-#             closure = _PartialClosure(self.dynamic_action(task.inputs[0]), task.inputs[1], {})
-#             task.finish(closure, task.lazy_hash()) # ?? May not work.
-#
-#             return [task_creator('__result__', constructor.Pass(), [task])]
-#         else:
-#             return None
+    def expand(self, task: '_ClosureTask', task_creator, cache):
+        # Always expand create the task with merged inputs.
+        # TODO: merge new inputs to partial_args
+        # TODO: How to match inputs to unbinded args.
+        # unbinded args marked as Value task with empty argument
+        assert task.action is self
+        def is_empty(task_in):
+            try:
+                return task_in.action.value is dtype.empty
+            except AttributeError:
+                raise AttributeError(f"{task.action}")
 
-#
-# PartialReturnType = dtype.TypeVar('PartialReturnType')
+
+        new_args, new_kwargs = tools.compose_arguments(task.id_args_pair, task.inputs)
+        it_new_args = iter(new_args)
+        args = []
+        for t in self._args:
+            if is_empty(t):
+                try:
+                    add = next(it_new_args)
+                except StopIteration:
+                    raise exceptions.ExcArgumentBindError(f"Missing positional argument, in closure of {self._action}")
+            else:
+                add = t
+            args.append(add)
+        args.extend(it_new_args)
+        kwargs = self._kwargs
+        kwargs.update(new_kwargs)
+        id_args_pair, inputs = tools.decompose_arguments( (args, kwargs) )
+
+        # TODO: Abstart ActionCall.bind and use it here and in DynamicCall to check bindindg errors
+        #
+
+        task_binding = tools.TaskBinding('__result__', self._action, id_args_pair, inputs)
+        task = task_creator(task_binding)
+        return {'__result__': task}
+
+
+class _Lazy(MetaAction):
+    """
+    Binds arguments but do not call the action, just return resulting
+    action remaining parameters.
+    """
+    def __init__(self):
+        """
+        """
+        super().__init__("lazy")
+        ReturnType = typing.TypeVar('ReturnType')
+        params = [ActionParameter("action", typing.Callable[...,ReturnType]),
+                  ActionParameter("args", dtype.Any(), kind=ActionParameter.VAR_POSITIONAL),
+                  ActionParameter("kwargs", dtype.Any(), kind=ActionParameter.VAR_KEYWORD),
+                  ]
+        self._parameters = Parameters(params, ReturnType)
+
+
+    def expand(self, task: 'task.Composed', task_creator, cache):
+        """
+        Expands to the ClosureTask, holding the action as instance of _Closure.
+        The _ClosureTaks has reduced number or possibly no inputs (i.e. closure)
+        TODO: When making Action call it probably wraps Empty values into Value actions.
+        Need to check and extract them here.
+        """
+        # No need to wait for finised tasks, quite contrarly even action may be yet unfinished as it could be
+        # result of other Closure.
+
+
+
+        if cache.is_finished(task.inputs[0].result_hash):
+            # TODO:
+            # - wrap actions into Closure action in order to prevent storing actions into DB
+            # - check task is the ClosureTask
+            # - get task._result.parameters check against connected inputs
+            # - Workflow typechecking should be able to derive types of callables, but need a help
+            #   as the type propagation through Lazy is complicated
+
+            # Create the closure and Lazy task finished
+            # independently on the status of the enclosed intputs.
+            # ac = ActionCall(self.dynamic_action(task.inputs[0]), "_closure_")
+            # args = [ActionCall.create(constructor.Value(TaskValue(value))) for value in ]
+            # ac.set_inputs(args, {})
+            args, kwargs = tools.compose_arguments(task.id_args_pair, task.inputs)
+            action = self.dynamic_action(cache.value(args[0].result_hash))
+
+
+            closure = _Closure(action, args[1:], kwargs)
+            cache.insert(task.result_hash, closure)
+            # empty task to proceed
+            task_binding = tools.TaskBinding('__result__', Pass(), ([0], {}), [task])
+            pass_task = task_creator(task_binding)
+
+            return {'__result__': pass_task}
+        else:
+            return None
+
+
+#PartialReturnType = dtype.TypeVar(name='PartialReturnType')
+
 # @decorators.action_def
 # def partial(function:dtype.Callable[..., PartialReturnType], *args:dtype.List[dtype.Any]) -> dtype.Callable[..., PartialReturnType]:
 #     # TODO: kwargs support
@@ -171,27 +281,33 @@ class DynamicCall(MetaAction):
     def __init__(self):
         """
         Constructed by the Dummy.__call__.
-        TODO: support kwargs in visip, necessary for perferct forwarding
         """
         super().__init__("DynamicCall")
-        self._parameters = Parameters()
-        ReturnType = dtype.TypeVar('ReturnType')
-        self._parameters.append(
-            ActionParameter(name="function", type=dtype.Callable[..., ReturnType]))
-        self._parameters.append(
-            ActionParameter(name=None, type=dtype.Any, default=ActionParameter.no_default))
+
+        ReturnType = typing.TypeVar('ReturnType')
+        params = [ActionParameter(name="function", p_type=typing.Callable[..., ReturnType]),
+                  ActionParameter(name="args", p_type=dtype.Any(), kind=ActionParameter.VAR_POSITIONAL),
+                  ActionParameter(name="kwargs", p_type=dtype.Any(), kind=ActionParameter.VAR_KEYWORD)]
+        self._parameters = Parameters(params, ReturnType)
         # TODO: Support for kwargs forwarding.
         # TODO: Match 'function' parameters and given arguments.
         #self._parameters.append(
         #    ActionParameter(name=None, type=typing.Any, default=ActionParameter.no_default))
-        self._output_type = ReturnType
 
-    def expand(self, task, task_creator):
-        if task.inputs[0].is_finished():
-            return [task_creator('__result__',
-                    self.dynamic_action(task.inputs[0]), task.inputs[1:])]
+
+    def expand(self, task, task_creator, cache):
+        if cache.is_finished(task.inputs[0].result_hash):
+            #args, kwargs = tools.compose_arguments(task.id_args_pair, task.inputs)
+            action = self.dynamic_action(cache.value(task.inputs[0].result_hash))
+            id_args, id_kwargs = task.task.id_args_pair
+            id_args = [i - 1 for i in id_args[1:]]
+            id_kwargs = {k: (i-1) for k, i in id_kwargs.items()}
+            task_binding = tools.TaskBinding('__result__', action, (id_args, id_kwargs), task.inputs[1:])
+            task = task_creator(task_binding)
+            return {'__result__': task}
         else:
             return None
+
 
 
 class _If(MetaAction):
@@ -200,29 +316,27 @@ class _If(MetaAction):
     then the true and false inputs?
     """
     def __init__(self):
-        """
-        Constructed by the Dummy.__call__.
-        TODO: support kwargs in visip, necessary for perferct forwarding
-        """
-        #super().__init__("DynamicCall")
-        super().__init__("If") # Dynamic Call
-        self._parameters = Parameters()
-        ReturnType = dtype.TypeVar('ReturnType')
-        self._parameters.append(
-            ActionParameter(name="condition", type=bool))
-        self._parameters.append(
-            ActionParameter(name="true_body", type=dtype.Callable[..., ReturnType]))
-        self._parameters.append(
-            ActionParameter(name="false_body", type=dtype.Callable[..., ReturnType]))
-        self._output_type = ReturnType
+        super().__init__("If")
+        params = []
+        ReturnType = typing.TypeVar('ReturnType')
+        params.append(
+            ActionParameter(name="condition", p_type=dtype.Bool()))
+        params.append(
+            ActionParameter(name="true_body", p_type=typing.Callable[..., ReturnType]))
+        params.append(
+            ActionParameter(name="false_body", p_type=typing.Callable[..., ReturnType]))
+        self._parameters = Parameters(params, ReturnType)
 
-    def expand(self, task, task_creator):
-        if all([ i_task.is_finished() for i_task in task.inputs]):
-            condition = task.inputs[0].result
+    def expand(self, task, task_creator, cache):
+        if all([cache.is_finished(i_task.result_hash) for i_task in task.inputs]):
+            condition = cache.value(task.inputs[0].result_hash)
             if condition:
-                return [task_creator('__result__', self.dynamic_action(task.inputs[1]), [])]
+                action = self.dynamic_action(cache.value(task.inputs[1].result_hash))
             else:
-                return [task_creator('__result__', self.dynamic_action(task.inputs[2]), [])]
+                action = self.dynamic_action(cache.value(task.inputs[2].result_hash))
+            task_binding = tools.TaskBinding('__result__', action, ([], {}), [])
+            return {'__result__': task_creator(task_binding)}
+
         else:
             return None
 
@@ -231,3 +345,12 @@ class While(MetaAction):
     def __init__(self):
         pass
 
+"""
+@vs.workflow
+def While(condition, body, init):
+    true_body = vs.lazy(While, body(init)
+    vs.If(condition(init), true_body = vs.lazy(my_plus, x, x)
+    false_body = vs.lazy(my_plus, y, y) 
+    return vs.If(x > y, true_body, false_body)
+
+"""

@@ -1,6 +1,9 @@
-from ..dev import dtype as dtype
+from ..dev.type_inspector import TypeInspector
+from ..dev import dtype
 from . import formating
 from ..dev import parameters
+
+import typing_inspect
 
 class Representer:
     """
@@ -27,12 +30,17 @@ class Representer:
         :param type_hint:
         :return:
         """
-        ti = dtype.TypeInspector()
+        return self.type_code_inner(dtype.to_typing(type_hint))
+
+    def type_code_inner(self, type_hint):
+        ti = TypeInspector()
         if type_hint is None:
             # TODO: represent None as no type annotation, but it should be forbidden.
             return 'None'
         elif ti.is_any(type_hint):
             return self.make_rel_name('typing', 'Any')
+        elif typing_inspect.is_typevar(type_hint):
+            return self.make_rel_name('typing', 'TypeVar')
         elif ti.is_base_type(type_hint):
             return type_hint.__name__
         elif ti.is_dataclass(type_hint):
@@ -40,14 +48,14 @@ class Representer:
         else:
             args = ti.get_args(type_hint)
             if args:
-                args_code = ", ".join([self.type_code(arg) for arg in args])
+                args_code = ", ".join([self.type_code_inner(arg) for arg in args])
                 (module, name) = str(ti.get_typing_origin(type_hint)).split(".")
                 origin_name = self.make_rel_name(module, name)
                 code = "{}[{}]".format(origin_name, args_code)
                 return code
             else:
-                print("No code representation for the type: {}"
-                      .format(str(type_hint)))
+                raise Exception(f"No code representation for the type: {type_hint}")
+
 
     def value_code(self, value):
         if hasattr(value, '__code__'):

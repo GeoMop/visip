@@ -47,8 +47,9 @@ class TabWidget(QTabWidget):
 
     def create_new_module(self, filename=None):
         if not isinstance(filename, str):
-            filename = QtWidgets.QFileDialog.getSaveFileName(self.parent(), "New Module",
-                                                             self.cfg.last_opened_directory, "Python File (*.py)")[0]
+            #filename = QtWidgets.QFileDialog.getSaveFileName(self.parent(), "New Module",
+            #                                                 self.cfg.last_opened_directory, "Python File (*.py)")[0]
+            filename = "new_module.py"
         if filename != "":
             self.cfg.last_opened_directory = os.path.dirname(filename)
             with open(filename, "w") as file:
@@ -58,7 +59,8 @@ class TabWidget(QTabWidget):
 
     def open_module(self, filename=None):
         if not isinstance(filename, str):
-            filename = QtWidgets.QFileDialog.getOpenFileName(self.parent(), "Select Module", self.cfg.last_opened_directory)[0]
+            filename = QtWidgets.QFileDialog.getOpenFileName(self.parent(), "Select Module",
+                                                             self.cfg.last_opened_directory)[0]
         if filename != "":
             self.cfg.last_opened_directory = os.path.dirname(filename)
             module = Module(filename)

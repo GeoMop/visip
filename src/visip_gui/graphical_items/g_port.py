@@ -7,9 +7,9 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import QPoint, Qt
 from PyQt5.QtWidgets import QApplication
 
-from visip.dev.action_instance import ActionArgument
+#from visip.dev.action_instance import ActionArgument
 from visip_gui.graphical_items.g_tooltip_item import GTooltipItem
-from visip_gui.graphical_items.g_tooltip_base import GTooltipBase
+#from visip_gui.graphical_items.g_tooltip_base import GTooltipBase
 
 
 class GPort(QtWidgets.QGraphicsPathItem):

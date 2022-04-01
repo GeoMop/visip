@@ -14,7 +14,7 @@ All underscored names are private
 from .code.decorators import workflow, analysis, action_def, Class, Enum
 
 # builtin
-from .action.wrapped import list, dict, tuple, If #, partial
+from .action.wrapped import list, dict, tuple, If, lazy, empty
 
 
 # std
@@ -23,11 +23,11 @@ from .action.std import \
     derived_file, file_from_template, format
 
 # internal (possibly remove from public API)
-from .dev.action_workflow import _Slot as _Slot, _Result as _Result
+from .action.slots import _Slot as _Slot
+from .dev.action_workflow import _Result as _Result
 from .action.constructor import Value as _Value
 from .action import converter as _converter
-from typing import List, Any, Dict, Tuple, Union
-from .dev.dtype import Constant
+from .dev.dtype import List, Any, Dict, Tuple, Union, Const
 
 # TODO:
 # distinguish:

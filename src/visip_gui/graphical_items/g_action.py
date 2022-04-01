@@ -81,10 +81,12 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.progress = 0
 
     def has_const_params(self):
-        if len(self.w_data_item.parameters.parameters) > 0:
-            return self.w_data_item.parameters.parameters[-1].name is not None
-        else:
-            return True
+        params = self.w_data_item.parameters
+        return params.var_positional is None and params.var_keyword is None
+        # if len(self.w_data_item.parameters.parameters) > 0:
+        #     return self.w_data_item.parameters.hparameters[-1].name is not None
+        # else:
+        #     return True
 
     def update_ports(self):
         if len(self.w_data_item.parameters.parameters) > 0:
@@ -132,7 +134,9 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
 
     @name.setter
     def name(self, name):
-        old_name = self._name
+        if name == self._name.toPlainText():
+            return
+        old_name = self._name.toPlainText()
         self._name.setPlainText(name)
         if not self.name_has_changed():
             self._name = old_name
@@ -190,11 +194,12 @@ class GAction(QtWidgets.QGraphicsPathItem, GTooltipBase):
         self.width = self.width
 
     def name_has_changed(self):
-        if not self.scene().action_name_changed(self.g_data_item, self.name) or self.name == "" :
+        if not self.scene().action_name_changed(self.g_data_item, self.name) or self.name == "":
             return False
         self.width = self.width
         if isinstance(self.w_data_item, _SlotCall):
             self.w_data_item.name = self.name
+            self.scene().update_parameters()
         else:
             self.w_data_item.set_name(self.name)
 

@@ -17,8 +17,6 @@ from visip_gui.widgets.main_window import MainWindow
 def main():
     app = QApplication(sys.argv)
     w = MainWindow(app)
-    w.resize(1000, 720)
-    w.move(300, 50)
     w.setWindowTitle('ViSiP')
     w.show()
 

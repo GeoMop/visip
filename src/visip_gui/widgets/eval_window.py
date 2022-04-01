@@ -1,6 +1,7 @@
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QByteArray
 from PyQt5.QtWidgets import QMainWindow, QTabWidget, QDockWidget, QMessageBox
 
+from visip_gui.config.config_data import ConfigData
 from visip_gui.widgets.data_editor import DataEditor
 from visip_gui.widgets.eval_tab_widget import EvalTabWidget
 from visip_gui.widgets.evaluation_navigation import EvaluationNavigation
@@ -10,6 +11,7 @@ from visip_gui.widgets.inputs_editor import InputsEditor
 class EvalWindow(QMainWindow):
     def __init__(self):
         super(EvalWindow, self).__init__()
+        self.cfg = ConfigData()
         self.tab_widget = QTabWidget()
         self.tab_widget.setTabsClosable(True)
         self.tab_widget.setTabShape(1)
@@ -20,6 +22,7 @@ class EvalWindow(QMainWindow):
         self.setCentralWidget(self.tab_widget)
 
         self.data_editor_dock = QDockWidget("Data Inspection", self)
+        self.data_editor_dock.setObjectName("data_editor_dock")
         self.data_editor_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.data_editor_dock)
 
@@ -27,11 +30,15 @@ class EvalWindow(QMainWindow):
         self.data_editor_dock.setWidget(self.data_editor)
 
         self.navigation_dock = QDockWidget("Navigation Stack", self)
-
+        self.navigation_dock.setObjectName("navigation_dock")
         self.navigation_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea)
         self.addDockWidget(Qt.BottomDockWidgetArea, self.navigation_dock)
         self.last_tab_widget = None
-        self.resize(1000, 700)
+        if not self.cfg.contains("evalWindow/geometry"):
+            self.resize(1000, 700)
+        else:
+            self.restoreGeometry(self.cfg.value("evalWindow/geometry", QByteArray()))
+        self.restoreState(self.cfg.value("evalWindow/windowState", QByteArray()))
 
     def add_eval(self, gui_eval):
         self.show()
@@ -70,6 +77,8 @@ class EvalWindow(QMainWindow):
                     if evaluation.running:
                         evaluation.end_evaluation()
 
-        self.tab_widget.clear()
+            self.tab_widget.clear()
 
+        self.cfg.setValue("evalWindow/geometry", self.saveGeometry())
+        self.cfg.setValue("evalWindow/windowState", self.saveState())
 
