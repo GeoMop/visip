@@ -225,11 +225,12 @@ def fibonacci(n):
     return fib[1]
 
 def test_while():
-    assert evaluation.run(fibonacci, 0) == 1
-    assert evaluation.run(fibonacci, 1) == 1
-    assert evaluation.run(fibonacci, 2) == 2
-    assert evaluation.run(fibonacci, 3) == 3
-    assert evaluation.run(fibonacci, 4) == 5
+    assert evaluation.run_plot(fibonacci, 0) == 1
+    # assert evaluation.run(fibonacci, 1) == 1
+    # assert evaluation.run(fibonacci, 2) == 2
+    # assert evaluation.run(fibonacci, 3) == 3
+    # assert evaluation.run(fibonacci, 4) == 5
+
 # @wf.action_def
 # def condition(lst:wf.List[float], num:float, end:float) -> bool:
 #     return num < end

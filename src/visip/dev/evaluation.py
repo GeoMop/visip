@@ -365,7 +365,7 @@ class Evaluation:
         self.scheduler.log = self.log
         self.workspace = workspace
         self.plot_expansion = plot_expansion
-        self.plot_expansion = True
+        #self.plot_expansion = True
         self.final_task = None
 
         self.composed_id = 0
@@ -620,4 +620,13 @@ def run(action: Union[dtype._ActionBase, DummyAction],
     return Evaluation().run(action, *args, **kwargs).result
 
 
+def run_plot(action: Union[dtype._ActionBase, DummyAction],
+        *args: DataOrDummy,
+        **kwargs: DataOrDummy) -> dtype.DType:
+    """
+    Use default evaluation setup (local resource only) to evaluate the
+    'action' with given arguments 'args' and 'kwargs',
+     return just the resulting value not the evaluation structure (TaskResult).
+    """
+    return Evaluation(plot_expansion=True).run(action, *args, **kwargs).result
 
