@@ -6,6 +6,7 @@ import traceback
 #from typing import Callable
 from types import ModuleType
 from collections import deque
+from attrs import define
 
 from ..action import constructor
 #from ..code import wrap
@@ -54,12 +55,25 @@ def my_exec(cmd, globals=None, locals=None, description='source string'):
 
         traceback.print_exception(etype, exc, tb)
         raise InterpreterError("%s at line %d of %s: %s" % (error_class, line_number, description, detail))
+"""
+@define
+class _DefImport:
+    alias: str
+    module: 'Module'
 
+    def code(self, representer):
+        pass
+
+@define
+class _DefFrom:
+    alias: str
+    obj: object
+"""
 
 class Module:
     """
     Object representing a module (whole file) that can contain
-    several worflow and converter definitions and possibly also a script itself.
+    several workflows and converter definitions and possibly also a script itself.
     Module is used just to capture the code and do not participate on exectution in any way.
     Underlying python module is responsible.
 
@@ -71,7 +85,30 @@ class Module:
     their code can not be reproduced. In order to do not break the code we prevent
     saving of the generated code to the original file.
 
-    Captured object are stored in the list self.definitions which can be
+    New concept:
+    The Module class have two purposes:
+    1. Collect defined names and corresponding objects in order to recreate the text representation of the code.
+       In particular we need map (obj.__module__, obj.__name__) -> alias. Where alias is possibly different name for the object
+       used in the module.
+       - We need list of imported modules.
+       - We collect names with other module as coming from the `from MOD import XYZ` construct.
+
+    2. From all definitions extract the VISIP decorated definitions: atomic action, workflow, class, enum
+       - We need access to these definitions by their name.
+       - We need a global list of imported modules with appropriate Module instance. Can be empty for modules that does not contain any VISIP
+         definitions.
+       - Need global map of VISIP types: classes, enums in form of the (module, name) -> data_type constructor.
+
+
+    Changes:
+    - global list of imported modules, separate recursion from current
+    - dict of (various) definitions for single module
+    - global list of types
+    - replace 'imported_modules', '_name_to_def', 'ignored_definitions' by the new structure
+    - remove trivial items from _object_names
+    - nontrivial should use only: module aliases (imports), name aliasse (from)
+      other recursion should not be necessary if we use the names of other Modules.
+
     """
 
     def __init__(self, module_path:str) -> None:
