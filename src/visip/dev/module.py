@@ -103,11 +103,13 @@ class Module:
     Changes:
     - global list of imported modules, separate recursion from current
     - dict of (various) definitions for single module
+    - Enum as action (converting string or int to the enum value)
     - global list of types
     - replace 'imported_modules', '_name_to_def', 'ignored_definitions' by the new structure
     - remove trivial items from _object_names
     - nontrivial should use only: module aliases (imports), name aliasse (from)
       other recursion should not be necessary if we use the names of other Modules.
+
 
     """
 
@@ -127,6 +129,7 @@ class Module:
             return cls._modules[py_module.__name__]
         except KeyError:
             pass
+        print("add module:", py_module.__name__,  py_module.__dict__.get('__file__', None))
         try:
             mod_path = py_module.__file__
             if mod_path is None:
@@ -226,6 +229,10 @@ class Module:
     def object_name(self, obj):
         return self._object_names.get(self.mod_name(obj), None)
 
+    def is_visip_def(self, obj: object):
+        is_visip_instance = isinstance(obj, (DummyAction, DummyWorkflow))
+        return is_visip_instance and hasattr(obj, 'wrapped')
+
     def extract_definitions(self):
         """
         Extract definitions from the python module.
@@ -233,20 +240,28 @@ class Module:
         """
         analysis = []
         for name, obj in self.py_module.__dict__.items():
-            # print(name, type(obj))
-            if isinstance(obj, (DummyAction, DummyWorkflow)):
-                action = obj._action_value
-                self.insert_definition(action)
-                assert isinstance(action, dtype._ActionBase)
-                assert name == action.name
-                if action.is_analysis:
-                    analysis.append(action)
-
+            if type(obj) is ModuleType:
+                visip_mod = self.add_module(obj)
+                assert visip_mod is not None
+                self.imported_modules.append(visip_mod)
+                #self._module_name_dict[obj.__name__] = name
+                # elif name[0] == '_':
             else:
-                if type(obj) is ModuleType:
-                    self.imported_modules.append(obj)
-                elif name[0] == '_':
+                #if isinstance(obj, (DummyAction, DummyWorkflow, constructor.visip_enum)):
+                if self.is_visip_def(obj):
+                    print("DBG wrap: ", obj)
+                    visip_obj = obj.wrapped()
+                    mod_name = self.mod_name(visip_obj)
+                    self.from_imports[mod_name] = name
+                    self.add_module_by_name(mod_name[0])
+
+                    self.insert_definition(visip_obj)
+                    if visip_obj.is_analysis:
+                        analysis.append(visip_obj)
+                else:
                     self.ignored_definitions.append((name, obj))
+                    mod_name = self.mod_name(obj)
+                    self.from_imports[mod_name] = name
 
         self._create_object_names(self.py_module, "")
 
@@ -257,16 +272,6 @@ class Module:
             self.analysis = ActionCall.create(analysis)
         else:
             self.analysis = None
-
-    def insert_imported_module(self, mod_obj: 'Module', alias):
-        self.imported_modules.append(mod_obj)
-        if alias == "":
-            alias = getattr(mod_obj, "__name__", None)
-        self._create_object_names(mod_obj.py_module, alias)
-
-
-
-
 
 
     def _create_object_names(self, mod_obj, alias):
@@ -315,8 +320,6 @@ class Module:
 
             for name, obj in mod_obj.__dict__.items():
                 obj_mod_name = self.mod_name(obj)
-                if obj_mod_name in self._object_names:
-                    continue
                 if name.startswith('__'):
                     continue
 
@@ -329,6 +332,8 @@ class Module:
                     # for Python >= 3.7 the typing generic instances have no attribute __name__
                     obj_mod_name = ('typing', name)
 
+                if obj_mod_name in self._object_names:
+                    continue
                 self._set_object_names(obj_mod_name, alias_name)
 
     def _set_object_names(self, mod_name, alias):
@@ -347,6 +352,12 @@ class Module:
     ===================
     """
 
+    def insert_imported_module(self, mod_obj: 'Module', alias: str):
+        self.imported_modules.append(mod_obj)
+        if alias == "":
+            alias = getattr(mod_obj, "__name__", None)
+        self._create_object_names(mod_obj.py_module, alias)
+
 
     def insert_definition(self, action: dtype._ActionBase, pos: int = None):
         """
@@ -357,7 +368,7 @@ class Module:
         """
         if pos is None:
             pos = len(self.definitions)
-        print(action)
+        print("DBG insert def:",  action)
         assert isinstance(action, dtype._ActionBase) , action
                #or issubclass(action, constructor.visip_enum)
         self.definitions.insert(pos, action)
@@ -393,7 +404,6 @@ class Module:
             print("Undef reference for:", mod_name)
             return None
         return reference_name
-
     def code(self) -> str:
         """
         Generate the source code of the whole module.
@@ -402,8 +412,8 @@ class Module:
         representer = Representer(self.relative_name)
         source = []
         # make imports
-        for impr in self.imported_modules:
-
+        for visip_module in self.imported_modules:
+            impr = visip_module.py_module
             alias = self.object_name(impr)
             if alias == impr.__name__:
                 import_line = f"import {impr.__name__}"

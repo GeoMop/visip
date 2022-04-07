@@ -9,6 +9,12 @@ class DummyAction:
         self._af = af
         self._action_value = action
 
+    def wrapped(self):
+        """
+        Original definition before decoration.
+        """
+        return self._action_value
+
     def __call__(self, *args, **kwargs):
         """
         Catch call of the function values.
@@ -44,6 +50,12 @@ class DummyWorkflow:
         self._af = af
         self._workflow_func = workflow_func
         self._workflow = None
+
+    def wrapped(self):
+        """
+        Original definition before decoration.
+        """
+        return self.workflow
 
     @property
     def workflow(self):

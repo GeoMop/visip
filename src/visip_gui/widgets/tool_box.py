@@ -97,6 +97,7 @@ class ToolBox(QToolBox):
             self.on_workspace_change(module, curr_workspace)
 
             for m in module.imported_modules:
+                m = m.py_module
                 item = None
                 for obj in m.__dict__.values():
                     if issubclass(type(obj), DummyAction):
