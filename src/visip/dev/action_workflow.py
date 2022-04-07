@@ -256,8 +256,8 @@ class _Workflow(meta.MetaAction):
         self._action_calls = actions
         self._sorted_calls = topology_sort
 
-        #if self._status != self.Status.cycle:
-        #self._check_types()
+        if self._status != self.Status.cycle:
+            self._check_types()
 
         return self.status
 
@@ -283,11 +283,11 @@ class _Workflow(meta.MetaAction):
                 type_var_restraints_back = self._type_var_restraints
                 try:
                     b, self._type_var_map, self._type_var_restraints = dtype.is_subtype_map(
-                        arg.value.actual_output_type, arg.actual_type, self._type_var_map, self._type_var_restraints)
+                        arg.value.call_output_type, arg.call_type, self._type_var_map, self._type_var_restraints)
                     if not b:
                         types_ok = False
                         arg.status = ActionInputStatus.error_type
-                        self._type_error_list.append(WorkflowTypeErrorItem(call, arg, arg.value.actual_output_type, arg.actual_type))
+                        self._type_error_list.append(WorkflowTypeErrorItem(call, arg, arg.value.call_output_type, arg.call_type))
                         self._type_var_map = type_var_map_back
                         self._type_var_restraints = type_var_restraints_back
                 except TypeError:
@@ -304,8 +304,8 @@ class _Workflow(meta.MetaAction):
         # forward
         for call in self._sorted_calls:
             for arg in call.arguments:
-                arg.actual_type, _ = dtype.substitute_type_vars(arg.actual_type, self._type_var_map)
-            call.actual_output_type, _ = dtype.substitute_type_vars(call.actual_output_type, self._type_var_map)
+                arg.actual_type, _ = dtype.substitute_type_vars(arg.call_type, self._type_var_map)
+            call.actual_output_type, _ = dtype.substitute_type_vars(call.call_output_type, self._type_var_map)
 
     def dependencies(self):
         """
