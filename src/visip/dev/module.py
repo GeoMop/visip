@@ -1,21 +1,21 @@
+import importlib.util
+from typing import *
 import os
 import sys
-import imp
 # TODO: use importlib instead
 import traceback
-#from typing import Callable
+# from typing import Callable
 from types import ModuleType
 from collections import deque
 from attrs import define
 
 from ..action import constructor
-#from ..code import wrap
+# from ..code import wrap
 from ..code.dummy import DummyAction, DummyWorkflow
 from ..code.representer import Representer
 from . import base, action_workflow as wf
 from .action_instance import ActionCall
 from . import dtype
-
 
 
 class InterpreterError(Exception): pass
@@ -25,6 +25,7 @@ class sys_path_append:
     """
     Context manager for adding a path to the sys.path
     """
+
     def __init__(self, path):
         self.path = path
 
@@ -73,17 +74,16 @@ class _DefFrom:
 class Module:
     """
     Object representing a module (whole file) that can contain
-    several workflows and converter definitions and possibly also a script itself.
-    Module is used just to capture the code and do not participate on exectution in any way.
-    Underlying python module is responsible.
+    several workflow (including main analysis), Python action definitions, Class and Enum definitions.
+    Module is used just to capture the code and do not participate on exectution, which is performed
+    by the Evaluation class.
 
-    We  inspect __dict__ of the loaded module to find all definitions.
-    The script must be a workflow function decorated with @analysis decorator.
+    We  inspect __dict__ of the loaded module to find all definitions. We reconginze only  decorated objects:
+    @workflow, @action_def, @Class, @Enum.
+    TODO: support loading of nondecorated module together with typedefs in an external file (can use standard used for typedefs).
 
-    Only objects decorated by one of decorators from code.decorators are captured,
-    remaining code is ignored. Possible non-workflow actions can be used but
-    their code can not be reproduced. In order to do not break the code we prevent
-    saving of the generated code to the original file.
+    The @action_def actions, can not reproduce the code so these should rather be in a separate source file.
+    In order to do not break the code we prevent saving of the generated code to the original file.
 
     New concept:
     The Module class have two purposes:
@@ -111,14 +111,77 @@ class Module:
 
     """
 
-    def __init__(self, module_path:str) -> None:
+    _modules: Dict[str, 'Module'] = {}
+
+    @classmethod
+    def get_module(cls, module_name: str) -> Optional['Module']:
+        return cls._modules[module_name]
+
+    @classmethod
+    def mod_name(cls, obj):
+        return (getattr(obj, "__module__", None), getattr(obj, "__name__", None))
+
+    @classmethod
+    def add_module(cls, py_module):
+        try:
+            return cls._modules[py_module.__name__]
+        except KeyError:
+            pass
+        try:
+            mod_path = py_module.__file__
+            if mod_path is None:
+                mod_path = ""
+                print("DBG No file for module: ", py_module.__name__)
+            else:
+                mod_path = os.path.abspath(mod_path)
+        except AttributeError:
+            mod_path = None
+        visip_mod = cls(py_module, mod_path)
+        cls._modules.setdefault(py_module.__name__, visip_mod)
+        visip_mod.extract_definitions()
+        return visip_mod
+
+    @classmethod
+    def add_module_by_name(cls, mod_name:str):
+        try:
+            mod = sys.modules[mod_name]
+        except KeyError:
+            if mod_name is not None:
+                print(f"DBG No module: {mod_name}")
+            pass
+        else:
+            cls.add_module(mod)
+
+    @classmethod
+    def load_module(cls, file_path: str) -> 'Module':
+        """
+        Import the python module from the file.
+        Temporary add its directory to the sys.path in order to find modules in the same directory.
+        TODO: Create an empty module if the file doesn't exist.
+        :param file_path: Module path to load.
+        :return:
+        """
+        module_dir = os.path.dirname(file_path)
+        module_name = os.path.basename(file_path)
+        module_name, ext = os.path.splitext(module_name)
+        assert ext == ".py"
+        with open(file_path, "r") as f:
+            source = f.read()
+        with sys_path_append(module_dir):
+            # new_module = imp.new_module(module_name)
+            spec = importlib.util.find_spec(module_name)
+            new_module = importlib.util.module_from_spec(spec)
+            my_exec(source, new_module.__dict__, locals=None, description=module_name)
+        return cls.add_module(new_module)
+
+    def __init__(self, py_module: ModuleType, module_path: str) -> None:
         """
         Constructor of the _Module wrapper.
         :param module_obj: a python module object
         """
         self.module_file = module_path
         # File with the module source code.
-        self.module = self.load_module(module_path)
+        self.py_module = py_module
         # The python module object.
 
         self.definitions = []
@@ -132,7 +195,9 @@ class Module:
 
         self.imported_modules = []
         # List of imported modules.
-        # self._module_name_dict = {}
+        self.from_imports = {}
+        # (module, name) -> alias
+        self._module_name_dict = {}
         #  Map the full module name to the alias and the module object (e.g. numpy.linalg to la)
 
         self._object_names = {}
@@ -148,37 +213,18 @@ class Module:
         # Objects of the module, that can not by sourced.
         # If there are any we can not reproduce the source.
 
-        self.extract_definitions()
+        # self.extract_definitions()
 
+    @property
+    def __name__(self):
+        return self.py_module.__name__
 
-    @classmethod
-    def mod_name(cls, obj):
-        return (getattr(obj, "__module__", None), getattr(obj, "__name__", None))
+    @property
+    def name(self):
+        return self.py_module.__name__
 
     def object_name(self, obj):
         return self._object_names.get(self.mod_name(obj), None)
-
-    @classmethod
-    def load_module(cls, file_path: str) -> ModuleType:
-        """
-        Import the python module from the file.
-        Temporary add its directory to the sys.path in order to find modules in the same directory.
-        TODO: Create an empty module if the file doesn't exist.
-        :param file_path: Module path to load.
-        :return:
-        """
-        module_dir = os.path.dirname(file_path)
-        module_name = os.path.basename(file_path)
-        module_name, ext = os.path.splitext(module_name)
-        assert ext == ".py"
-        with open(file_path, "r") as f:
-            source = f.read()
-        with sys_path_append(module_dir):
-            new_module = imp.new_module(module_name)
-            my_exec(source, new_module.__dict__, locals=None, description=module_name)
-        return new_module
-
-
 
     def extract_definitions(self):
         """
@@ -186,7 +232,7 @@ class Module:
         :return:
         """
         analysis = []
-        for name, obj in self.module.__dict__.items():
+        for name, obj in self.py_module.__dict__.items():
             # print(name, type(obj))
             if isinstance(obj, (DummyAction, DummyWorkflow)):
                 action = obj._action_value
@@ -202,7 +248,7 @@ class Module:
                 elif name[0] == '_':
                     self.ignored_definitions.append((name, obj))
 
-        self.create_object_names(self.module, "")
+        self._create_object_names(self.py_module, "")
 
         assert len(analysis) <= 1
         if analysis:
@@ -212,22 +258,20 @@ class Module:
         else:
             self.analysis = None
 
-    def insert_imported_module(self, mod_obj, alias):
+    def insert_imported_module(self, mod_obj: 'Module', alias):
         self.imported_modules.append(mod_obj)
         if alias == "":
             alias = getattr(mod_obj, "__name__", None)
-        self.create_object_names(mod_obj, alias)
+        self._create_object_names(mod_obj.py_module, alias)
 
 
-    def _set_object_names(self, mod_name, alias):
-        # Internal _object_names setter to simplify debugging.
-
-        # print("Map: ", mod_name, alias)
-        self._object_names.setdefault(mod_name, alias)
 
 
-    def create_object_names(self, mod_obj, alias):
+
+
+    def _create_object_names(self, mod_obj, alias):
         """
+        Create
         Collect (module, name) -> reference name map self._object_names.
 
         This is done by BFS through the tree of imported modules and processing
@@ -245,9 +289,8 @@ class Module:
         4. We only process modules from the `visip` package and the modules importing the `visip` modules.
         """
         # TODO: use BFS to find minimal reference, use aux dist or set to mark visited objects
-        module_queue  = deque()     # queue of (module, alias_module_name)
+        module_queue = deque()  # queue of (module, alias_module_name)
 
-        # TODO: must be tested, should replace hack in the 'insert_imported_module'
         name, obj = alias, mod_obj
         obj_mod_name = self.mod_name(obj)
         if obj_mod_name in self._object_names:
@@ -260,7 +303,7 @@ class Module:
         while module_queue:
 
             mod_obj, mod_alias = module_queue.popleft()
-            #print("Processing module: ", mod_obj.__name__, mod_alias)
+            # print("Processing module: ", mod_obj.__name__, mod_alias)
 
             # process new module
             package = mod_obj.__name__.split('.')[0]
@@ -285,10 +328,27 @@ class Module:
                 elif obj_mod_name[0] == 'typing':
                     # for Python >= 3.7 the typing generic instances have no attribute __name__
                     obj_mod_name = ('typing', name)
+
                 self._set_object_names(obj_mod_name, alias_name)
 
+    def _set_object_names(self, mod_name, alias):
+        # Internal _object_names setter to simplify debugging.
 
-    def insert_definition(self, action: dtype._ActionBase, pos:int=None):
+        # print("Map: ", mod_name, alias)
+        mod, name = mod_name
+        if mod is not None:
+            #print(f"Missing  {mod}:{name}")
+            pass
+        self._object_names.setdefault(mod_name, alias)
+
+    """
+    ===================
+    GUI modifiers
+    ===================
+    """
+
+
+    def insert_definition(self, action: dtype._ActionBase, pos: int = None):
         """
         Insert a new definition of the 'action' to given position 'pos'.
         :param action: An action class (including dataclass construction actions).
@@ -297,11 +357,13 @@ class Module:
         """
         if pos is None:
             pos = len(self.definitions)
-        assert isinstance(action, dtype._ActionBase)
+        print(action)
+        assert isinstance(action, dtype._ActionBase) , action
+               #or issubclass(action, constructor.visip_enum)
         self.definitions.insert(pos, action)
         self._name_to_def[action.name] = action
 
-    def rename_definition(self, name:str, new_name: str) -> None:
+    def rename_definition(self, name: str, new_name: str) -> None:
         """
         Rename workflow or dataclass. Renaming other actions fails.
         """
@@ -317,7 +379,6 @@ class Module:
         else:
             assert False, "Only workflow and classes can be renamed."
 
-
     def relative_name(self, obj_module, obj_name):
         """
         Construct the action class name for given set of imported modules.
@@ -332,12 +393,6 @@ class Module:
             print("Undef reference for:", mod_name)
             return None
         return reference_name
-
-
-    @property
-    def name(self):
-        return self.module.__name__
-
 
     def code(self) -> str:
         """
@@ -364,17 +419,15 @@ class Module:
             # We should move the code definition routines into Representer as the representation
             # should not be specialized for user defined actions since the representation is given by the Python syntax.
             action = v
-            source.extend(["", ""])     # two empty lines as separator
+            source.extend(["", ""])  # two empty lines as separator
             def_code = action.code_of_definition(representer)
             source.append(def_code)
         return "\n".join(source)
-
 
     def save(self) -> None:
         assert not self.ignored_definitions
         with open(self.module_file, "w") as f:
             f.write(self.code())
-
 
     def update_imports(self):
         """
@@ -383,7 +436,6 @@ class Module:
         TODO: ...
         """
         pass
-
 
     def get_analysis(self):
         """
@@ -408,4 +460,3 @@ class Module:
     #     assert False
     #     #dclass = self._name_to_def[name]
     #     #return dclass._evaluate
-

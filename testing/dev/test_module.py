@@ -11,7 +11,7 @@ def test_operations():
     Test load, modify and safe a module.
     """
     source = os.path.join(script_dir, "..", "code", "visip_sources", "dep_module_in.py")
-    mod = module.Module(source)
+    mod = module.Module.load_module(source)
     assert isinstance(mod.get_action("xflip"), wf._Workflow)
     assert isinstance(mod.get_action("Square"), constructor.ClassActionBase )
 
@@ -27,7 +27,7 @@ def test_operations():
 
 def test_insert_imported_module():
     source = os.path.join(script_dir, "..", "code", "visip_sources", "import_user_defs_in.py")
-    mod = module.Module(source)
+    mod = module.Module.load_module(source)
 
     filename = os.path.join(script_dir, "..", "code", "visip_sources", "analysis_in.py")
     alias = "test"
@@ -37,5 +37,6 @@ def test_insert_imported_module():
     mod.insert_imported_module(new_module, alias)
     print(f'key for _object_names: {((getattr(new_module, "__module__", None), getattr(new_module, "__name__", None)))}')
     print(f"alias: {alias}")
-    print(f"returned name: {mod.object_name(new_module)}")
-    assert mod.object_name(new_module) == alias
+    mod_name = mod.object_name(new_module.py_module)
+    print(f"returned name: {mod_name}")
+    assert mod_name == alias
