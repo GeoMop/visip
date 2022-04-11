@@ -1,11 +1,20 @@
 import enum
 
 from visip.dev import dtype
+from visip.dev.parameters import ActionParameter
 
 import typing
 import typing_inspect
 import builtins
 
+
+class Aclass(dtype.DataClassBase):
+    a: int = 0
+    b: dtype.Str
+
+
+def create_class():
+    return Aclass
 
 def test_singleton():
     class A(metaclass=dtype.Singleton):
@@ -130,13 +139,12 @@ def test_from_typing():
     assert isinstance(nt.arg, dtype.Int)
 
     # Class
-    class A(dtype.DataClassBase):
-        pass
-
-    nt = dtype.from_typing(A)
+    a_class = create_class()
+    assert issubclass(a_class, dtype.DataClassBase)
+    nt = dtype.from_typing(a_class)
     assert isinstance(nt, dtype.Class)
-    assert nt.module == A.__module__
-    assert nt.name == A.__name__
+    assert nt.module == a_class.__module__
+    assert nt.name == a_class.__name__
 
     # Enum
     class A(enum.IntEnum):
@@ -222,12 +230,9 @@ def test_to_typing():
     # assert typing_inspect.get_args(nt, evaluate=True)[0] is int
 
     # Class
-    class A(dtype.DataClassBase):
-        pass
-
-    t = dtype.Class(A.__module__, A.__name__, A)
-    nt = dtype.to_typing(t)
-    assert nt is A
+    a_class = create_class()
+    nt = dtype.to_typing(dtype.Class.wrap(a_class))
+    assert nt is a_class
 
     # Enum
     class A(enum.IntEnum):
@@ -396,6 +401,7 @@ def test_is_subtype():
     b = dt.from_typing(B)
     c = dt.from_typing(C)
 
+
     assert sub(a, a2)
     assert sub(a2, a)
     assert not sub(a, b)
@@ -552,8 +558,7 @@ def test_common_sub_type():
     assert eq(t, dt.Int())
 
     # Class
-    class A(dtype.DataClassBase):
-        pass
+    A = create_class()
 
     a = dt.from_typing(A)
     a2 = dt.from_typing(A)

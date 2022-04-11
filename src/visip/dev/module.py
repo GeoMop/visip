@@ -56,9 +56,15 @@ def my_exec(cmd, globals=None, locals=None, description='source string'):
 
         traceback.print_exception(etype, exc, tb)
         raise InterpreterError("%s at line %d of %s: %s" % (error_class, line_number, description, detail))
-"""
+
+
+class _DefBase:
+    def get_type(self):
+        return None
+
+
 @define
-class _DefImport:
+class _DefImport(_DefBase):
     alias: str
     module: 'Module'
 
@@ -66,10 +72,21 @@ class _DefImport:
         pass
 
 @define
-class _DefFrom:
+class _DefFrom(_DefBase):
     alias: str
     obj: object
-"""
+
+@define
+class _DefAction(_DefBase):
+    # Both @action_def and @workflow
+    alias: str
+    action: base.ActionBase
+
+    def get_type(self):
+        if isinstance(self.action.output_type, dtype.Class):
+            return self.action.output_type
+        else:
+            return None
 
 class Module:
     """
@@ -101,27 +118,49 @@ class Module:
 
 
     Changes:
-    - global list of imported modules, separate recursion from current
-    - dict of (various) definitions for single module
-    - Enum as action (converting string or int to the enum value)
+    - TODO: dict of (various) definitions for single module
+      finalize and test for all Defs
     - global list of types
+    - Enum as action (converting string or int to the enum value)
+    - enum Def
     - replace 'imported_modules', '_name_to_def', 'ignored_definitions' by the new structure
     - remove trivial items from _object_names
     - nontrivial should use only: module aliases (imports), name aliasse (from)
       other recursion should not be necessary if we use the names of other Modules.
-
-
+    - TODO: test from .. import .. as .. ; not clear where to create the visip objects; in the new or in the source module
+      should be source, but it is in fact not imported in current implementation, we should import it as well
     """
 
+    ModNamePair = Tuple[str, str]           # (module_name, object_name)
     _modules: Dict[str, 'Module'] = {}
+    _types_map: Dict[ModNamePair, Union[dtype.Enum, dtype.Class]] = None
 
     @classmethod
     def get_module(cls, module_name: str) -> Optional['Module']:
         return cls._modules[module_name]
 
     @classmethod
+    def types_map(cls, force=False):
+        if cls._types_map is None or force:
+            _types_map = {}
+            for m in cls._modules.values():
+                for mn, d in m.new_definitions.items():
+                    type_obj = d.get_type()
+                    if type_obj is not None:
+                        key = (type_obj.module, type_obj.name)
+                        if key in _types_map:
+                            assert _types_map[key] is type_obj
+                        else:
+                            _types_map[key] = type_obj
+        return _types_map
+
+    @classmethod
     def mod_name(cls, obj):
         return (getattr(obj, "__module__", None), getattr(obj, "__name__", None))
+
+    @staticmethod
+    def is_dunder(name):
+        return len(name) > 4 and name.isascii() and name.startswith('__') and name.endswith('__')
 
     @classmethod
     def add_module(cls, py_module):
@@ -129,31 +168,32 @@ class Module:
             return cls._modules[py_module.__name__]
         except KeyError:
             pass
-        print("add module:", py_module.__name__,  py_module.__dict__.get('__file__', None))
         try:
             mod_path = py_module.__file__
-            if mod_path is None:
-                mod_path = ""
-                print("DBG No file for module: ", py_module.__name__)
-            else:
-                mod_path = os.path.abspath(mod_path)
         except AttributeError:
             mod_path = None
+        if mod_path is None:
+            mod_path = ""
+        else:
+            mod_path = os.path.abspath(mod_path)
+
         visip_mod = cls(py_module, mod_path)
         cls._modules.setdefault(py_module.__name__, visip_mod)
         visip_mod.extract_definitions()
+        if visip_mod.is_visip_module():
+            print(visip_mod.info())
         return visip_mod
 
-    @classmethod
-    def add_module_by_name(cls, mod_name:str):
-        try:
-            mod = sys.modules[mod_name]
-        except KeyError:
-            if mod_name is not None:
-                print(f"DBG No module: {mod_name}")
-            pass
-        else:
-            cls.add_module(mod)
+    # @classmethod
+    # def add_module_by_name(cls, mod_name:str):
+    #     try:
+    #         mod = sys.modules[mod_name]
+    #     except KeyError:
+    #         if mod_name is not None:
+    #             print(f"DBG No module: {mod_name}")
+    #         pass
+    #     else:
+    #         cls.add_module(mod)
 
     @classmethod
     def load_module(cls, file_path: str) -> 'Module':
@@ -198,10 +238,6 @@ class Module:
 
         self.imported_modules = []
         # List of imported modules.
-        self.from_imports = {}
-        # (module, name) -> alias
-        self._module_name_dict = {}
-        #  Map the full module name to the alias and the module object (e.g. numpy.linalg to la)
 
         self._object_names = {}
         # Map from the (obj.__module__, obj.__name__) of an object to
@@ -218,6 +254,14 @@ class Module:
 
         # self.extract_definitions()
 
+        self.new_definitions : Dict[str, _DefBase] = {}
+        # Map alias -> _Def*
+
+        # need separate list to keep and modify order and map for module, name lookup
+        # can rather keep just map alias -> definition, and existing _object_names: (module, name) -> alias
+        # .. complemented by the list of definitions for the ordering this list will be modified by GUI,
+        # rest is internal
+
     @property
     def __name__(self):
         return self.py_module.__name__
@@ -229,9 +273,23 @@ class Module:
     def object_name(self, obj):
         return self._object_names.get(self.mod_name(obj), None)
 
+    def is_visip_module(self):
+        return len(self.definitions) > 0
+
+    def __repr__(self):
+        if self.is_visip_module():
+            return f"VISIP module {self.name}"
+        else:
+            return f"non-VISIP module: {self.name}"
+
+    def info(self):
+        return f"{self}, #defs: {len(self.definitions)}, #other: {len(self.ignored_definitions)}, file: {self.module_file}"
+
     def is_visip_def(self, obj: object):
         is_visip_instance = isinstance(obj, (DummyAction, DummyWorkflow))
         return is_visip_instance and hasattr(obj, 'wrapped')
+
+
 
     def extract_definitions(self):
         """
@@ -240,30 +298,51 @@ class Module:
         """
         analysis = []
         for name, obj in self.py_module.__dict__.items():
+            if self.is_dunder(name):
+                continue
+            obj_module, obj_name = self.mod_name(obj)
             if type(obj) is ModuleType:
+
+                # import 'obj' as 'name'
                 visip_mod = self.add_module(obj)
                 assert visip_mod is not None
                 self.imported_modules.append(visip_mod)
-                #self._module_name_dict[obj.__name__] = name
-                # elif name[0] == '_':
-            else:
-                #if isinstance(obj, (DummyAction, DummyWorkflow, constructor.visip_enum)):
-                if self.is_visip_def(obj):
-                    print("DBG wrap: ", obj)
-                    visip_obj = obj.wrapped()
-                    mod_name = self.mod_name(visip_obj)
-                    self.from_imports[mod_name] = name
-                    self.add_module_by_name(mod_name[0])
+                self.new_definitions[(obj_module, obj_name)] = _DefImport(name, visip_mod)
 
-                    self.insert_definition(visip_obj)
-                    if visip_obj.is_analysis:
-                        analysis.append(visip_obj)
+                #self._module_name_dict[obj.__name__] = name
+
+                continue
+            if self.is_visip_def(obj):
+                visip_obj = obj.wrapped()
+                obj_module, obj_name = self.mod_name(visip_obj)
+                if obj_module != self.py_module.__name__:
+                    #assert False, "from .. import ..  : not implemented yet for VISIP objects "
+                    pass
+
+                print("DBG wrap: ", obj)
+                mod_name = self.mod_name(visip_obj)
+                #self.add_module_by_name(mod_name[0])
+
+                self.insert_definition(visip_obj)
+                if visip_obj.is_analysis:
+                    analysis.append(visip_obj)
+                self.new_definitions[(obj_module, obj_name)] = _DefAction(name, visip_obj)
+
+            else:
+                if obj_module != self.py_module.__name__:
+                    # from 'obj_module' import 'obj_name' as 'name'
+                    self.new_definitions[(obj_module, obj_name)] = _DefFrom(name, obj)
+                    # TODO: test and full implementation
+                    # we shoul import the source module and then take here reference to the created VISIP objects
+
                 else:
                     self.ignored_definitions.append((name, obj))
                     mod_name = self.mod_name(obj)
-                    self.from_imports[mod_name] = name
 
         self._create_object_names(self.py_module, "")
+
+        if self.is_visip_module():
+            assert self.module_file != "", f"Missing file path for the VISIP module: {self}"
 
         assert len(analysis) <= 1
         if analysis:

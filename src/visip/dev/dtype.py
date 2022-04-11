@@ -3,6 +3,7 @@ import typing_inspect
 import inspect
 import builtins
 import enum
+import attr
 
 
 class _ActionBase:
@@ -32,12 +33,18 @@ class DataClassBase:
     Base class to the dataclasses used in VISIP.
     Implement some common methods for hashing, and serialization.
     """
-    pass
+    @classmethod
+    def set_visip_type(cls, type):
+        print("Set visip: ", cls, " = ", type)
+        cls.__visip_type = type
+        return type
 
-
-valid_base_types = (bool, int, float, complex, str)
-valid_data_types = (*valid_base_types, list, dict, DataClassBase)
-
+    @classmethod
+    def visip_type(cls):
+        try:
+            return cls.__visip_type
+        except AttributeError:
+            return None
 
 class DType:
     """
@@ -90,10 +97,31 @@ class Str(DTypeBase, metaclass=Singleton):
 
 
 class Class(DTypeBase):
-    def __init__(self, module, name, origin_type):
-        self.module = module
-        self.name = name
-        self.origin_type = origin_type
+    # Wrapper around various VISIP classes, in order to work with types as instances.
+
+    @staticmethod
+    def wrap(type:DataClassBase):
+        visip_class = type.visip_type()
+        if visip_class is None or visip_class.data_class is not type:
+            visip_class = Class(type)
+            type.set_visip_type(visip_class)
+
+        return visip_class
+
+    def __init__(self, data_class:DataClassBase):
+        self.data_class = data_class
+
+    def __repr__(self):
+        return f"dtype.Class:{self.module}.{self.name}"
+
+    @property
+    def module(self):
+        return self.data_class.__module__
+
+    @property
+    def name(self):
+        return self.data_class.__name__
+
 
 class Enum(DTypeBase):
     def __init__(self, module, name, origin_type):
@@ -285,9 +313,9 @@ def from_typing(type):
     #     return Const(from_typing(typing_inspect.get_args(type, evaluate=True)[0]))
 
 
-    # Class
+    # Class .. VISIP class must be directly subtype of ClassBase
     if inspect.isclass(type) and issubclass(type, DataClassBase):
-        return Class(type.__module__, type.__name__, type)
+         return Class.wrap(type)
 
     # Enum
     if inspect.isclass(type) and issubclass(type, enum.IntEnum):
@@ -365,7 +393,7 @@ def to_typing(type):
 
     # Class
     if isinstance(type, Class):
-        return type.origin_type
+        return type.data_class
 
     # Enum
     if isinstance(type, Enum):
@@ -429,7 +457,11 @@ def is_equaltype(type, other):
 
     # Class
     elif isinstance(type, Class):
-        return isinstance(other, Class) and type.origin_type is other.origin_type
+        if isinstance(other, Class) and type.data_class is other.data_class:
+            assert type is other
+            # If assert holds we can simplify the check
+            return True
+        return False
 
     # Enum
     elif isinstance(type, Enum):
@@ -567,7 +599,7 @@ def is_subtype_map(subtype, type, var_map, restraints, check_const=True):
 
     # if subtype is Class, type must be Class and subtype.origin_type must be subclass of type.origin_type
     elif isinstance(subtype, Class):
-        if isinstance(type, Class) and issubclass(subtype.origin_type, type.origin_type):
+        if isinstance(type, Class) and issubclass(subtype.data_class, type.data_class):
             return True, var_map, restraints
 
     # if subtype is Enum, type must be Enum and subtype.origin_type must be subclass of type.origin_type or type must be Int
@@ -718,7 +750,8 @@ def common_sub_type(a, b):
 
     # Class
     elif isinstance(a, Class):
-        if isinstance(b, Class) and a.origin_type is b.origin_type:
+        if isinstance(b, Class) and a.data_class is b.data_class:
+            # TODO: more elaborate if we allow inheritance of VISIP classes
             return True, a
 
     # Enum
@@ -763,9 +796,8 @@ class TypeInspector:
     def constant_type(self, type):
         return type.arg
 
-    def have_attributes(self, type):
-        return isinstance(type, Any) or isinstance(type, TypeVar) or isinstance(type, Class) or isinstance(type, Dict) or \
-               type is typing.Any or (inspect.isclass(type) and issubclass(type, DataClassBase)) or type in [typing.Dict, dict]
+    def have_attributes(self, type: 'dtype.DType'):
+        return isinstance(type, Any) or isinstance(type, TypeVar) or isinstance(type, Class) or isinstance(type, Dict)
 
 
 def extract_type_var(type):
@@ -867,3 +899,7 @@ def expand_var_map(var_map):
         sub, _ = substitute_type_vars(t, var_map, recursive=True)
         exp_var_map[var] = sub
     return exp_var_map
+
+
+valid_base_types = (bool, int, float, complex, str)
+valid_data_types = (*valid_base_types, list, dict, DataClassBase)

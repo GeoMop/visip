@@ -11,6 +11,7 @@ from ..action import constructor
 # from ..dev import exceptions, dtype_new
 from ..action.action_factory import ActionFactory
 from ..dev.extract_signature import unwrap_type, _extract_signature, ActionParameter
+from ..dev.parameters import Parameters
 from ..dev import exceptions
 from .dummy import DummyAction, Dummy, DummyWorkflow
 
@@ -73,7 +74,8 @@ def _construct_from_params(name: str, params: typing.List[ActionParameter], modu
     """
     data_class = _dataclass_from_params(name, params, module)
     signature = _extract_signature(data_class.__init__, omit_self=True)
-    return constructor.ClassActionBase(data_class, signature)
+    signature_with_return_type = Parameters(signature.parameters, return_type=dtype.from_typing(data_class))
+    return constructor.ClassActionBase(data_class, signature_with_return_type)
 
 def Class(data_class):
     """

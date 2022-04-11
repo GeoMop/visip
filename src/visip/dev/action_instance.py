@@ -177,6 +177,7 @@ class ActionCall:
         return self._arg_split(self.arguments)
 
     def return_type_have_attributes(self):
+        assert isinstance(self.action.output_type, dtype.DType)
         return dtype.TypeInspector().have_attributes(self.action.output_type)
 
     @staticmethod
