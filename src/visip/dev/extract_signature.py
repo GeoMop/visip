@@ -16,12 +16,16 @@ def unwrap_type(type_hint):
     consistent code generation, we should check that replacing typing types by dtype types in the representation is OK.
     That we NEVER want to reproduce the typing types.
     """
-    ti = TypeInspector()
     if isinstance(type_hint, DummyAction):
         constructor_action = type_hint._action_value
-        #TODO: use output_type
-        data_class = constructor_action._data_class
-        type_hint = data_class
+        try:
+            #TODO: use output_type
+            data_class = constructor_action._data_class
+            assert issubclass(data_class, dtype.DataClassBase)
+        except AttributeError:
+            pass
+        else:
+            type_hint = data_class
         #assert isinstance(action_call, ActionCall)
 
     if type_hint == ActionParameter.no_default:

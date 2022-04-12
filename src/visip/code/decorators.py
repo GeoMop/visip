@@ -73,8 +73,7 @@ def _construct_from_params(name: str, params: typing.List[ActionParameter], modu
     :return:
     """
     data_class = _dataclass_from_params(name, params, module)
-    signature = _extract_signature(data_class.__init__, omit_self=True)
-    signature_with_return_type = Parameters(signature.parameters, return_type=dtype.from_typing(data_class))
+    signature_with_return_type = Parameters(params, return_type=dtype.from_typing(data_class))
     return constructor.ClassActionBase(data_class, signature_with_return_type)
 
 def Class(data_class):
@@ -94,7 +93,7 @@ def Class(data_class):
     params = []
     for name, ann in data_class.__annotations__.items():
         try:
-            attr_type = unwrap_type(ann)
+            attr_type = dtype.from_typing(unwrap_type(ann))
         except exceptions.ExcTypeBase:
             raise exceptions.ExcNoType(
                 f"Missing type for attribute '{name}' of the class '{data_class.__name__}'.")
@@ -108,13 +107,9 @@ def Class(data_class):
 def Enum(enum_cls):
     items = {key: val for key,val in inspect.getmembers(enum_cls) if not key.startswith("__") and not key.endswith("__")}
     int_enum_cls = enum.IntEnum(enum_cls.__name__, items)
-    def code(self, representer):
-        enum_base, key = str(self).split('.')
-        enum_base = representer.make_rel_name(enum_cls.__module__, enum_base)
-        return '.'.join([enum_base, key])
-    int_enum_cls.__code__ = code
     int_enum_cls.__module__ = enum_cls.__module__
-    return int_enum_cls
+    enum_action = constructor.EnumActionBase(int_enum_cls)
+    return public_action(enum_action)
 
 
 def action_def(func):

@@ -23,6 +23,18 @@ class DummyAction:
         """
         return Dummy(self._af, self._af.create(self._action_value, *args, **kwargs))
 
+    def __getattr__(self, key: str):
+        """
+        Catch access to enum items: `Enum.x`
+        VISIP Enum is an action converting nt to the Enum value so it is wrapped into DummyAction.
+        """
+        if key[:2] == "__":     # __super_type__
+            return None
+        try:
+            return Dummy(self._af, self._af.create_value(self._action_value._enum_class[key]))
+        except AttributeError:
+            raise AttributeError(obj=self._action_value, name=key)
+
     def evaluate(self, *args, **kwargs):
         """
         Direct (nonlazy) call of the wrapped action.
@@ -66,7 +78,7 @@ class DummyWorkflow:
         if self._workflow is None:
             self._workflow = self._af.create_workflow_from_source(self._workflow_func)
             # here recursion occures, but now 'self._workflow' is set, so it just creates the action call
-            output_call, slots  = self._af.actioncalls_from_function(self._workflow_func, self._workflow.parameters)
+            output_call, slots = self._af.actioncalls_from_function(self._workflow_func, self._workflow.parameters)
             self._workflow.set_result_action(output_call, slots)
         return self._workflow
 
@@ -109,10 +121,11 @@ class Dummy:
 
     def __getattr__(self, key: str):
         try:
-            assert self._value.return_type_have_attributes(), self._value.action
+            if not self._value.return_type_have_attributes():
+                raise AttributeError(f"{self._value} does not have attributes ({key}).")
             return Dummy(self._af, self._af.GetAttribute(key, self._value))
-        except AttributeError or AssertionError:
-            raise AttributeError
+        except AttributeError:
+            raise AttributeError(f"{self._value} does not have attribute {key}.")
         # TODO: update the type to know that it is a dataclass containing 'key'
         # TODO: check that type is dataclass
 

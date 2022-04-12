@@ -121,6 +121,8 @@ class Module:
     - TODO: dict of (various) definitions for single module
       finalize and test for all Defs
     - global list of types
+
+
     - Enum as action (converting string or int to the enum value)
     - enum Def
     - replace 'imported_modules', '_name_to_def', 'ignored_definitions' by the new structure
@@ -180,8 +182,8 @@ class Module:
         visip_mod = cls(py_module, mod_path)
         cls._modules.setdefault(py_module.__name__, visip_mod)
         visip_mod.extract_definitions()
-        if visip_mod.is_visip_module():
-            print(visip_mod.info())
+        #if visip_mod.is_visip_module():
+        #    print(visip_mod.info())
         return visip_mod
 
     # @classmethod
@@ -319,7 +321,7 @@ class Module:
                     #assert False, "from .. import ..  : not implemented yet for VISIP objects "
                     pass
 
-                print("DBG wrap: ", obj)
+                #print("DBG wrap: ", obj)
                 mod_name = self.mod_name(visip_obj)
                 #self.add_module_by_name(mod_name[0])
 
@@ -447,7 +449,7 @@ class Module:
         """
         if pos is None:
             pos = len(self.definitions)
-        print("DBG insert def:",  action)
+        #print("DBG insert def:",  action)
         assert isinstance(action, dtype._ActionBase) , action
                #or issubclass(action, constructor.visip_enum)
         self.definitions.insert(pos, action)

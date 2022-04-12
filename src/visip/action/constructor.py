@@ -1,3 +1,5 @@
+import enum
+
 from ..dev.base import ActionBase
 from ..dev import dtype
 from ..dev.parameters import Parameters, ActionParameter
@@ -157,3 +159,36 @@ class ClassActionBase(ActionBase):
         for param in self.parameters:
             a_hash = data.hash(param.name, previous=a_hash)
         return a_hash
+
+
+
+class EnumActionBase(ActionBase):
+    """
+    Conversion from int to the enum.
+    """
+    def __init__(self, enum_class):
+        enum_class.__visip_code__ = self.code_of_item
+        signature = Parameters([ActionParameter("enum_item", dtype.Int())], return_type=dtype.Enum(enum_class))
+        super().__init__(enum_class.__name__, signature)
+        self._enum_class = enum_class
+        # Attr.s dataclass
+        self.__visip_module__ = self._enum_class.__module__
+        # module where the data class is defined
+
+    def _evaluate(self, *args, **kwargs) -> dtype.DataClassBase:
+        return self._enum_class(*args, **kwargs)
+
+    def action_hash(self):
+        a_hash = data.hash(self.name)
+        for param in self.parameters:
+            a_hash = data.hash(param.name, previous=a_hash)
+        return a_hash
+
+    @staticmethod
+    def code_of_item(self: enum.IntEnum, representer):
+        """
+        Behaves as method of IntEnum, returns string with representation of the enum value.
+        """
+        enum_base, key = str(self).split('.')
+        enum_base = representer.make_rel_name(self._enum_class.__module__, enum_base)
+        return '.'.join([enum_base, key])

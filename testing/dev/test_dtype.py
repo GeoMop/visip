@@ -238,7 +238,7 @@ def test_to_typing():
     class A(enum.IntEnum):
         pass
 
-    t = dtype.Enum(A.__module__, A.__name__, A)
+    t = dtype.Enum(A)
     nt = dtype.to_typing(t)
     assert nt is A
 

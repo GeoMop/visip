@@ -50,9 +50,9 @@ class DType:
     """
     Base class for all typing classes.
     """
-    def typevar_set(self):
+    def typevar_set(self) -> 'TypeVar':
         """
-        Returns set of all TypeVars from type.
+        Returns set of all TypeVars that are part of the full type tree.
         :return:
         """
         return set()
@@ -124,11 +124,25 @@ class Class(DTypeBase):
 
 
 class Enum(DTypeBase):
-    def __init__(self, module, name, origin_type):
-        self.module = module
-        self.name = name
+    @staticmethod
+    def wrap(type: enum.IntEnum):
+        if hasattr(type, "__visip_type"):
+            return type.__visip_type
+        else:
+            visip_enum = Enum(type)
+            type.__visip_type = visip_enum
+            return visip_enum
+
+    def __init__(self, origin_type):
         self.origin_type = origin_type
 
+    @property
+    def module(self):
+        return self.origin_type.__module__
+
+    @property
+    def name(self):
+        return self.origin_type.__name__
 
 class List(DTypeGeneric):
     def __init__(self, arg):
@@ -209,13 +223,15 @@ class Const(DTypeGeneric):
 
 
 class TypeVar(DTypeBase):
-    def __init__(self, origin_type=None, name="T", converted_from_none=False):
+    """
+
+    """
+    def __init__(self, origin_type=None, name="T"):
         if origin_type is None:
             origin_type = typing.TypeVar(name)
         else:
             assert typing_inspect.is_typevar(origin_type)
         self.origin_type = origin_type
-        self.converted_from_none = converted_from_none
 
     def __hash__(self):
         return self.origin_type.__hash__()
@@ -319,7 +335,7 @@ def from_typing(type):
 
     # Enum
     if inspect.isclass(type) and issubclass(type, enum.IntEnum):
-        return Enum(type.__module__, type.__name__, type)
+        return Enum(type)
 
 
     # Any
@@ -797,7 +813,7 @@ class TypeInspector:
         return type.arg
 
     def have_attributes(self, type: 'dtype.DType'):
-        return isinstance(type, Any) or isinstance(type, TypeVar) or isinstance(type, Class) or isinstance(type, Dict)
+        return isinstance(type, (Any, TypeVar, Class, Dict, Enum))
 
 
 def extract_type_var(type):
