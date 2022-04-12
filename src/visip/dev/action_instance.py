@@ -153,7 +153,7 @@ class ActionCall:
         """Actual output type after substitution of TypeVars with concrete type in Workflow type check."""
 
         self._arguments : List[ActionArgument] = []
-        # input values - connected action calls, avery represented by ActionArgument (action_call, status, param)
+        # input values - connected action calls, every represented by ActionArgument (action_call, status, param)
         # ActionCall is marked invalid by setting _arguments to None
 
 
@@ -177,6 +177,7 @@ class ActionCall:
         return self._arg_split(self.arguments)
 
     def return_type_have_attributes(self):
+        assert isinstance(self.action.output_type, dtype.DType)
         return dtype.TypeInspector().have_attributes(self.action.output_type)
 
     @staticmethod

@@ -11,10 +11,15 @@ def unwrap_type(type_hint):
     Remove DummyAction from (class) types.
     :param type_hint: Python annotation or DummyAction
     :return:
+    TODO: merge somehow unwrap_type and dtype.from_typing,
+    currently Class constructor use only unwrap_type in order to preserve original types for
+    consistent code generation, we should check that replacing typing types by dtype types in the representation is OK.
+    That we NEVER want to reproduce the typing types.
     """
     ti = TypeInspector()
     if isinstance(type_hint, DummyAction):
         constructor_action = type_hint._action_value
+        #TODO: use output_type
         data_class = constructor_action._data_class
         type_hint = data_class
         #assert isinstance(action_call, ActionCall)
@@ -36,6 +41,7 @@ def unwrap_type(type_hint):
             return typing_origin(*uargs)
         else:
             raise ExcTypeBase(f"Unknown type annotation: {type_hint}")
+
 
 
 

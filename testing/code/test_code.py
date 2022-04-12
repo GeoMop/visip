@@ -27,12 +27,12 @@ def test_representation(src_file):
     round2_src_path = os.path.join(base_dir, "{}.round2.py".format(base))
     reference_path = os.path.join(base_dir, "{}.ref.py".format(base))
 
-    test_mod = module.Module(source_in_path)
+    test_mod = module.Module.load_module(source_in_path)
     code = test_mod.code()
     with open(round_src_path, "w") as f:
         f.write(code)
 
-    round_module = module.Module(round_src_path)
+    round_module = module.Module.load_module(round_src_path)
     round_code = round_module.code()
     assert code == round_code
 

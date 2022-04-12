@@ -139,7 +139,7 @@ class _Workflow(meta.MetaAction):
         self._action_calls = {self._result_call}
         # Dict:  unique action instance name -> action instance.
         self._sorted_calls = []
-        # topologically sorted action instance names
+        # topologically sorted action instance names (result last)
         self._type_var_map = {}
         # type_var mapping, define lower limit of TypeVar, in algorithm may be raised, like T -> Int to T -> Union[Int, Str]
         self._type_var_restraints = {}

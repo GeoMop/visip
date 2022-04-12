@@ -54,7 +54,7 @@ class TabWidget(QTabWidget):
             self.cfg.last_opened_directory = os.path.dirname(filename)
             with open(filename, "w") as file:
                 file.write("import visip as wf")
-            module = Module(filename)
+            module = Module.load_module(filename)
             self._add_tab(os.path.basename(filename), module)
 
     def open_module(self, filename=None):
@@ -63,7 +63,7 @@ class TabWidget(QTabWidget):
                                                              self.cfg.last_opened_directory)[0]
         if filename != "":
             self.cfg.last_opened_directory = os.path.dirname(filename)
-            module = Module(filename)
+            module = Module.load_module(filename)
             self._add_tab(os.path.basename(filename), module)
 
     def current_changed(self, index):

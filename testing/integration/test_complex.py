@@ -45,7 +45,8 @@ def test_simple_wf():
     remove_files(["darcy_flow.yaml", "square.msh_log", "square.msh"], prefix="flow_case")
 
     print("Root workspace: ", os.getcwd())
-    result = evaluation.run(simple_wf, [0.1], workspace=os.path.join(script_dir, "flow_case"))
+    eval = evaluation.Evaluation(workspace=os.path.join(script_dir, "flow_case"))
+    result = eval.run(simple_wf, 0.1).result
     print(result.stdout.decode())
 
 

@@ -122,7 +122,6 @@ TODO:
 
 
 class ClassActionBase(ActionBase):
-    base_data_type = dtype.DataClassBase
     """
     Action constructs particular Dataclass given in constructor.
     So the action is parametrized by the 'data_class'.
