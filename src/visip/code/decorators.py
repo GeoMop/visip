@@ -108,6 +108,7 @@ def Enum(enum_cls):
     int_enum_cls = enum.IntEnum(enum_cls.__name__, items)
     int_enum_cls.__module__ = enum_cls.__module__
     enum_action = constructor.EnumActionBase(int_enum_cls)
+    enum_action.__module__ = int_enum_cls.__module__
     return public_action(enum_action)
 
 

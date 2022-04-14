@@ -149,7 +149,7 @@ class ClassActionBase(ActionBase):
         :param make_rel_name:
         :return:
         """
-        lines = ['@wf.Class']
+        lines = [f"@{representer.make_rel_name('visip.code.decorators', 'Class')}"]
         lines.append('class {}:'.format(self.name))
         for attribute in self.parameters:
             lines.append(representer.parameter(attribute))
@@ -170,12 +170,12 @@ class EnumActionBase(ActionBase):
     """
     def __init__(self, enum_class):
         assert isinstance(enum_class, enum.EnumMeta), str(enum_class)
-        enum_class.__visip_code__ = self.code_of_item
+        enum_class.__code__ = self.code_of_item
         signature = Parameters([ActionParameter("enum_item", dtype.Int)], return_type=dtype.Enum(enum_class))
         super().__init__(enum_class.__name__, signature)
         self._enum_class = enum_class
         # Attr.s dataclass
-        self.__visip_module__ = self._enum_class.__module__
+        #self.__module__ = self._enum_class.__module__
         # module where the data class is defined
 
     def _evaluate(self, *args, **kwargs) -> dtype.DataClassBase:
@@ -187,11 +187,23 @@ class EnumActionBase(ActionBase):
             a_hash = data.hash(param.name, previous=a_hash)
         return a_hash
 
+
     @staticmethod
     def code_of_item(self: enum.IntEnum, representer):
         """
         Behaves as method of IntEnum, returns string with representation of the enum value.
         """
         enum_base, key = str(self).split('.')
-        enum_base = representer.make_rel_name(self._enum_class.__module__, enum_base)
+        enum_base = representer.make_rel_name(self.__module__, enum_base)
         return '.'.join([enum_base, key])
+
+    def code_of_definition(self, representer):
+        """
+        """
+        indent_str = representer.n_indent * " "
+        lines = [f"@{representer.make_rel_name('visip.code.decorators', 'Enum')}"]
+        lines.append('class {}:'.format(self.__name__))
+        for item in self._enum_class:
+            lines.append(f"{indent_str}{item.name} = {item.value}")
+
+        return "\n".join(lines)

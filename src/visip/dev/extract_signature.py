@@ -12,7 +12,8 @@ from ..dev import dtype
 def _parameter_from_inspect(param: inspect.Parameter) -> 'ActionParameter':
     assert param.annotation is not None
     param_type = dtype.from_typing(param.annotation)
-    return ActionParameter(param.name, param_type, param.default, param.kind)
+    default =  ActionParameter.no_default if param.default is inspect.Signature.empty else param.default
+    return ActionParameter(param.name, param_type, default, param.kind)
 
 
 

@@ -32,17 +32,17 @@ def test_representation(src_file):
     with open(round_src_path, "w") as f:
         f.write(code)
 
-    # round_module = module.Module.load_module(round_src_path)
-    # round_code = round_module.code()
-    # assert code == round_code
-    #
-    # with open(round2_src_path, "w") as f:
-    #     f.write(round_code)
-    # with open(reference_path, "r") as f:
-    #     ref_code = f.read()
-    # code = code.strip()
-    # ref_code = ref_code.strip()
-    # assert code == ref_code, "round_code_file: {}  != ref_code_file: {}".format(round2_src_path, reference_path)
+    round_module = module.Module.load_module(round_src_path)
+    round_code = round_module.code()
+    assert code == round_code
+
+    with open(round2_src_path, "w") as f:
+        f.write(round_code)
+    with open(reference_path, "r") as f:
+        ref_code = f.read()
+    code = code.strip()
+    ref_code = ref_code.strip()
+    assert code == ref_code, "round_code_file: {}  != ref_code_file: {}".format(round2_src_path, reference_path)
 
 # def test_module()
 #     module = analysis.module.Module("dep_module_in.py")

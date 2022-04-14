@@ -21,7 +21,7 @@ def test_enum_decorator():
         return "{}.{}".format(module, name)
     rep = representer.Representer(make_rel_name)
     enum_val_repr: Format = x._value.code(rep)
-    assert "MyEnum.a" == enum_val_repr.final_string()
+    assert "test_decorators.MyEnum.a" == enum_val_repr.final_string()
 
     """
     TODO:

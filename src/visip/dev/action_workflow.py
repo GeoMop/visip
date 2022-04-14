@@ -333,24 +333,23 @@ class _Workflow(meta.MetaAction):
         - omit self if not necessary, or require it always
         - missing self local vars
         """
-        indent = 4 * " "
+        indent = representer.n_indent * " "
+
         decorator = 'analysis' if self.is_analysis else 'workflow'
         params = [base._VAR_]
         for i, param in enumerate(self.parameters):
             assert (param.name == self._slots[i].name)
-            if param.type_defined is None:
-                type_hint = ""
-            else:
-                type_hint = ": {}".format(representer.type_code(param.type_defined))
+            type_anot = representer.str_unless(': ', representer.type_code(param.type))
 
-            param_def = "{}{}".format(param.name, type_hint)
+            param_def = f"{param.name}{type_anot}"
             params.append(param_def)
-        result_hint = ""
-        return_type = self.parameters.return_type_defined
-        if return_type is not None:
-            result_hint = " -> {}".format(representer.type_code(return_type))
-        head = "def {}({}){}:".format(self.name, ", ".join(params), result_hint)
-        body = ["@{base_module}.{decorator}".format(base_module='wf', decorator=decorator), head]
+        result_hint = representer.str_unless(' -> ', representer.type_code(self.parameters.return_type))
+        head = f"def {self.name}({', '.join(params)}){result_hint}:"
+
+        body = [
+                f"@{representer.make_rel_name('visip.code.decorators', decorator)}",
+                head
+        ]
 
         # Make dict: full_instance_name -> (format, [arg full names])
         inst_order = []

@@ -18,6 +18,7 @@ class Representer:
         return module + name
 
     def __init__(self, make_rel_name=None):
+        self.n_indent = 4
         if make_rel_name is None:
             make_rel_name = Representer.make_rel_name
         self.make_rel_name = make_rel_name
@@ -35,7 +36,9 @@ class Representer:
 
 
     def value_code(self, value):
-        if hasattr(value, '__code__'):
+        if value is dtype.empty:
+            return value
+        elif hasattr(value, '__code__'):
             expr = value.__code__(self)
         elif type(value) is str:
             expr = "'{}'".format(value)
@@ -59,16 +62,19 @@ class Representer:
     def token(name):
         return formating.Placeholder(name)
 
+    @staticmethod
+    def str_unless(prefix:str, str:object) -> str:
+        return "" if str is dtype.empty else f"{prefix}{str}"
+
+    def type_anotation(self, prefix, type_hint):
+        type_code = self.type_code(type_hint)
+        return self.str_unless(f"{prefix}{type_code}", type_code is None)
 
     def parameter(self, param: parameters.ActionParameter, indent:int = 4) -> str:
-        indent_str = indent * " "
-        type_code = self.type_code(param.type)
-
-        if param.default is param.no_default:
-            default = ""
-        else:
-            default = "={}".format(param.default)
-        return "{}{}:{}{}".format(indent_str, param.name, type_code, default)
+        indent_str = self.n_indent * " "
+        type_anot = self.str_unless(':', self.type_code(param.type))
+        default = self.str_unless('=', self.value_code(param.default))
+        return f"{indent_str}{param.name}{type_anot}{default}"
 
 
 """

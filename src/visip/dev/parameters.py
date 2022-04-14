@@ -11,7 +11,7 @@ class ActionParameter:
     Simple wrapper around inspect.Parameter
     At least we have to use our own types.
     """
-    no_default = inspect.Signature.empty
+    no_default = dtype.empty
     POSITIONAL_ONLY         = inspect.Parameter.POSITIONAL_ONLY
     POSITIONAL_OR_KEYWORD   = inspect.Parameter.POSITIONAL_OR_KEYWORD
     VAR_POSITIONAL          = inspect.Parameter.VAR_POSITIONAL

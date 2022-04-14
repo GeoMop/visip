@@ -341,6 +341,7 @@ class Module:
                     self.ignored_definitions.append((name, obj))
                     mod_name = self.mod_name(obj)
 
+        #print("Create object names module: ", self.py_module.__name__)
         self._create_object_names(self.py_module, "")
 
         if self.is_visip_module():
@@ -376,7 +377,6 @@ class Module:
         """
         # TODO: use BFS to find minimal reference, use aux dist or set to mark visited objects
         module_queue = deque()  # queue of (module, alias_module_name)
-
         name, obj = alias, mod_obj
         obj_mod_name = self.mod_name(obj)
         if obj_mod_name in self._object_names:

@@ -60,7 +60,10 @@ class DType:
 
         This is basic implementation for non generic types, using their module and name attributes.
         """
-        return make_rel_name(self.module, self.name)
+        return make_rel_name(self.__module__, self.__name__)
+
+
+
 
 VISIP_Type = typing.Union[DType, _ActionBase]
 
@@ -102,17 +105,17 @@ class DTypeSingleton(DTypeBase):
         return type
 
     def __init__(self, name, typing_type, subtypes):
-        self.name = name
+        self.__name__ = name
         self.typing_type = typing_type
         if subtypes is None:
             self.subtypes = {self}
         else:
             subtypes.add(self)
             self.subtypes = subtypes
-        self.module = 'visip'
+        #self.__module__ = 'visip'
 
     def __hash__(self):
-        return hash(self.name)
+        return hash(self.__name__)
 
     def is_subtype(self, super_type):
         return self in super_type.subtypes
@@ -169,11 +172,11 @@ class Class(DTypeBase):
     #     return f"dtype.Class:{self.module}.{self.name}"
 
     @property
-    def module(self):
+    def __module__(self):
         return self.data_class.__module__
 
     @property
-    def name(self):
+    def __name__(self):
         return self.data_class.__name__
 
 
@@ -194,11 +197,11 @@ class Enum(DTypeBase):
     #     self.origin_type = origin_type
 
     @property
-    def module(self):
+    def __module__(self):
         return self.origin_type.__module__
 
     @property
-    def name(self):
+    def __name__(self):
         return self.origin_type.__name__
 
 
@@ -214,11 +217,11 @@ class TypeVar(DTypeBase):
         self.origin_type = origin_type
 
     @property
-    def name(self):
+    def __name__(self):
         return self.origin_type.__name__
 
     @property
-    def module(self):
+    def __module__(self):
         return self.origin_type.__module__
 
     def __hash__(self):
@@ -231,6 +234,9 @@ class TypeVar(DTypeBase):
 
     def typevar_set(self):
         return {self}
+
+    def code(self, make_rel_name):
+        return empty
 
 
 class NewType(DTypeBase):
@@ -277,8 +283,10 @@ class DTypeGeneric(DType):
                 raise exceptions.ExcNotDType(f"Argument {a} of generic type {self.name()} is not DType (or Action).")
         self._args = args
 
-    def name(self):
+    @property
+    def __name__(self):
         return self.__class__.__name__
+
 
     def __hash__(self):
         return hash((self.__class__, *self.args))
@@ -297,7 +305,7 @@ class DTypeGeneric(DType):
         # Overrides DType.code method.
         assert len(self.args) > 0
         args_code = ", ".join([type_code(arg, make_rel_name) for arg in self.args])
-        origin_name = make_rel_name('visip', self.name())
+        origin_name = make_rel_name(self.__module__, self.__name__)
         code = f"{origin_name}({args_code})"
         return code
 
@@ -407,10 +415,10 @@ def type_code(type_hint, make_rel_name):
     assert isinstance(type_hint, DType), type_hint
     if type_hint is EmptyType:
         # TODO: represent None as no type annotation, but it should be forbidden.
-        return 'None'
+        return None
     return type_hint.code(make_rel_name)
 
-    raise Exception(f"No code representation for the type: {type_hint}")
+    #raise Exception(f"No code representation for the type: {type_hint}")
 
 
 def type_of_value(value):
