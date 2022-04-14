@@ -78,7 +78,7 @@ def test_type_of_value():
     assert type_of_value(1) is Int
     assert type_of_value(1.0) is Float
     assert type_of_value("1") is Str
-    assert type_of_value([1, 1.4, "1"]) == List(Union(Int, Float, Str))
+    assert is_equaltype(type_of_value([1, 1.4, "1"]), List(Union(Int, Float, Str)))
 
 def test_from_typing():
     # bas
@@ -149,8 +149,8 @@ def test_from_typing():
     assert issubclass(a_class, DataClassBase)
     nt = from_typing(a_class)
     assert isinstance(nt, Class)
-    assert nt.module == a_class.__module__
-    assert nt.name == a_class.__name__
+    assert nt.__module__ == a_class.__module__
+    assert nt.__name__ == a_class.__name__
 
     # Enum
     class A(enum.IntEnum):
@@ -158,8 +158,8 @@ def test_from_typing():
 
     nt = from_typing(A)
     assert isinstance(nt, Enum)
-    assert nt.module == A.__module__
-    assert nt.name == A.__name__
+    assert nt.__module__ == A.__module__
+    assert nt.__name__ == A.__name__
 
     # Any
     assert from_typing(typing.Any) is Any

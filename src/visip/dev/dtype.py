@@ -274,13 +274,13 @@ class DTypeGeneric(DType):
     def __init__(self, args: typing.List[VISIP_Type], n_args=0):
         if n_args:
             if len(args) != n_args:
-                raise exceptions.ExcGenericArgs(f"Wrong number {len(args)} of the generic tyep {self.name()}, expected: {n_args}.")
+                raise exceptions.ExcGenericArgs(f"Wrong number {len(args)} of the generic tyep {self.__name__}, expected: {n_args}.")
 
         # Unwrap Class and Enum
         args = [_unwrap_action_type(a) for a in args]
         for a in args:
             if not isinstance(a, (DType, _ActionBase)):
-                raise exceptions.ExcNotDType(f"Argument {a} of generic type {self.name()} is not DType (or Action).")
+                raise exceptions.ExcNotDType(f"Argument {a} of generic type {self.__name__} is not DType (or Action).")
         self._args = args
 
     @property

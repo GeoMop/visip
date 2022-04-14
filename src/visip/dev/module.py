@@ -149,7 +149,7 @@ class Module:
                 for mn, d in m.new_definitions.items():
                     type_obj = d.get_type()
                     if type_obj is not None:
-                        key = (type_obj.module, type_obj.name)
+                        key = (type_obj.__module__, type_obj.__name__)
                         if key in _types_map:
                             assert _types_map[key] is type_obj
                         else:
