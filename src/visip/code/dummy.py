@@ -1,6 +1,7 @@
 from typing import *
+from ..dev.dtype import _DummyClassBase
 
-class DummyAction:
+class DummyAction(_DummyClassBase):
     """
     Have problems with actions wrapped directly into the Dummy, as it have dangerous __getattr__
     so we introduce separate wrapper class just for the static actions.
@@ -53,8 +54,10 @@ class DummyAction:
         """
         return self._action_value.evaluate(*args, **kwargs)
 
+    def __repr__(self):
+        return f"DummyAction({self._action_value})"
 
-class DummyWorkflow:
+class DummyWorkflow(_DummyClassBase):
     """
     In order to allow recursive workflows we have to postpone its construction to the first call.
     """
@@ -105,6 +108,8 @@ class DummyWorkflow:
         #wf = self._af.create_workflow_from_source(self._workflow_func)
         #return self._action_value.evaluate(*args, **kwargs)
 
+    def __repr__(self):
+        return f"DummyWorkflow({self._workflow_func})"
 
 
 class Dummy:
@@ -117,6 +122,9 @@ class Dummy:
     def __init__(self, af: 'ActionFactory', value: Any) -> None:
         self._af = af
         self._value = value
+
+    def __repr__(self):
+        return f"Dummy({self._value})"
 
 
     def __getattr__(self, key: str):

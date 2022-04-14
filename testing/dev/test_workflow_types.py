@@ -72,9 +72,9 @@ def test_workflow_types():
     def wf_add2(a, b):
         return add(a, b)
     assert not wf_add2.workflow._type_error_list
-    assert dtype.is_equaltype(wf_in_types(wf_add2)[0], dtype.Int())
-    assert dtype.is_equaltype(wf_in_types(wf_add2)[1], dtype.Int())
-    assert dtype.is_equaltype(wf_out_type(wf_add2), dtype.Int())
+    assert dtype.is_equaltype(wf_in_types(wf_add2)[0], dtype.Int)
+    assert dtype.is_equaltype(wf_in_types(wf_add2)[1], dtype.Int)
+    assert dtype.is_equaltype(wf_out_type(wf_add2), dtype.Int)
 
     @wf.workflow
     def wf_add_inc(a: int, b: int) -> int:
@@ -108,7 +108,7 @@ def test_workflow_types():
     def wf_first_inc(a):
         return inc(first(a))
     assert not wf_first_inc.workflow._type_error_list
-    assert dtype.is_equaltype(wf_in_types(wf_first_inc)[0], dtype.List(dtype.Int()))
+    assert dtype.is_equaltype(wf_in_types(wf_first_inc)[0], dtype.List(dtype.Int))
 
     @wf.workflow
     def wf_first_to_list(a):
@@ -121,8 +121,8 @@ def test_workflow_types():
     def wf_first_inc_to_list(a):
         return to_list(inc(first(a)))
     assert not wf_first_inc_to_list.workflow._type_error_list
-    assert dtype.is_equaltype(wf_in_types(wf_first_inc_to_list)[0], dtype.List(dtype.Int()))
-    assert dtype.is_equaltype(wf_out_type(wf_first_inc_to_list), dtype.List(dtype.Int()))
+    assert dtype.is_equaltype(wf_in_types(wf_first_inc_to_list)[0], dtype.List(dtype.Int))
+    assert dtype.is_equaltype(wf_out_type(wf_first_inc_to_list), dtype.List(dtype.Int))
 
 
     # workflows, typing error

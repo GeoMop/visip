@@ -172,18 +172,11 @@ class _Workflow(meta.MetaAction):
         return self._status
 
     def set_signature_from_function(self, func):
-        try:
-            func_signature = _extract_signature(func, omit_self=True)
-        except exceptions.ExcTypeBase as e:
-            raise exceptions.ExcTypeBase(f"Wrong signature of workflow:  {func.__module__}.{func.__name__}") from e
-
-        # if params or output type are Any, change to TypeVar
-        for par in func_signature.parameters:
-            if par._type is None:
-                par._type = dtype.TypeVar(origin_type=None, name="T")
-        if func_signature._return_type is None:
-            func_signature._return_type = dtype.TypeVar(origin_type=None, name="T")
-
+        #try:
+        func_signature = _extract_signature(func, omit_self=True)
+        # except exceptions.ExcTypeBase as e:
+        #     raise exceptions.ExcTypeBase(f"Wrong signature of workflow:  {func.__module__}.{func.__name__}") from e
+        func_signature.process_empty(lambda var: dtype.TypeVar(origin_type=dtype.EmptyType, name="__Slot__"))
         self._parameters = func_signature
 
         self._status = self.Status.no_result

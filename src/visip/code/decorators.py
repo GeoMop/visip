@@ -10,7 +10,7 @@ from ..action import constructor
 # from ..dev.parameters import ActionParameter, Parameters
 # from ..dev import exceptions, dtype_new
 from ..action.action_factory import ActionFactory
-from ..dev.extract_signature import unwrap_type, _extract_signature, ActionParameter
+from ..dev.extract_signature import _extract_signature, ActionParameter
 from ..dev.parameters import Parameters
 from ..dev import exceptions
 from .dummy import DummyAction, Dummy, DummyWorkflow
@@ -92,9 +92,8 @@ def Class(data_class):
     """
     params = []
     for name, ann in data_class.__annotations__.items():
-        try:
-            attr_type = dtype.from_typing(unwrap_type(ann))
-        except exceptions.ExcTypeBase:
+        attr_type = dtype.from_typing(ann)
+        if attr_type is dtype.EmptyType:
             raise exceptions.ExcNoType(
                 f"Missing type for attribute '{name}' of the class '{data_class.__name__}'.")
         attr_default = data_class.__dict__.get(name, ActionParameter.no_default)
@@ -118,10 +117,13 @@ def action_def(func):
     Action name is given by the nama of the function.
     Input types are given by the type hints of the function params.
     """
+
+    signature = _extract_signature(func)
     try:
-        signature = _extract_signature(func)
-    except exceptions.ExcTypeBase as e:
-        raise exceptions.ExcTypeBase(f"Wrong signature of action:  {func.__module__}.{func.__name__}") from e
+        signature.process_empty(lambda var: dtype.Any)
+    except exceptions.ExcNoType as e:
+        raise exceptions.ExcNoType(f"Wrong signature of action:  {func.__module__}.{func.__name__}") from e
+
     action_name = func.__name__
     action_module = func.__module__  # attempt to fix imported modules, but it brakes chained (successive) imports
     action = ActionBase(action_name, signature)

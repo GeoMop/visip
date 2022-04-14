@@ -51,13 +51,9 @@ class ActionBase(dtype._ActionBase):
         # Module where the action is defined.
         if signature is None:
             signature = Parameters([])
-        # self.check_type_annotations(signature)
-        # turn annotation checking once we provide automatic derivation of the workflow types
-        # that makes explicit annotations of the workflows optional, but imperative for other actions
 
         self._parameters = signature
         # Parameter specification list, class attribute, no parameters by default.
-        # Both _parameters and _outputtype can be extracted from type annotations of the evaluate method using the _extract_input_type.
 
     def __str__(self):
         return self.name
@@ -82,11 +78,6 @@ class ActionBase(dtype._ActionBase):
         :return:
         """
         return data.hash(self.name)
-
-    def check_type_annotations(self, params: Parameters):
-        for param in params.parameters:
-            assert param.type is not None, "Missing type annotation of parameter: {}  of action: {}".format(param.name, self.name)
-        assert params.return_type is not None, "Missing return type annotation of action: {}".format(self.name)
 
     @property
     def output_type(self):

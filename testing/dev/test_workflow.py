@@ -12,14 +12,14 @@ def test_workflow_modification():
 
     ## Slot modifications
     # insert_slotg_data_item
-    w.insert_slot(0, "a_slot", dtype.Int())
-    w.insert_slot(1, "b_slot", dtype.Int())
+    w.insert_slot(0, "a_slot", dtype.Int)
+    w.insert_slot(1, "b_slot", dtype.Int)
     assert len(w.parameters) == 2
     assert w.parameters.at(0).name == 'a_slot'
     assert w.parameters.at(1).name == 'b_slot'
 
     # move_slot
-    w.insert_slot(2, "c_slot", dtype.Int())
+    w.insert_slot(2, "c_slot", dtype.Int)
     # A B C
     w.move_slot(1, 2)
     # A C B
@@ -91,14 +91,14 @@ def test_signature():
     w = awf._Workflow("wf_signature")
 
     # insert_slotg_data_item
-    w.insert_slot(0, "a_slot", dtype.Int())
-    w.insert_slot(1, "b_slot", dtype.Int())
+    w.insert_slot(0, "a_slot", dtype.Int)
+    w.insert_slot(1, "b_slot", dtype.Int)
     assert len(w.parameters) == 2
     assert w.parameters.at(0).name == 'a_slot'
     assert w.parameters.at(1).name == 'b_slot'
 
     # move_slot
-    w.insert_slot(2, "c_slot", dtype.Int())
+    w.insert_slot(2, "c_slot", dtype.Int)
     # A B C
     w.move_slot(1, 2)
     # A C B

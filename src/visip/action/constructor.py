@@ -10,7 +10,9 @@ from ..dev import base
 class Value(ActionBase):
     def __init__(self, value):
         name = "Value"
-        params = Parameters([], dtype.from_typing(type(value)))
+        value_type = dtype.type_of_value(value)
+        assert value_type is not dtype.EmptyType
+        params = Parameters([], value_type)
         super().__init__(name, params)
         self.action_kind = base.ActionKind.Meta
         self.value = value
@@ -93,10 +95,10 @@ class A_tuple(_ListBase):
 class A_dict(ActionBase):
     def __init__(self):
     	# TODO: TypeVar
-        p =  ActionParameter(name='args', p_type=dtype.Tuple(dtype.Any(), dtype.Any()),
+        p =  ActionParameter(name='args', p_type=dtype.Tuple(dtype.Any, dtype.Any),
                             default=ActionParameter.no_default, kind=ActionParameter.VAR_POSITIONAL)
         self.action_kind = base.ActionKind.Generic
-        signature = Parameters((p, ), return_type=dtype.Any())
+        signature = Parameters((p, ), return_type=dtype.Any)
         super().__init__('dict', signature)
 
 
@@ -167,8 +169,9 @@ class EnumActionBase(ActionBase):
     Conversion from int to the enum.
     """
     def __init__(self, enum_class):
+        assert isinstance(enum_class, enum.EnumMeta), str(enum_class)
         enum_class.__visip_code__ = self.code_of_item
-        signature = Parameters([ActionParameter("enum_item", dtype.Int())], return_type=dtype.Enum(enum_class))
+        signature = Parameters([ActionParameter("enum_item", dtype.Int)], return_type=dtype.Enum(enum_class))
         super().__init__(enum_class.__name__, signature)
         self._enum_class = enum_class
         # Attr.s dataclass

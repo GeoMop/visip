@@ -39,7 +39,7 @@ class sys_path_append:
             pass
 
 
-def my_exec(cmd, globals=None, locals=None, description='source string'):
+def visip_exec(cmd, globals=None, locals=None, description='source string'):
     try:
         exec(cmd, globals, locals)
     except SyntaxError as err:
@@ -216,7 +216,7 @@ class Module:
             # new_module = imp.new_module(module_name)
             spec = importlib.util.find_spec(module_name)
             new_module = importlib.util.module_from_spec(spec)
-            my_exec(source, new_module.__dict__, locals=None, description=module_name)
+            visip_exec(source, new_module.__dict__, locals=None, description=module_name)
         return cls.add_module(new_module)
 
     def __init__(self, py_module: ModuleType, module_path: str) -> None:

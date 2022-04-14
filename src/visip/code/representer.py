@@ -30,31 +30,32 @@ class Representer:
         :param type_hint:
         :return:
         """
-        return self.type_code_inner(dtype.to_typing(type_hint))
+        type_str = self.type_code_inner(type_hint)
+        return type_str
 
     def type_code_inner(self, type_hint):
-        ti = TypeInspector()
-        if type_hint is None:
+        #assert isinstance(type_hint, dtype.DType), type_hint
+        if type_hint is dtype.EmptyType:
             # TODO: represent None as no type annotation, but it should be forbidden.
             return 'None'
-        elif ti.is_any(type_hint):
-            return self.make_rel_name('typing', 'Any')
-        elif typing_inspect.is_typevar(type_hint):
-            return self.make_rel_name('typing', 'TypeVar')
-        elif ti.is_base_type(type_hint):
-            return type_hint.__name__
-        elif ti.is_dataclass(type_hint):
-            return self.make_rel_name(type_hint.__module__, type_hint.__name__)
-        else:
-            args = ti.get_args(type_hint)
+        elif type_hint is dtype.Any:
+            return self.make_rel_name('visip', 'Any')
+        elif isinstance(type_hint, dtype.TypeVar):
+            return self.make_rel_name(type_hint.origin_type.__module__, type_hint.origin_type.__name__)
+        elif isinstance(type_hint, dtype.DTypeSingleton):
+            return self.make_rel_name('visip', type_hint.name)
+        elif isinstance(type_hint, dtype.Class):
+            return self.make_rel_name(type_hint.module, type_hint.name)
+        elif isinstance(type_hint, dtype.DTypeGeneric):
+            args = type_hint.get_args()
             if args:
                 args_code = ", ".join([self.type_code_inner(arg) for arg in args])
-                (module, name) = str(ti.get_typing_origin(type_hint)).split(".")
-                origin_name = self.make_rel_name(module, name)
-                code = "{}[{}]".format(origin_name, args_code)
+                #(module, name) = str(ti.get_typing_origin(type_hint)).split(".")
+                origin_name = self.make_rel_name('visip', type_hint.__name__)
+                code = "{}({})".format(origin_name, args_code)
                 return code
-            else:
-                raise Exception(f"No code representation for the type: {type_hint}")
+
+        raise Exception(f"No code representation for the type: {type_hint}")
 
 
     def value_code(self, value):
@@ -87,7 +88,7 @@ class Representer:
         indent_str = indent * " "
         type_code = self.type_code(param.type)
 
-        if param.default == param.no_default:
+        if param.default is param.no_default:
             default = ""
         else:
             default = "={}".format(param.default)
