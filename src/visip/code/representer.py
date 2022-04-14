@@ -30,32 +30,8 @@ class Representer:
         :param type_hint:
         :return:
         """
-        type_str = self.type_code_inner(type_hint)
-        return type_str
+        return dtype.type_code(type_hint, self.make_rel_name)
 
-    def type_code_inner(self, type_hint):
-        #assert isinstance(type_hint, dtype.DType), type_hint
-        if type_hint is dtype.EmptyType:
-            # TODO: represent None as no type annotation, but it should be forbidden.
-            return 'None'
-        elif type_hint is dtype.Any:
-            return self.make_rel_name('visip', 'Any')
-        elif isinstance(type_hint, dtype.TypeVar):
-            return self.make_rel_name(type_hint.origin_type.__module__, type_hint.origin_type.__name__)
-        elif isinstance(type_hint, dtype.DTypeSingleton):
-            return self.make_rel_name('visip', type_hint.name)
-        elif isinstance(type_hint, dtype.Class):
-            return self.make_rel_name(type_hint.module, type_hint.name)
-        elif isinstance(type_hint, dtype.DTypeGeneric):
-            args = type_hint.get_args()
-            if args:
-                args_code = ", ".join([self.type_code_inner(arg) for arg in args])
-                #(module, name) = str(ti.get_typing_origin(type_hint)).split(".")
-                origin_name = self.make_rel_name('visip', type_hint.__name__)
-                code = "{}({})".format(origin_name, args_code)
-                return code
-
-        raise Exception(f"No code representation for the type: {type_hint}")
 
 
     def value_code(self, value):

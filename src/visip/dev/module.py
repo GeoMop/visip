@@ -483,8 +483,10 @@ class Module:
         reference_name = self._object_names.get(mod_name, None)
         if reference_name is None:
             print("Undef reference for:", mod_name)
-            return None
+            return f"{obj_module}.{obj_name}"
         return reference_name
+
+
     def code(self) -> str:
         """
         Generate the source code of the whole module.

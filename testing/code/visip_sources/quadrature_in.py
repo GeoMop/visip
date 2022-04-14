@@ -11,7 +11,7 @@ class Point:
 @wf.Class
 class Quadrature:
     points: wf.List(Point)
-    weights: wf.List(float)
+    weights: wf.List(wf.Float)
 
 # Workflow decorator creates the 'mid_rule' workflow action.
 # Auxiliary variable 'self' is used to keep variable names

@@ -52,6 +52,16 @@ class DType:
         """
         return set()
 
+    def code(self, make_rel_name:typing.Callable[[str,str], str]) -> str:
+        """
+        Code representation of the type.
+        :param make_rel_name: Function getting module and name of the type and producing final name after applying
+        aliases of the particular module.
+
+        This is basic implementation for non generic types, using their module and name attributes.
+        """
+        return make_rel_name(self.module, self.name)
+
 VISIP_Type = typing.Union[DType, _ActionBase]
 
 class DTypeBase(DType):
@@ -99,6 +109,7 @@ class DTypeSingleton(DTypeBase):
         else:
             subtypes.add(self)
             self.subtypes = subtypes
+        self.module = 'visip'
 
     def __hash__(self):
         return hash(self.name)
@@ -202,6 +213,14 @@ class TypeVar(DTypeBase):
             assert typing_inspect.is_typevar(origin_type)
         self.origin_type = origin_type
 
+    @property
+    def name(self):
+        return self.origin_type.__name__
+
+    @property
+    def module(self):
+        return self.origin_type.__module__
+
     def __hash__(self):
         return self.origin_type.__hash__()
 
@@ -251,6 +270,8 @@ class DTypeGeneric(DType):
             if len(args) != n_args:
                 raise exceptions.ExcGenericArgs(f"Wrong number {len(args)} of the generic tyep {self.name()}, expected: {n_args}.")
 
+        # Unwrap Class and Enum
+        args = [_unwrap_action_type(a) for a in args]
         for a in args:
             if not isinstance(a, (DType, _ActionBase)):
                 raise exceptions.ExcNotDType(f"Argument {a} of generic type {self.name()} is not DType (or Action).")
@@ -271,6 +292,14 @@ class DTypeGeneric(DType):
         Return list of inner types.
         """
         return self.args
+
+    def code(self, make_rel_name):
+        # Overrides DType.code method.
+        assert len(self.args) > 0
+        args_code = ", ".join([type_code(arg, make_rel_name) for arg in self.args])
+        origin_name = make_rel_name('visip', self.name())
+        code = f"{origin_name}({args_code})"
+        return code
 
 
     def from_typing(self):
@@ -316,6 +345,7 @@ class Tuple(DTypeGeneric):
 
 class Union(DTypeGeneric):
     def __init__(self, *args):
+
         # expand nested unions, extract typevars
         _args = set()
         _tvars = []
@@ -324,21 +354,8 @@ class Union(DTypeGeneric):
                 _args.update(a.args)
             else:
                 _args.add(a)
-        self._args = list(_args)   # omit DType check of args until we support Callable
-
-
-        #
-        # # remove duplicates
-        # new_args = []
-        # for a in self.args:
-        #     dup = False
-        #     for na in new_args:
-        #         if is_equaltype(na, a):
-        #             dup = True
-        #             break
-        #     if not dup:
-        #         new_args.append(a)
-        # self.args = new_args
+        self._args = [_unwrap_action_type(a) for a in _args]   # omit DType check of args until we support Callable
+        # TODO: upse super() after introduction of Callable, makes problems in lazy test.
 
         # check TypeVar count
         # TODO: too restrictive, inner typevars are not problem
@@ -386,6 +403,16 @@ class TypeInspector:
         """
         return type
 
+def type_code(type_hint, make_rel_name):
+    assert isinstance(type_hint, DType), type_hint
+    if type_hint is EmptyType:
+        # TODO: represent None as no type annotation, but it should be forbidden.
+        return 'None'
+    return type_hint.code(make_rel_name)
+
+    raise Exception(f"No code representation for the type: {type_hint}")
+
+
 def type_of_value(value):
     val_type = type(value)
     assert not isinstance(val_type, (_DummyClassBase, DType))
@@ -422,6 +449,28 @@ def type_of_value(value):
 
     raise TypeError(f"Value {value} of unsupported type: {val_type}")
 
+def _unwrap_action_type(type: Any) -> DType:
+    """
+    Unwrap action types (i.e. Class and Enum) that are wrppaed into DummyAction.
+    Pass through other types.
+    """
+    if isinstance(type, _DummyClassBase):
+        try:
+            data_class = type._action_value._data_class  # Class action
+            assert issubclass(data_class, DataClassBase)
+            return Class.wrap(data_class)
+        except AttributeError:
+            pass
+
+        try:
+            enum_class = type._action_value._enum_class  # Enum action
+            assert issubclass(enum_class, enum.IntEnum)
+            return Enum.wrap(enum_class)
+
+        except AttributeError:
+            pass
+    return type
+
 
 def from_typing(type):
     """
@@ -439,20 +488,7 @@ def from_typing(type):
         return type
 
     if isinstance(type, _DummyClassBase):
-        try:
-            data_class = type._action_value._data_class  # Class action
-            assert issubclass(data_class, DataClassBase)
-            return Class.wrap(data_class)
-        except AttributeError:
-            pass
-
-        try:
-            enum_class = type._action_value._enum_class  # Enum action
-            assert issubclass(enum_class, enum.IntEnum)
-            return Enum.wrap(enum_class)
-
-        except AttributeError:
-            pass
+        return _unwrap_action_type(type)
 
 
     basic_type = DTypeSingleton.from_typing(type)
