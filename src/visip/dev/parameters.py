@@ -78,7 +78,7 @@ class Parameters:
     # For convenience when operating on the Parameters instance.
 
     def __init__(self, params: List[ActionParameter], return_type:dtype.DType = None, had_self=False):
-        if return_type == ActionParameter.no_default:
+        if return_type is ActionParameter.no_default:
             return_type = None
         self._return_type = return_type
         self._signature = {p.name: p for p in params}

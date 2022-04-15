@@ -62,7 +62,14 @@ class DType:
         """
         return make_rel_name(self.__module__, self.__name__)
 
+    def _eq_simplify(self):
+        """
+        Cast single member Union to the member type, for the equivalence.
+        """
+        return self
 
+    def __eq__(self, other):
+        return self._eq_simplify()._equal_(other._eq_simplify())
 
 
 VISIP_Type = typing.Union[DType, _ActionBase]
@@ -116,6 +123,9 @@ class DTypeSingleton(DTypeBase):
 
     def __hash__(self):
         return hash(self.__name__)
+
+    def _equal_(self, other):
+        return self is other
 
     def is_subtype(self, super_type):
         return self in super_type.subtypes
@@ -179,6 +189,13 @@ class Class(DTypeBase):
     def __name__(self):
         return self.data_class.__name__
 
+    def _equal_(self, other):
+        if isinstance(other, Class) and self.data_class is other.data_class:
+            assert self is other
+            # If assert holds we can simplify the check
+            return True
+        return False
+
 
 @attrs.frozen
 class Enum(DTypeBase):
@@ -204,6 +221,10 @@ class Enum(DTypeBase):
     def __name__(self):
         return self.origin_type.__name__
 
+    def _equal_(self, other):
+        return isinstance(other, Enum) and self.origin_type is other.origin_type
+
+
 
 class TypeVar(DTypeBase):
     """
@@ -227,10 +248,15 @@ class TypeVar(DTypeBase):
     def __hash__(self):
         return self.origin_type.__hash__()
 
-    def __eq__(self, other):
+    def __repr__(self):
+        return f"TypeVar({self.origin_type}"
+
+    def _equal_(self, other):
         if isinstance(other, TypeVar):
             return other.origin_type is self.origin_type
         return False
+
+
 
     def typevar_set(self):
         return {self}
@@ -260,8 +286,15 @@ class NewType(DTypeBase):
     def __hash__(self):
         return self.origin_type.__hash__()
 
+    def __repr__(self):
+        return f"NewType({self.origin_type}"
 
-
+    def _equal_(self, other):
+        #assert  self.origin_type is not None and other.origin_type is not None, f"None NewType: {self}, {other}"
+        if isinstance(other, NewType):
+            return self is other or (self.origin_type is not None and other.origin_type is not None and
+                                     self.origin_type is other.origin_type)
+        return False
 
 ################################
 # DTypeGeneric
@@ -320,6 +353,11 @@ class DTypeGeneric(DType):
                 ret.update(arg.typevar_set())
         return ret
 
+    def _equal_(self, other):
+        if isinstance(other, self.__class__):
+            return tuple(self.args) == tuple(other.args)
+        return False
+
 
 class List(DTypeGeneric):
     def __init__(self, *args):
@@ -347,8 +385,6 @@ class Dict(DTypeGeneric):
 class Tuple(DTypeGeneric):
     def __init__(self, *args):
         super().__init__(args)
-
-
 
 
 class Union(DTypeGeneric):
@@ -383,6 +419,15 @@ class Union(DTypeGeneric):
             a = self.args.pop(tv_ind)
             self.args.append(a)
 
+    def _eq_simplify(self):
+        if len(self.args) == 1:
+            return self.args[0]
+        return self
+
+    def _equal_(self, other):
+        if isinstance(other, Union) and len(self.args) == len(other.args):
+            return set(self.args) == set(self.args)
+        return False
 
 class Const(DTypeGeneric):
     def __init__(self, *args):
@@ -636,76 +681,7 @@ def to_typing(type):
 
 
 def is_equaltype(type, other):
-    # Const
-    if isinstance(type, Const):
-        if isinstance(other, Const):
-            return is_equaltype(type.args[0], other.args[0])
-
-
-    # TypeVar
-    elif isinstance(type, TypeVar):
-        if isinstance(other, TypeVar):
-            return type.origin_type is other.origin_type
-
-    # Union
-    elif isinstance(type, Union):
-        if len(type.args) == 1:
-            return is_equaltype(type.args[0], other)
-        elif isinstance(other, Union) and len(type.args) == len(other.args):
-            for arg in type.args:
-                eq = False
-                for oarg in other.args:
-                    if is_equaltype(arg, oarg):
-                        eq = True
-                        break
-                if not eq:
-                    return False
-            return True
-
-    elif isinstance(other, Union):
-        return is_equaltype(other, type)
-
-    # NewType
-    elif isinstance(type, NewType):
-        if isinstance(other, NewType):
-            return type is other or (type.origin_type is not None and other.origin_type is not None and
-                                     type.origin_type is other.origin_type)
-
-    # Int, Float, Bool, Str, NoneType, Any
-    elif isinstance(type, DTypeSingleton):
-        return other is type
-
-    # Class
-    elif isinstance(type, Class):
-        if isinstance(other, Class) and type.data_class is other.data_class:
-            assert type is other
-            # If assert holds we can simplify the check
-            return True
-        return False
-
-    # Enum
-    elif isinstance(type, Enum):
-        return isinstance(other, Enum) and type.origin_type is other.origin_type
-
-    # Tuple
-    elif isinstance(type, Tuple):
-        if isinstance(other, Tuple) and len(type.args) == len(other.args):
-            for arg, oarg in zip(type.args, other.args):
-                if not is_equaltype(arg, oarg):
-                    return False
-            return True
-
-    # List
-    elif isinstance(type, List):
-        if isinstance(other, List):
-            return is_equaltype(type.arg, other.arg)
-
-    # Dict
-    elif isinstance(type, Dict):
-        if isinstance(other, Dict):
-            return is_equaltype(type.key, other.key) and is_equaltype(type.value, other.value)
-
-    return False
+    return type == other
 
 
 def is_subtype(subtype, type):

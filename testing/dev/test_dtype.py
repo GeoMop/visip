@@ -78,7 +78,7 @@ def test_type_of_value():
     assert type_of_value(1) is Int
     assert type_of_value(1.0) is Float
     assert type_of_value("1") is Str
-    assert is_equaltype(type_of_value([1, 1.4, "1"]), List(Union(Int, Float, Str)))
+    assert type_of_value([1, 1.4, "1"]) == List(Union(Int, Float, Str))
 
 def test_from_typing():
     # bas
