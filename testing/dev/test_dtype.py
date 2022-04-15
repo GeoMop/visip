@@ -74,11 +74,25 @@ def test_types():
     # assert isinstance(t.arg, Int)
 
 def test_type_of_value():
+
+    # Enum
+    class A(enum.IntEnum):
+        a = 1
+
+    class B(DataClassBase):
+        pass
+
+    class C(B):
+        pass
+
     assert type_of_value(True) is Bool
     assert type_of_value(1) is Int
     assert type_of_value(1.0) is Float
     assert type_of_value("1") is Str
     assert type_of_value([1, 1.4, "1"]) == List(Union(Int, Float, Str))
+    assert type_of_value({0:1, "f":1.4, 2:"1"}) == Dict(Union(Int, Str), Union(Int, Float, Str))
+    assert type_of_value( (1, 1.4, "1") ) == Tuple(Int, Float, Str)
+    assert type_of_value( ( A.a, B(), C()) ) == Tuple(Enum(A), Class(B), Class(C))
 
 def test_from_typing():
     # bas
