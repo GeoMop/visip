@@ -100,6 +100,8 @@ class Resource:
             # print(task.action)
             # print(task.inputs)
             # print(task_hash, res_value)
+            if isinstance(res_value, Dummy):
+                assert False
             self.cache.insert(task.result_hash, res_value)
 
         self._finished.append(task)
