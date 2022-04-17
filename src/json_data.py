@@ -103,13 +103,56 @@ def jsondata(cls=None):
     return wrap(cls)
 
 
-def serialize(obj):
-    return _serialize_object(obj)
+def serialize(obj, module=False):
+    return _serialize_object(obj, module)
 
 
-def deserialize(type, value, path=[]):
+def deserialize(value, type=None, cls_dict={}, path=[], module=True):
+    """
+    Deserialize value.
+
+    :param value: value for deserialization
+    :param type: type for assign value
+    :param cls_dict: dictionary of possible classes for deserialization {("Module", "Name"): Class}
+    :param module: check module
+    :return:
+    """
+    if type is None:
+        base = [str, float, int, bool]
+        if builtins.type(value) in base:
+            return value
+        elif isinstance(value, dict):
+            if "__class__" in value:
+                name = value["__class__"]
+                if module and "__module__" in value:
+                    k = (value["__module__"], name)
+                    if k not in cls_dict:
+                        k = None
+                else:
+                    for k in cls_dict:
+                        if k[1] == name:
+                            break
+                    else:
+                        k = None
+                if k is not None:
+                    type = cls_dict[k]
+                else:
+                    raise Exception("Class is not in cls_dict dictionary.")
+            else:
+                d = {}
+                for k, v in value.items():
+                    d[k] = deserialize(v, path=path + [k])
+                return d
+        elif isinstance(value, list):
+            l = []
+            for ival, v in enumerate(value):
+                l.append(deserialize(v, path=path + [str(ival)]))
+            return l
+        else:
+            raise Exception("Unable to deserialize item without type.")
+
     _check_type(type)
-    return _deserialize_item(type, value, path)
+    return _deserialize_item(type, value, path, module)
 
 
 def _check_type(type):
@@ -169,15 +212,16 @@ def _check_type(type):
     raise Exception("Bad type format.")
 
 
-def _deserialize(cls, config, path=[]):
+def _deserialize(cls, config, path=[], module=True):
     """Factory method for creating object from config dictionary."""
     config = config.copy()
     config.pop("__class__", None)
+    config.pop("__module__", None)
 
     new_config = {}
     for at in cls.__attrs_attrs__:
         if at.name in config:
-            new_config[at.name] = _deserialize_item(at.type, config.pop(at.name), path + [at.name])
+            new_config[at.name] = _deserialize_item(at.type, config.pop(at.name), path + [at.name], module)
         elif at.default is attr.NOTHING:
             raise Exception("Missing obligatory key, path: {}".format(path + [at.name]))
 
@@ -188,7 +232,7 @@ def _deserialize(cls, config, path=[]):
     return cls(**new_config)
 
 
-def _deserialize_item(type, value, path):
+def _deserialize_item(type, value, path, module):
     """
     Deserialize value.
 
@@ -215,7 +259,7 @@ def _deserialize_item(type, value, path):
 
             t = None
             for a in args:
-                if a.__name__ == value["__class__"]:
+                if a.__name__ == value["__class__"] and (not module or "__module__" not in value or a.__module__ == value["__module__"]):
                     t = a
                     break
             else:
@@ -239,7 +283,7 @@ def _deserialize_item(type, value, path):
         assert isinstance(value, list)
         l = []
         for ival, v in enumerate(value):
-            l.append(_deserialize_item(type.__args__[0], v, path + [str(ival)]))
+            l.append(_deserialize_item(type.__args__[0], v, path + [str(ival)], module))
         return l
 
     # tuple
@@ -248,7 +292,7 @@ def _deserialize_item(type, value, path):
         assert len(type.__args__) == len(value), "Length of tuple do not match: {} != {}".format(len(type.__args__), len(value))
         l = []
         for i, typ, val in zip(range(len(value)), type.__args__, value):
-            l.append(_deserialize_item(typ, val, path + [str(i)]))
+            l.append(_deserialize_item(typ, val, path + [str(i)], module))
         return tuple(l)
 
     # dict
@@ -258,13 +302,15 @@ def _deserialize_item(type, value, path):
         for k, v in value.items():
             if type.__args__[0] is int:
                 k = int(k)
-            d[k] = _deserialize_item(type.__args__[1], v, path + [k])
+            d[k] = _deserialize_item(type.__args__[1], v, path + [k], module)
         return d
 
     # other scalar types
     else:
         # IntEnum
         if issubclass(type, IntEnum):
+            if isinstance(value, dict):
+                return type[value["item_name"]]
             if isinstance(value, str):
                 return type[value]
             elif isinstance(value, int):
@@ -282,40 +328,46 @@ def _deserialize_item(type, value, path):
             return filled_template
 
 
-def _serialize(self):
+def _serialize(self, module=False):
     """
     Serialize the object.
     :return:
     """
-    return _get_dict(self)
+    return _get_dict(self, module)
 
 
-def _get_dict(obj):
+def _get_dict(obj, module):
     """Return dict for serialization."""
     sa = [at.name for at in obj.__attrs_attrs__]
     d = {"__class__": obj.__class__.__name__}
+    if module:
+        d["__module__"] = obj.__class__.__module__
     for k, v in obj.__dict__.items():
         if k in sa:
-            d[k] = _serialize_object(v)
+            d[k] = _serialize_object(v, module)
     return d
 
 
-def _serialize_object(obj):
+def _serialize_object(obj, module):
     """Prepare object for serialization."""
     if hasattr(obj.__class__, _JSON_DATA_TAG):
-        return _get_dict(obj)
+        return _get_dict(obj, module)
     elif isinstance(obj, IntEnum):
-        return obj.name
+        d = {"__class__": obj.__class__.__name__}
+        if module:
+            d["__module__"] = obj.__class__.__module__
+        d["item_name"] = obj.name
+        return d
     elif isinstance(obj, dict):
         d = {}
         for k, v in obj.items():
             k = str(k)
-            d[k] = _serialize_object(v)
+            d[k] = _serialize_object(v, module)
         return d
     elif isinstance(obj, list) or isinstance(obj, tuple):
         l = []
         for v in obj:
-            l.append(_serialize_object(v))
+            l.append(_serialize_object(v, module))
         return l
     else:
         return obj
