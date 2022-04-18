@@ -182,90 +182,90 @@ def test_from_typing():
     assert from_typing(builtins.type(None)) is NoneType
 
 
-def test_to_typing():
-    # base
-    assert to_typing(Int) is int
-    assert to_typing(Float) is float
-    assert to_typing(Bool) is bool
-    assert to_typing(Str) is str
-
-    # TypeVar
-    t = TypeVar(typing.TypeVar(name="T"))
-    nt = to_typing(t)
-    assert isinstance(nt, typing.TypeVar)
-    assert nt is t.origin_type
-
-    tt = Tuple(t, List(t))
-    nt = to_typing(tt)
-    args = typing_inspect.get_args(nt, evaluate=True)
-    assert args[0] is typing_inspect.get_args(args[1], evaluate=True)[0]
-
-    # NewType
-    tx = typing.NewType("NewInt", int)
-    t = NewType(tx)
-    nt = to_typing(t)
-    assert typing_inspect.is_new_type(nt)
-    assert nt is t.origin_type
-    assert nt.__supertype__ is int
-
-    tt = Tuple(t, List(t))
-    nt = to_typing(tt)
-    args = typing_inspect.get_args(nt, evaluate=True)
-    assert args[0] is typing_inspect.get_args(args[1], evaluate=True)[0]
-
-    # Tuple
-    t = Tuple(Int, Str)
-    nt = to_typing(t)
-    assert typing_inspect.get_origin(nt) in [tuple, typing.Tuple]
-    args = typing_inspect.get_args(nt, evaluate=True)
-    assert args[0] is int
-    assert args[1] is str
-
-    # Union
-    t = Union(Int, Str)
-    nt = to_typing(t)
-    assert typing_inspect.get_origin(nt) is typing.Union
-    args = typing_inspect.get_args(nt, evaluate=True)
-    assert int in args and str in args
-
-    # List
-    t = List(Int)
-    nt = to_typing(t)
-    assert typing_inspect.get_origin(nt) in [list, typing.List]
-    assert typing_inspect.get_args(nt, evaluate=True)[0] is int
-
-    # Dict
-    t = Dict(Int, Str)
-    nt = to_typing(t)
-    assert typing_inspect.get_origin(nt) in [dict, typing.Dict]
-    args = typing_inspect.get_args(nt, evaluate=True)
-    assert args[0] is int
-    assert args[1] is str
-
-    # Const
-    # t = dtype_new.Const(dtype_new.Int)
-    # nt = dtype_new.to_typing(t)
-    # assert typing_inspect.get_origin(nt) is Constant
-    # assert typing_inspect.get_args(nt, evaluate=True)[0] is int
-
-    # Class
-    a_class = create_class()
-    nt = to_typing(Class.wrap(a_class))
-    assert nt is a_class
-
-    # Enum
-    class A(enum.IntEnum):
-        pass
-
-    t = Enum(A)
-    nt = to_typing(t)
-    assert nt is A
-
-    # Any
-    assert to_typing(Any) is typing.Any
-
-    # NoneType
-    assert to_typing(NoneType) is builtins.type(None)
+# def test_to_typing():
+#     # base
+#     assert to_typing(Int) is int
+#     assert to_typing(Float) is float
+#     assert to_typing(Bool) is bool
+#     assert to_typing(Str) is str
+#
+#     # TypeVar
+#     t = TypeVar(typing.TypeVar(name="T"))
+#     nt = to_typing(t)
+#     assert isinstance(nt, typing.TypeVar)
+#     assert nt is t.origin_type
+#
+#     tt = Tuple(t, List(t))
+#     nt = to_typing(tt)
+#     args = typing_inspect.get_args(nt, evaluate=True)
+#     assert args[0] is typing_inspect.get_args(args[1], evaluate=True)[0]
+#
+#     # NewType
+#     tx = typing.NewType("NewInt", int)
+#     t = NewType(tx)
+#     nt = to_typing(t)
+#     assert typing_inspect.is_new_type(nt)
+#     assert nt is t.origin_type
+#     assert nt.__supertype__ is int
+#
+#     tt = Tuple(t, List(t))
+#     nt = to_typing(tt)
+#     args = typing_inspect.get_args(nt, evaluate=True)
+#     assert args[0] is typing_inspect.get_args(args[1], evaluate=True)[0]
+#
+#     # Tuple
+#     t = Tuple(Int, Str)
+#     nt = to_typing(t)
+#     assert typing_inspect.get_origin(nt) in [tuple, typing.Tuple]
+#     args = typing_inspect.get_args(nt, evaluate=True)
+#     assert args[0] is int
+#     assert args[1] is str
+#
+#     # Union
+#     t = Union(Int, Str)
+#     nt = to_typing(t)
+#     assert typing_inspect.get_origin(nt) is typing.Union
+#     args = typing_inspect.get_args(nt, evaluate=True)
+#     assert int in args and str in args
+#
+#     # List
+#     t = List(Int)
+#     nt = to_typing(t)
+#     assert typing_inspect.get_origin(nt) in [list, typing.List]
+#     assert typing_inspect.get_args(nt, evaluate=True)[0] is int
+#
+#     # Dict
+#     t = Dict(Int, Str)
+#     nt = to_typing(t)
+#     assert typing_inspect.get_origin(nt) in [dict, typing.Dict]
+#     args = typing_inspect.get_args(nt, evaluate=True)
+#     assert args[0] is int
+#     assert args[1] is str
+#
+#     # Const
+#     # t = dtype_new.Const(dtype_new.Int)
+#     # nt = dtype_new.to_typing(t)
+#     # assert typing_inspect.get_origin(nt) is Constant
+#     # assert typing_inspect.get_args(nt, evaluate=True)[0] is int
+#
+#     # Class
+#     a_class = create_class()
+#     nt = to_typing(Class.wrap(a_class))
+#     assert nt is a_class
+#
+#     # Enum
+#     class A(enum.IntEnum):
+#         pass
+#
+#     t = Enum(A)
+#     nt = to_typing(t)
+#     assert nt is A
+#
+#     # Any
+#     assert to_typing(Any) is typing.Any
+#
+#     # NoneType
+#     assert to_typing(NoneType) is builtins.type(None)
 
 
 def test_is_equaltype():

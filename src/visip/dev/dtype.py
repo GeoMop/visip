@@ -543,13 +543,9 @@ def from_typing(type):
     if isinstance(type, _DummyClassBase):
         return _unwrap_action_type(type)
 
-
     basic_type = DTypeSingleton.from_typing(type)
     if basic_type is not None:
         return basic_type
-
-    # if type is inspect.Signature.empty:
-    #     return EmptyType
 
     # Class
     if inspect.isclass(type) and issubclass(type, DataClassBase):
@@ -558,13 +554,6 @@ def from_typing(type):
     # Enum
     if inspect.isclass(type) and issubclass(type, enum.IntEnum):
         return Enum.wrap(type)
-
-    # # Any
-    # if type is typing.Any:
-    #     return Any
-    # # NoneType
-    # if type is builtins.type(None):
-    #     return NoneType
 
     # TypeVar
     if typing_inspect.is_typevar(type):
@@ -604,81 +593,71 @@ def from_typing(type):
 
 
 
-"""
-    if type_hint == ActionParameter.no_default:
-        return None
-    elif type_hint is None:
-        return None   #raise TypeError("Type annotation is required.")
-"""
-
-
-
-
-def to_typing(type):
-    # base
-    if isinstance(type, DTypeSingleton):
-        return type.typing_type
-
-    # TypeVar
-    if isinstance(type, TypeVar):
-        return type.origin_type
-
-
-    # NewType
-    if isinstance(type, NewType):
-        return type.origin_type
-
-
-    # Tuple
-    if isinstance(type, Tuple):
-        args = []
-        for a in type.args:
-            args.append(to_typing(a))
-        return typing.Tuple[tuple(args)]
-
-
-    # Union
-    if isinstance(type, Union):
-        args = []
-        for a in type.args:
-            args.append(to_typing(a))
-        return typing.Union[tuple(args)]
-
-
-    # List
-    if isinstance(type, List):
-        return typing.List[to_typing(type.arg)]
-
-    # Dict
-    if isinstance(type, Dict):
-        return typing.Dict[to_typing(type.key), to_typing(type.value)]
-
-    # Const
-    if isinstance(type, Const):
-        #return dtype.Constant[to_typing(type.arg)]
-        assert False, "Unable to return unambiguous value."
-
-
-    # Class
-    if isinstance(type, Class):
-        return type.data_class
-
-    # Enum
-    if isinstance(type, Enum):
-        return type.origin_type
-
-
-    # Any
-    if isinstance(type, Any):
-        return typing.Any
-
-    # NoneType
-    if isinstance(type, NoneType):
-        return builtins.type(None)
-
-
-    raise TypeError("Not supported type.")
-
+# def to_typing(type):
+#     # base
+#     if isinstance(type, DTypeSingleton):
+#         return type.typing_type
+#
+#     # TypeVar
+#     if isinstance(type, TypeVar):
+#         return type.origin_type
+#
+#
+#     # NewType
+#     if isinstance(type, NewType):
+#         return type.origin_type
+#
+#
+#     # Tuple
+#     if isinstance(type, Tuple):
+#         args = []
+#         for a in type.args:
+#             args.append(to_typing(a))
+#         return typing.Tuple[tuple(args)]
+#
+#
+#     # Union
+#     if isinstance(type, Union):
+#         args = []
+#         for a in type.args:
+#             args.append(to_typing(a))
+#         return typing.Union[tuple(args)]
+#
+#
+#     # List
+#     if isinstance(type, List):
+#         return typing.List[to_typing(type.arg)]
+#
+#     # Dict
+#     if isinstance(type, Dict):
+#         return typing.Dict[to_typing(type.key), to_typing(type.value)]
+#
+#     # Const
+#     if isinstance(type, Const):
+#         #return dtype.Constant[to_typing(type.arg)]
+#         assert False, "Unable to return unambiguous value."
+#
+#
+#     # Class
+#     if isinstance(type, Class):
+#         return type.data_class
+#
+#     # Enum
+#     if isinstance(type, Enum):
+#         return type.origin_type
+#
+#
+#     # Any
+#     if isinstance(type, Any):
+#         return typing.Any
+#
+#     # NoneType
+#     if isinstance(type, NoneType):
+#         return builtins.type(None)
+#
+#
+#     raise TypeError("Not supported type.")
+#
 
 def is_equaltype(type, other):
     return type == other
@@ -710,6 +689,9 @@ def is_subtype_map(subtype, type, var_map, restraints, check_const=True):
     :param check_const: if True and type is Const, than subtype must be Const
     :return: (is_subtype, var_map, restraints)
     """
+
+    # TODO: turn following to assert after fixing check_types of recursive workflow
+    subtype = from_typing(subtype)
 
     # if check_const is True and type is Const, than subtype must be Const
     if isinstance(type, Const) and check_const:
