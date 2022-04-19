@@ -39,18 +39,17 @@ how to define a more complex closure funcitons.
 
 
 """
-from . import base
+from typing import *
+
+from . import base, data
 from . import exceptions
 from ..action.constructor import Value
 from ..dev.parameters import Parameters, ActionParameter
 from . import dtype
 from ..code.dummy import DummyAction, Dummy, DummyWorkflow
 from ..dev import tools
-from .action_instance import ActionCall, ActionInputStatus
 from ..action.constructor import Pass
-from typing import *
 
-import typing
 
 
 class MetaAction(base.ActionBase):
@@ -159,6 +158,18 @@ class _Closure(MetaAction):
         # TODO: get callable type and check given arguments against signature
         # TODO: how to consistently reports errors at this stage
 
+    def action_hash(self):
+        # TODO: test that the hash is the same as the direct call of the action.
+        task_hash = self._action.action_hash()
+        for task in self._args:
+            task_hash = data.hash(task.result_hash, previous=task_hash)
+        for task in self._kwargs.values():
+            task_hash = data.hash(task.result_hash, previous=task_hash)
+        return task_hash
+
+    def __repr__(self):
+        return f"Closure({self._action}; {[task.short_hash(task.id) for task in self._args]})"
+
     def expand(self, task: '_ClosureTask', task_creator, cache):
         # Always expand create the task with merged inputs.
         # TODO: merge new inputs to partial_args
@@ -207,9 +218,9 @@ class _Lazy(MetaAction):
         """
         super().__init__("lazy")
         #ReturnType = dtype.TypeVar(origin_type=None, name='ReturnType')
-        ReturnType = typing.TypeVar('ReturnType')
+        ReturnType = TypeVar('ReturnType')
 
-        params = [ActionParameter("action", typing.Callable[..., ReturnType]),
+        params = [ActionParameter("action", Callable[..., ReturnType]),
                   ActionParameter("args", dtype.Any, kind=ActionParameter.VAR_POSITIONAL),
                   ActionParameter("kwargs", dtype.Any, kind=ActionParameter.VAR_KEYWORD),
                   ]
@@ -286,8 +297,8 @@ class DynamicCall(MetaAction):
         """
         super().__init__("DynamicCall")
 
-        ReturnType = typing.TypeVar('ReturnType')
-        params = [ActionParameter(name="function", p_type=typing.Callable[..., ReturnType]),
+        ReturnType = TypeVar('ReturnType')
+        params = [ActionParameter(name="function", p_type=Callable[..., ReturnType]),
                   ActionParameter(name="args", p_type=dtype.Any, kind=ActionParameter.VAR_POSITIONAL),
                   ActionParameter(name="kwargs", p_type=dtype.Any, kind=ActionParameter.VAR_KEYWORD)]
         self._parameters = Parameters(params, ReturnType)
@@ -320,13 +331,13 @@ class _If(MetaAction):
     def __init__(self):
         super().__init__("If")
         params = []
-        ReturnType = typing.TypeVar('ReturnType')
+        ReturnType = TypeVar('ReturnType')
         params.append(
             ActionParameter(name="condition", p_type=dtype.Bool))
         params.append(
-            ActionParameter(name="true_body", p_type=typing.Callable[..., ReturnType]))
+            ActionParameter(name="true_body", p_type=Callable[..., ReturnType]))
         params.append(
-            ActionParameter(name="false_body", p_type=typing.Callable[..., ReturnType]))
+            ActionParameter(name="false_body", p_type=Callable[..., ReturnType]))
         self._parameters = Parameters(params, ReturnType)
 
     def expand(self, task, task_creator, cache):
@@ -343,9 +354,10 @@ class _If(MetaAction):
             return None
 
 
-class While(MetaAction):
-    def __init__(self):
-        pass
+
+
+
+
 
 """
 @vs.workflow

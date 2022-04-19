@@ -1,7 +1,8 @@
 import attr
 import enum
+from typing import *
 from typing import Any, Optional
-from . import base
+from . import base, data
 from . import dfs
 from . import meta
 from . import exceptions
@@ -138,7 +139,7 @@ class _Workflow(meta.MetaAction):
         # internal structures
         self._action_calls = {self._result_call}
         # Dict:  unique action instance name -> action instance.
-        self._sorted_calls = []
+        self._sorted_calls: List[ActionCall] = []
         # topologically sorted action instance names (result last)
         self._type_var_map = {}
         # type_var mapping, define lower limit of TypeVar, in algorithm may be raised, like T -> Int to T -> Union[Int, Str]
@@ -170,6 +171,14 @@ class _Workflow(meta.MetaAction):
     @property
     def status(self):
         return self._status
+
+    def action_hash(self):
+        self.update()
+        a_hash = data.hash(self.name)
+        for acall in self._sorted_calls:
+            a_hash = data.hash(acall.action.action_hash, previous=a_hash)
+        return a_hash
+
 
     def set_signature_from_function(self, func):
         #try:
@@ -561,22 +570,23 @@ class _Workflow(meta.MetaAction):
 
             In particular slots are named by corresponding parameter name and result task have name '__result__'
         """
-        print("expand wf: ", self.name)
         if self.update() != self.Status.ok:
             raise exceptions.ExcInvalidWorkflow
         childs = {}
+        tasks = {}
         assert len(self._slots) == len(task.inputs)
         for slot, input in zip(self._slots, task.inputs):
             # shortcut the slots
             # task = task_creator(slot.name, Pass(), [input])
-            childs[slot.name] = input
+            tasks[slot.name] = input
         for action_call in self._sorted_calls:
             if isinstance(action_call, _SlotCall):
                 continue
             # TODO: eliminate dict usage, assign a call rank to the action calls
             # TODO: use it to index tasks in the resulting task list 'childs'
-            arg_tasks = [childs[arg.value.name] for arg in action_call.arguments]
+            arg_tasks = [tasks[arg.value.name] for arg in action_call.arguments]
             task_binding = TaskBinding(action_call.name, action_call.action, action_call.id_args_pair, arg_tasks)
             child_task = task_creator(task_binding)
             childs[action_call.name] = child_task
+            tasks[action_call.name] = child_task
         return childs

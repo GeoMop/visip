@@ -50,6 +50,9 @@ class _TaskBase:
 
         self._result_hash = self._lazy_hash()
 
+    def short_hash(self, h:bytes) -> str:
+        return h.hex()[:4]
+
     def action_hash(self):
         return self.action.action_hash()
 
@@ -126,6 +129,9 @@ class TaskSchedule:
     def priority(self):
         return 1
 
+    def short_hash(self, h):
+        return self.task.short_hash(h)
+
     def get_path(self):
         path = []
         t = self
@@ -138,7 +144,7 @@ class TaskSchedule:
         return self.priority < other.priority
 
     @staticmethod
-    def _create_task(parent_task, task_binding):
+    def _create_task(parent_task, task_binding) -> 'TaskSchedule':
         """
         Create task from the given action and its input tasks.
         """
@@ -201,6 +207,9 @@ class Composed(Atomic):
         self.childs: Dict[Union[int, str], Atomic] = {}
         # map child_id to the child task, filled during expand.
 
+    def __repr__(self):
+        return f"{self.action}"
+
     def is_ready(self, cache):
         """
         Block submission of unexpanded tasks.
@@ -229,12 +238,12 @@ class Composed(Atomic):
         return self.childs is not None
 
 
-    def create_child_task(self, task_binding: TaskBinding):
+    def create_child_task(self, task_binding: TaskBinding) -> TaskSchedule:
         args, kwargs = task_binding.id_args_pair
         assert len(args) + len(kwargs) == len(task_binding.inputs)
         return TaskSchedule._create_task(self, task_binding)
 
-    def expand(self, cache):
+    def expand(self, cache) -> Dict[str, TaskSchedule]:
         """
         Composed task expansion.
 
@@ -261,6 +270,7 @@ class Composed(Atomic):
             result_task.outputs.append(self)
             self.task.id_args_pair = ([0],{})
             #B: self._inputs = [result_task]
+            #print(f"Expanding {self}#{self.short_hash(self.id)} depends on {result_task}#{self.short_hash(result_task.result_hash)}")
             self.task.input_hashes = [result_task.result_hash]
             # After expansion the composed task is just a dummy task dependent on the previoous result.
             # This works with Workflow, see how it will work with other composed actions:

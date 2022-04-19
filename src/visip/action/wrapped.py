@@ -6,7 +6,7 @@ Problematic are actions generated from special constructs by the 'code' package:
 - actions that are already wrapped are just imported
 """
 from . import constructor
-from ..code.decorators import public_action
+from ..code.decorators import public_action, action_def, workflow
 from ..dev import meta
 from ..dev import dtype
 
@@ -60,3 +60,16 @@ empty = dtype.empty
 """
 Specific value used to mark unbound positional parameters in the 'lazy' meta action. 
 """
+
+@action_def
+def _is_none(x: dtype.Any) -> dtype.Bool:
+    return x is None
+
+
+
+@workflow
+def While(body, previous):
+    next = body(previous)
+    true_body = lazy(While, body, next)
+    false_body = lazy(Pass, previous)
+    return If(_is_none(next), false_body, true_body)

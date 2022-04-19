@@ -125,17 +125,24 @@ class EvalLogger:
         self._logger = logger
 
     def task_submit(self, task: task_mod.TaskSchedule, value):
-        self._logger.info(f"Submit: {task.action.name}, {task.id.hex()[:4]} -> {value}")
-        hashes = [h.hex()[:4] for h in task.task.input_hashes]
-        self._logger.info(f"        {hashes}\n")
+        self._logger.info(f"Finished: {task.action.name}#{task.short_hash(task.id)} := {value}")
+        hashes = [task.short_hash(h) for h in task.task.input_hashes]
+        self._logger.info(f"        Inputs: {hashes}\n")
 
 
-    def task_expand(self, composed: task_mod.Composed, new_tasks: Dict[data.HashValue, task_mod.TaskSchedule]):
-        self._logger.info(f"Expand: {composed.action.name}, {composed.id.hex()[:4]}")
+    def task_expand(self, composed: task_mod.Composed, new_tasks: Dict[str, task_mod.TaskSchedule]):
+        """
+        :param composed:
+        :param new_tasks: action_call name -> TackSchedule
+        :return:
+        """
+
         if new_tasks is not None:
-            hashes = [t.id.hex()[:4] for t in new_tasks.values()]
-            self._logger.info(f"        {hashes}\n")
-
+            self._logger.info(f"Expand: {composed}, {composed.short_hash(composed.id)}")
+            for t in new_tasks.values():
+                self._logger.info(f"    {t.action}#{t.short_hash(t.id)}  <- {[t.short_hash(h) for h in t.task.input_hashes]}")
+        # else:
+        #     self._logger.info(f"    Can not expand yet.")
 
 class Scheduler:
     def __init__(self, resources:Resource, cache:ResultCache, n_tasks_limit:int = 1024):

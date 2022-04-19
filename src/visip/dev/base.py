@@ -55,7 +55,7 @@ class ActionBase(dtype._ActionBase):
         self._parameters = signature
         # Parameter specification list, class attribute, no parameters by default.
 
-    def __str__(self):
+    def __repr__(self):
         return self.name
 
     # @property

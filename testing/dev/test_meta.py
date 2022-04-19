@@ -126,32 +126,34 @@ def mult(a, b):
 def sub(a, b):
     return a - b
 
-# @wf.workflow
-# def true_fac(i:int):
-#     return 1
-
 @wf.action_def
-def make_fac(i: int) -> wf.Any:
+def make_fac1(i: int) -> wf.Any:
     """
     Example of an action producing action.
     :param left_operand:
     :return:
     """
     def add() -> int:
-        return fac(i)
-    return wf.action_def(add)
+        return mult(i, fac1(sub(i, 1)))
+    return wf.workflow(add)
 
 @wf.workflow
-def fac(i:int):
-    i_1 = sub(i, 1)
+def fac1(i:int):
     zero = equal(i, 0)
-    fac_action = make_fac(i_1)
-    fac_1 = wf.If(zero, 1, fac_action)
-    return mult(i, fac_1)
+    fac_action = make_fac1(i)
+    return wf.If(zero, 1, fac_action)
 
-@pytest.mark.skip
+#@pytest.mark.skip
 def test_recursion():
-    result = evaluation.run(fac, 4)
+    result = evaluation.run(fac1, 0)
+    assert result == 1
+    result = evaluation.run(fac1, 1)
+    assert result == 1
+    result = evaluation.run(fac1, 2)
+    assert result == 2
+    result = evaluation.run(fac1, 3)
+    assert result == 6
+    result = evaluation.run(fac1, 4)
     assert result == 24
 
 # TODO:
@@ -182,16 +184,6 @@ def test_nested_wf():
 #
 
 
-@wf.action_def
-def is_none(x: wf.Any) -> bool:
-    return x is None
-
-@wf.workflow
-def While(body, previous):
-    next = body(previous)
-    true_body = wf.lazy(While, body, next)
-    false_body = wf.lazy(wf.Pass, previous)
-    return wf.If(is_none(next), false_body, true_body)
 
 
 @wf.action_def
@@ -221,15 +213,15 @@ def _fib_body(prev):
 
 @wf.workflow
 def fibonacci(n):
-    fib = While(_fib_body, (n, 1, 1))
+    fib = wf.While(_fib_body, (n, 1, 1))
     return fib[1]
 
 def test_while():
-    assert evaluation.run_plot(fibonacci, 0) == 1
-    # assert evaluation.run(fibonacci, 1) == 1
-    # assert evaluation.run(fibonacci, 2) == 2
-    # assert evaluation.run(fibonacci, 3) == 3
-    # assert evaluation.run(fibonacci, 4) == 5
+    assert evaluation.run(fibonacci, 0) == 1
+    assert evaluation.run(fibonacci, 1) == 1
+    assert evaluation.run(fibonacci, 2) == 2
+    assert evaluation.run(fibonacci, 3) == 3
+    assert evaluation.run(fibonacci, 4) == 5
 
 # @wf.action_def
 # def condition(lst:wf.List[float], num:float, end:float) -> bool:

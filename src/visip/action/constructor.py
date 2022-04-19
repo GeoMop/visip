@@ -17,6 +17,9 @@ class Value(ActionBase):
         self.action_kind = base.ActionKind.Meta
         self.value = value
 
+    def __repr__(self):
+        return f"Value({self.value})"
+
     def action_hash(self):
         salt_hash = data.hash("Value")
         # In the case of "action" value with action having no parameters, we have to distinguish
