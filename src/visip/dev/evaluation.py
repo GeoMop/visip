@@ -487,15 +487,15 @@ class Evaluation:
         g = Digraph("Task DAG")
         g.attr('graph', rankdir="BT")
 
-        def predecessors(task: task_mod._TaskBase):
+        def predecessors(task: task_mod.TaskSchedule):
             for in_task in task.inputs:
                 g.edge(task.id.hex()[:6], in_task.id.hex()[:6])
             return task.inputs
 
-        def previsit(task: task_mod._TaskBase):
+        def previsit(task: task_mod.TaskSchedule):
             if self.scheduler.is_finished(task):
                 color = 'green'
-            elif task.is_ready():
+            elif task.is_ready(self.cache):
                 color = 'orange'
             else:
                 color = 'gray'

@@ -59,6 +59,9 @@ class ActionFactory:
         ac_kwargs = { key: into_action(val) for key, val in kwargs.items() }
         return ActionCall.create(action, *ac_args, **ac_kwargs)
 
+    def create_value(self, value):
+        return into_action(value)
+
     def create_dynamic_call(self, value, *args, **kwargs):
         assert isinstance(value, ActionCall)
         # dynamic call

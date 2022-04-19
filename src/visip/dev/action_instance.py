@@ -84,16 +84,20 @@ class ActionCall:
         elif type(value) is list:
             args = [ActionCall._into_action(val) for val in value]
             if any(isinstance(arg, ActionCall) for arg in args):
+                # some arg is a result of an ActionCall
                 args = [ActionCall.action_wrap(arg) for arg in args]
                 return ActionCall.create(A_list(), *args)
             else:
+                # just values
                 return args
         elif type(value) is tuple:
             args = [ActionCall._into_action(val) for val in value]
             if any(isinstance(arg, ActionCall) for arg in args):
+                # some arg is a result of an ActionCall
                 args = [ActionCall.action_wrap(arg) for arg in args]
                 return ActionCall.create(A_tuple(), *args)
             else:
+                # just values
                 return tuple(args)
         elif type(value) is dict:
             kwargs = [(ActionCall._into_action(key), ActionCall._into_action(val)) for key, val in value.items()]
@@ -177,6 +181,7 @@ class ActionCall:
         return self._arg_split(self.arguments)
 
     def return_type_have_attributes(self):
+        assert isinstance(self.action.output_type, dtype.DType)
         return dtype.TypeInspector().have_attributes(self.action.output_type)
 
     @staticmethod
@@ -244,6 +249,7 @@ class ActionCall:
         else:
             assert isinstance(value, ActionCall), type(value)
             check_type = param.type
+
 
             if dtype.TypeInspector().is_constant(param.type):
                 check_type = dtype.TypeInspector().constant_type(param.type)

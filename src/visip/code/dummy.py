@@ -1,6 +1,7 @@
 from typing import *
+from ..dev.dtype import _DummyClassBase
 
-class DummyAction:
+class DummyAction(_DummyClassBase):
     """
     Have problems with actions wrapped directly into the Dummy, as it have dangerous __getattr__
     so we introduce separate wrapper class just for the static actions.
@@ -9,6 +10,12 @@ class DummyAction:
         self._af = af
         self._action_value = action
 
+    def wrapped(self):
+        """
+        Original definition before decoration.
+        """
+        return self._action_value
+
     def __call__(self, *args, **kwargs):
         """
         Catch call of the function values.
@@ -16,6 +23,18 @@ class DummyAction:
         Perform its call
         """
         return Dummy(self._af, self._af.create(self._action_value, *args, **kwargs))
+
+    def __getattr__(self, key: str):
+        """
+        Catch access to enum items: `Enum.x`
+        VISIP Enum is an action converting nt to the Enum value so it is wrapped into DummyAction.
+        """
+        if key[:2] == "__":     # __super_type__
+            return None
+        try:
+            return Dummy(self._af, self._af.create_value(self._action_value._enum_class[key]))
+        except AttributeError:
+            raise AttributeError(obj=self._action_value, name=key)
 
     def evaluate(self, *args, **kwargs):
         """
@@ -35,8 +54,10 @@ class DummyAction:
         """
         return self._action_value.evaluate(*args, **kwargs)
 
+    def __repr__(self):
+        return f"DummyAction({self._action_value})"
 
-class DummyWorkflow:
+class DummyWorkflow(_DummyClassBase):
     """
     In order to allow recursive workflows we have to postpone its construction to the first call.
     """
@@ -44,6 +65,12 @@ class DummyWorkflow:
         self._af = af
         self._workflow_func = workflow_func
         self._workflow = None
+
+    def wrapped(self):
+        """
+        Original definition before decoration.
+        """
+        return self.workflow
 
     @property
     def workflow(self):
@@ -54,7 +81,7 @@ class DummyWorkflow:
         if self._workflow is None:
             self._workflow = self._af.create_workflow_from_source(self._workflow_func)
             # here recursion occures, but now 'self._workflow' is set, so it just creates the action call
-            output_call, slots  = self._af.actioncalls_from_function(self._workflow_func, self._workflow.parameters)
+            output_call, slots = self._af.actioncalls_from_function(self._workflow_func, self._workflow.parameters)
             self._workflow.set_result_action(output_call, slots)
         return self._workflow
 
@@ -81,6 +108,8 @@ class DummyWorkflow:
         #wf = self._af.create_workflow_from_source(self._workflow_func)
         #return self._action_value.evaluate(*args, **kwargs)
 
+    def __repr__(self):
+        return f"DummyWorkflow({self._workflow_func})"
 
 
 class Dummy:
@@ -94,13 +123,17 @@ class Dummy:
         self._af = af
         self._value = value
 
+    def __repr__(self):
+        return f"Dummy({self._value})"
+
 
     def __getattr__(self, key: str):
         try:
-            assert self._value.return_type_have_attributes(), self._value.action
+            if not self._value.return_type_have_attributes():
+                raise AttributeError(f"{self._value} does not have attributes ({key}).")
             return Dummy(self._af, self._af.GetAttribute(key, self._value))
-        except AttributeError or AssertionError:
-            raise AttributeError
+        except AttributeError:
+            raise AttributeError(f"{self._value} does not have attribute {key}.")
         # TODO: update the type to know that it is a dataclass containing 'key'
         # TODO: check that type is dataclass
 

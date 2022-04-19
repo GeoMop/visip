@@ -18,6 +18,7 @@ class Representer:
         return module + name
 
     def __init__(self, make_rel_name=None):
+        self.n_indent = 4
         if make_rel_name is None:
             make_rel_name = Representer.make_rel_name
         self.make_rel_name = make_rel_name
@@ -30,35 +31,14 @@ class Representer:
         :param type_hint:
         :return:
         """
-        return self.type_code_inner(dtype.to_typing(type_hint))
+        return dtype.type_code(type_hint, self.make_rel_name)
 
-    def type_code_inner(self, type_hint):
-        ti = TypeInspector()
-        if type_hint is None:
-            # TODO: represent None as no type annotation, but it should be forbidden.
-            return 'None'
-        elif ti.is_any(type_hint):
-            return self.make_rel_name('typing', 'Any')
-        elif typing_inspect.is_typevar(type_hint):
-            return self.make_rel_name('typing', 'TypeVar')
-        elif ti.is_base_type(type_hint):
-            return type_hint.__name__
-        elif ti.is_dataclass(type_hint):
-            return self.make_rel_name(type_hint.__module__, type_hint.__name__)
-        else:
-            args = ti.get_args(type_hint)
-            if args:
-                args_code = ", ".join([self.type_code_inner(arg) for arg in args])
-                (module, name) = str(ti.get_typing_origin(type_hint)).split(".")
-                origin_name = self.make_rel_name(module, name)
-                code = "{}[{}]".format(origin_name, args_code)
-                return code
-            else:
-                raise Exception(f"No code representation for the type: {type_hint}")
 
 
     def value_code(self, value):
-        if hasattr(value, '__code__'):
+        if value is dtype.empty:
+            return value
+        elif hasattr(value, '__code__'):
             expr = value.__code__(self)
         elif type(value) is str:
             expr = "'{}'".format(value)
@@ -82,16 +62,19 @@ class Representer:
     def token(name):
         return formating.Placeholder(name)
 
+    @staticmethod
+    def str_unless(prefix:str, str:object) -> str:
+        return "" if str is dtype.empty else f"{prefix}{str}"
+
+    def type_anotation(self, prefix, type_hint):
+        type_code = self.type_code(type_hint)
+        return self.str_unless(f"{prefix}{type_code}", type_code is None)
 
     def parameter(self, param: parameters.ActionParameter, indent:int = 4) -> str:
-        indent_str = indent * " "
-        type_code = self.type_code(param.type)
-
-        if param.default == param.no_default:
-            default = ""
-        else:
-            default = "={}".format(param.default)
-        return "{}{}:{}{}".format(indent_str, param.name, type_code, default)
+        indent_str = self.n_indent * " "
+        type_anot = self.str_unless(':', self.type_code(param.type))
+        default = self.str_unless('=', self.value_code(param.default))
+        return f"{indent_str}{param.name}{type_anot}{default}"
 
 
 """

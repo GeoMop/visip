@@ -33,7 +33,14 @@ class ExcNoType(Exception):
 
 class ExcTypeBase(Exception):
     # catch typechecking errors, provide suitable details
+    # TODO: remove, not in use any more, type checking errors goes to the error list
     pass
 
 class ExcInvalidWorkflow(Exception):
+    pass
+
+class ExcGenericArgs(Exception):
+    pass
+
+class ExcNotDType(Exception):
     pass
