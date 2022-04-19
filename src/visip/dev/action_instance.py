@@ -51,6 +51,7 @@ class ActionArgument:
     # binding correctenss status
     type_exception: ExcTypeBase = None
     # exception or other kind of error specification
+    call_type: Optional[dtype.DType] = None
     actual_type: Optional[dtype.DType] = None
 
 
@@ -149,7 +150,9 @@ class ActionCall:
 
         self._type_var_map = {}
         """Map from TypeVars used in action definition to TypeVars used in Workflow type check."""
-        self.actual_output_type, self._type_var_map = dtype.substitute_type_vars(self.output_type, self._type_var_map, create_new=True)
+        self.call_output_type, self._type_var_map = dtype.substitute_type_vars(self.output_type, self._type_var_map, create_new=True)
+        """Call output type substituted unique TypeVars."""
+        self.actual_output_type = None
         """Actual output type after substitution of TypeVars with concrete type in Workflow type check."""
 
         self._arguments : List[ActionArgument] = []
@@ -256,9 +259,9 @@ class ActionCall:
             else:
                 status = ActionInputStatus.error_type
 
-        actual_type, self._type_var_map = dtype.substitute_type_vars(param.type, self._type_var_map, create_new=True)
+        call_type, self._type_var_map = dtype.substitute_type_vars(param.type, self._type_var_map, create_new=True)
 
-        return ActionArgument(self, i_arg, key, value, param, is_default, status, None, actual_type)
+        return ActionArgument(self, i_arg, key, value, param, is_default, status, None, call_type)
 
     @staticmethod
     def _arg_split(bound_args):
