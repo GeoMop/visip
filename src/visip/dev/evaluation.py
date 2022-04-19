@@ -23,7 +23,7 @@ from .action_workflow import _Workflow
 from ..eval.cache import ResultCache
 from ..code.unwrap import into_action
 from ..code.dummy import Dummy, DummyAction, DummyWorkflow
-from . import tools
+from . import tools, module
 
 
 class Resource:
@@ -310,6 +310,7 @@ class Evaluation:
 
 
     def __init__(self,
+                 cache: ResultCache = None,
                  scheduler: Scheduler = None,
                  workspace: str = ".",
                  plot_expansion: bool = False
@@ -320,7 +321,9 @@ class Evaluation:
 
         :param analysis: an action without inputs
         """
-        self.cache = ResultCache()
+        if cache is None:
+            cache = ResultCache()
+        self.cache = cache
 
         if scheduler is None:
             scheduler = Scheduler([ Resource(self.cache) ], self.cache)
@@ -403,6 +406,10 @@ class Evaluation:
         :return:
         """
         analysis = self._make_analysis(action, args, kwargs)
+
+        # update cache types map
+        self.scheduler.cache.update_types_map(module.Module.types_map(force=True))
+
         return self.execute(analysis)
 
     def execute(self, analysis) -> task_mod.TaskSchedule:
