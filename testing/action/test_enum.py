@@ -6,10 +6,10 @@ from visip.code import decorators
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
-@pytest.mark.skip
+
 def test_evaluation():
     enum_sript = "wf_enum.py"
-    source_in_path = os.path.join("visip_sources", enum_sript)
+    source_in_path = os.path.join(script_dir, "visip_sources", enum_sript)
 
     mod = module.Module.load_module(source_in_path)
     wf_test_class = mod.get_action(name='script')

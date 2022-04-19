@@ -1,23 +1,22 @@
-import enum
-
-from visip.dev import dtype
-from visip.dev.parameters import ActionParameter
+import pytest
+from visip.dev.dtype import *
+from visip.dev import exceptions
 
 import typing
 import typing_inspect
 import builtins
 
 
-class Aclass(dtype.DataClassBase):
+class Aclass(DataClassBase):
     a: int = 0
-    b: dtype.Str
+    b: Str
 
 
 def create_class():
     return Aclass
 
 def test_singleton():
-    class A(metaclass=dtype.Singleton):
+    class A(metaclass=Singleton):
         pass
 
     class B(A):
@@ -32,261 +31,279 @@ def test_singleton():
 
 
 def test_types():
-    dt = dtype
-
     # Union
-    t = dt.Union(dt.Int(), dt.Union(dt.Str()))
+    t = Union(Int, Union(Str))
     assert len(t.args) == 2
-    assert isinstance(t.args[0], dt.Int)
-    assert isinstance(t.args[1], dt.Str)
+    assert Int in t.args
+    assert Str in t.args
 
-    # t = dt.Union(dt.Int(), dt.Const(dt.Union(dt.Str())))
+    # t = Union(Int, Const(Union(Str)))
     # assert len(t.args) == 2
-    # assert isinstance(t.args[0], dt.Int)
-    # assert isinstance(t.args[1], dt.Const)
-    # assert isinstance(t.args[1].arg, dt.Str)
+    # assert isinstance(t.args[0], Int)
+    # assert isinstance(t.args[1], Const)
+    # assert isinstance(t.args[1].arg, Str)
 
-    t = dt.Union(dt.Int(), dt.Int())
+    t = Union(Int, Int)
     assert len(t.args) == 1
-    assert isinstance(t.args[0], dt.Int)
+    assert t.args[0] is Int
 
-    t = dt.Union(dt.Int(), dt.Union(dt.Int()))
+    t = Union(Int, Union(Int))
     assert len(t.args) == 1
-    assert isinstance(t.args[0], dt.Int)
+    assert t.args[0] is Int
 
-    t = dt.TypeVar(typing.TypeVar(name="T"))
-    u = dt.TypeVar(typing.TypeVar(name="U"))
+    t = TypeVar(typing.TypeVar(name="T"))
+    u = TypeVar(typing.TypeVar(name="U"))
 
     try:
-        dt.Union(t, u)
+        Union(t, u)
     except TypeError:
         pass
     else:
         assert False
 
     try:
-        dt.Union(t, dt.Const(u))
+        Union(t, Const(u))
     except TypeError:
         pass
     else:
         assert False
 
     # Const
-    # t = dt.Const(dt.Const(dt.Int()))
-    # assert isinstance(t, dt.Const)
-    # assert isinstance(t.arg, dt.Int)
+    # t = Const(Const(Int))
+    # assert isinstance(t, Const)
+    # assert isinstance(t.arg, Int)
 
+def test_type_of_value():
+
+    # Enum
+    class A(enum.IntEnum):
+        a = 1
+
+    class B(DataClassBase):
+        pass
+
+    class C(B):
+        pass
+
+    assert type_of_value(True) is Bool
+    assert type_of_value(1) is Int
+    assert type_of_value(1.0) is Float
+    assert type_of_value("1") is Str
+    assert type_of_value([1, 1.4, "1"]) == List(Union(Int, Float, Str))
+    assert type_of_value({0:1, "f":1.4, 2:"1"}) == Dict(Union(Int, Str), Union(Int, Float, Str))
+    assert type_of_value( (1, 1.4, "1") ) == Tuple(Int, Float, Str)
+    assert type_of_value( ( A.a, B(), C()) ) == Tuple(Enum(A), Class(B), Class(C))
 
 def test_from_typing():
-    # base
-    assert isinstance(dtype.from_typing(int), dtype.Int)
-    assert isinstance(dtype.from_typing(float), dtype.Float)
-    assert isinstance(dtype.from_typing(bool), dtype.Bool)
-    assert isinstance(dtype.from_typing(str), dtype.Str)
+    # bas
+    assert from_typing(int) is Int
+    assert from_typing(float) is Float
+    assert from_typing(bool) is Bool
+    assert from_typing(str) is Str
 
     # TypeVar
     t = typing.TypeVar(name="T")
-    nt = dtype.from_typing(t)
-    assert isinstance(nt, dtype.TypeVar)
+    nt = from_typing(t)
+    assert isinstance(nt, TypeVar)
     assert nt.origin_type is t
 
     tt = typing.Tuple[t, typing.List[t]]
-    nt = dtype.from_typing(tt)
+    nt = from_typing(tt)
     assert nt.args[0].origin_type is nt.args[1].arg.origin_type
 
     # NewType
     t = typing.NewType("NewInt", int)
-    nt = dtype.from_typing(t)
-    assert isinstance(nt, dtype.NewType)
+    nt = from_typing(t)
+    assert isinstance(nt, NewType)
     assert nt.origin_type is t
-    assert isinstance(nt.supertype, dtype.Int)
+    assert nt.supertype is Int
 
     tt = typing.Tuple[t, typing.List[t]]
-    nt = dtype.from_typing(tt)
+    nt = from_typing(tt)
     assert nt.args[0].origin_type is nt.args[1].arg.origin_type
 
     # Tuple
     t = typing.Tuple[int, str]
-    nt = dtype.from_typing(t)
-    assert isinstance(nt, dtype.Tuple)
-    assert isinstance(nt.args[0], dtype.Int)
-    assert isinstance(nt.args[1], dtype.Str)
+    nt = from_typing(t)
+    assert isinstance(nt, Tuple)
+    assert nt.args[0] is Int
+    assert nt.args[1] is Str
 
     # Union
     t = typing.Union[int, str]
-    nt = dtype.from_typing(t)
-    assert isinstance(nt, dtype.Union)
-    assert isinstance(nt.args[0], dtype.Int)
-    assert isinstance(nt.args[1], dtype.Str)
+    nt = from_typing(t)
+    assert isinstance(nt, Union)
+    assert len(nt.args) == 2
+    assert Int in nt.args and Str in nt.args
+
 
     # List
     t = typing.List[int]
-    nt = dtype.from_typing(t)
-    assert isinstance(nt, dtype.List)
-    assert isinstance(nt.arg, dtype.Int)
+    nt = from_typing(t)
+    assert isinstance(nt, List)
+    assert nt.arg is  Int
 
     # Dict
     t = typing.Dict[int, str]
-    nt = dtype.from_typing(t)
-    assert isinstance(nt, dtype.Dict)
-    assert isinstance(nt.key, dtype.Int)
-    assert isinstance(nt.value, dtype.Str)
+    nt = from_typing(t)
+    assert isinstance(nt, Dict)
+    assert nt.key is Int
+    assert nt.value is Str
 
     # Const
-    t = dtype.Const(int)
-    nt = dtype.from_typing(t)
-    assert isinstance(nt, dtype.Const)
-    assert isinstance(nt.arg, dtype.Int)
+    with pytest.raises(exceptions.ExcNotDType):
+        Const(int)
+    t = Const(Int)
+    nt = from_typing(t)
+    assert isinstance(nt, Const)
+    assert nt.args[0] is Int
 
     # Class
     a_class = create_class()
-    assert issubclass(a_class, dtype.DataClassBase)
-    nt = dtype.from_typing(a_class)
-    assert isinstance(nt, dtype.Class)
-    assert nt.module == a_class.__module__
-    assert nt.name == a_class.__name__
+    assert issubclass(a_class, DataClassBase)
+    nt = from_typing(a_class)
+    assert isinstance(nt, Class)
+    assert nt.__module__ == a_class.__module__
+    assert nt.__name__ == a_class.__name__
 
     # Enum
     class A(enum.IntEnum):
         A = 1
 
-    nt = dtype.from_typing(A)
-    assert isinstance(nt, dtype.Enum)
-    assert nt.module == A.__module__
-    assert nt.name == A.__name__
+    nt = from_typing(A)
+    assert isinstance(nt, Enum)
+    assert nt.__module__ == A.__module__
+    assert nt.__name__ == A.__name__
 
     # Any
-    assert isinstance(dtype.from_typing(typing.Any), dtype.Any)
+    assert from_typing(typing.Any) is Any
 
     # NoneType
-    assert isinstance(dtype.from_typing(builtins.type(None)), dtype.NoneType)
+    assert from_typing(builtins.type(None)) is NoneType
 
 
-def test_to_typing():
-    # base
-    assert dtype.to_typing(dtype.Int()) is int
-    assert dtype.to_typing(dtype.Float()) is float
-    assert dtype.to_typing(dtype.Bool()) is bool
-    assert dtype.to_typing(dtype.Str()) is str
-
-    # TypeVar
-    t = dtype.TypeVar(typing.TypeVar(name="T"))
-    nt = dtype.to_typing(t)
-    assert isinstance(nt, typing.TypeVar)
-    assert nt is t.origin_type
-
-    tt = dtype.Tuple(t, dtype.List(t))
-    nt = dtype.to_typing(tt)
-    args = typing_inspect.get_args(nt, evaluate=True)
-    assert args[0] is typing_inspect.get_args(args[1], evaluate=True)[0]
-
-    # NewType
-    tx = typing.NewType("NewInt", int)
-    t = dtype.NewType(tx)
-    nt = dtype.to_typing(t)
-    assert typing_inspect.is_new_type(nt)
-    assert nt is t.origin_type
-    assert nt.__supertype__ is int
-
-    tt = dtype.Tuple(t, dtype.List(t))
-    nt = dtype.to_typing(tt)
-    args = typing_inspect.get_args(nt, evaluate=True)
-    assert args[0] is typing_inspect.get_args(args[1], evaluate=True)[0]
-
-    # Tuple
-    t = dtype.Tuple(dtype.Int(), dtype.Str())
-    nt = dtype.to_typing(t)
-    assert typing_inspect.get_origin(nt) in [tuple, typing.Tuple]
-    args = typing_inspect.get_args(nt, evaluate=True)
-    assert args[0] is int
-    assert args[1] is str
-
-    # Union
-    t = dtype.Union(dtype.Int(), dtype.Str())
-    nt = dtype.to_typing(t)
-    assert typing_inspect.get_origin(nt) is typing.Union
-    args = typing_inspect.get_args(nt, evaluate=True)
-    assert args[0] is int
-    assert args[1] is str
-
-    # List
-    t = dtype.List(dtype.Int())
-    nt = dtype.to_typing(t)
-    assert typing_inspect.get_origin(nt) in [list, typing.List]
-    assert typing_inspect.get_args(nt, evaluate=True)[0] is int
-
-    # Dict
-    t = dtype.Dict(dtype.Int(), dtype.Str())
-    nt = dtype.to_typing(t)
-    assert typing_inspect.get_origin(nt) in [dict, typing.Dict]
-    args = typing_inspect.get_args(nt, evaluate=True)
-    assert args[0] is int
-    assert args[1] is str
-
-    # Const
-    # t = dtype_new.Const(dtype_new.Int())
-    # nt = dtype_new.to_typing(t)
-    # assert typing_inspect.get_origin(nt) is dtype.Constant
-    # assert typing_inspect.get_args(nt, evaluate=True)[0] is int
-
-    # Class
-    a_class = create_class()
-    nt = dtype.to_typing(dtype.Class.wrap(a_class))
-    assert nt is a_class
-
-    # Enum
-    class A(enum.IntEnum):
-        pass
-
-    t = dtype.Enum(A.__module__, A.__name__, A)
-    nt = dtype.to_typing(t)
-    assert nt is A
-
-    # Any
-    assert dtype.to_typing(dtype.Any()) is typing.Any
-
-    # NoneType
-    assert dtype.to_typing(dtype.NoneType()) is builtins.type(None)
+# def test_to_typing():
+#     # base
+#     assert to_typing(Int) is int
+#     assert to_typing(Float) is float
+#     assert to_typing(Bool) is bool
+#     assert to_typing(Str) is str
+#
+#     # TypeVar
+#     t = TypeVar(typing.TypeVar(name="T"))
+#     nt = to_typing(t)
+#     assert isinstance(nt, typing.TypeVar)
+#     assert nt is t.origin_type
+#
+#     tt = Tuple(t, List(t))
+#     nt = to_typing(tt)
+#     args = typing_inspect.get_args(nt, evaluate=True)
+#     assert args[0] is typing_inspect.get_args(args[1], evaluate=True)[0]
+#
+#     # NewType
+#     tx = typing.NewType("NewInt", int)
+#     t = NewType(tx)
+#     nt = to_typing(t)
+#     assert typing_inspect.is_new_type(nt)
+#     assert nt is t.origin_type
+#     assert nt.__supertype__ is int
+#
+#     tt = Tuple(t, List(t))
+#     nt = to_typing(tt)
+#     args = typing_inspect.get_args(nt, evaluate=True)
+#     assert args[0] is typing_inspect.get_args(args[1], evaluate=True)[0]
+#
+#     # Tuple
+#     t = Tuple(Int, Str)
+#     nt = to_typing(t)
+#     assert typing_inspect.get_origin(nt) in [tuple, typing.Tuple]
+#     args = typing_inspect.get_args(nt, evaluate=True)
+#     assert args[0] is int
+#     assert args[1] is str
+#
+#     # Union
+#     t = Union(Int, Str)
+#     nt = to_typing(t)
+#     assert typing_inspect.get_origin(nt) is typing.Union
+#     args = typing_inspect.get_args(nt, evaluate=True)
+#     assert int in args and str in args
+#
+#     # List
+#     t = List(Int)
+#     nt = to_typing(t)
+#     assert typing_inspect.get_origin(nt) in [list, typing.List]
+#     assert typing_inspect.get_args(nt, evaluate=True)[0] is int
+#
+#     # Dict
+#     t = Dict(Int, Str)
+#     nt = to_typing(t)
+#     assert typing_inspect.get_origin(nt) in [dict, typing.Dict]
+#     args = typing_inspect.get_args(nt, evaluate=True)
+#     assert args[0] is int
+#     assert args[1] is str
+#
+#     # Const
+#     # t = dtype_new.Const(dtype_new.Int)
+#     # nt = dtype_new.to_typing(t)
+#     # assert typing_inspect.get_origin(nt) is Constant
+#     # assert typing_inspect.get_args(nt, evaluate=True)[0] is int
+#
+#     # Class
+#     a_class = create_class()
+#     nt = to_typing(Class.wrap(a_class))
+#     assert nt is a_class
+#
+#     # Enum
+#     class A(enum.IntEnum):
+#         pass
+#
+#     t = Enum(A)
+#     nt = to_typing(t)
+#     assert nt is A
+#
+#     # Any
+#     assert to_typing(Any) is typing.Any
+#
+#     # NoneType
+#     assert to_typing(NoneType) is builtins.type(None)
 
 
 def test_is_equaltype():
-    dt = dtype
-
     def eq(type, other):
-        a = dt.is_equaltype(type, other)
-        b = dt.is_equaltype(other, type)
+        a = is_equaltype(type, other)
+        b = is_equaltype(other, type)
 
         assert a == b
         return a
 
     # base
-    assert eq(dt.Int(), dt.Int())
-    assert not eq(dt.Int(), dt.Str())
+    assert eq(Int, Int)
+    assert not eq(Int, Str)
 
-    assert eq(dt.Str(), dt.Str())
+    assert eq(Str, Str)
 
-    assert eq(dt.Float(), dt.Float())
+    assert eq(Float, Float)
 
-    assert eq(dt.Bool(), dt.Bool())
+    assert eq(Bool, Bool)
 
     # NoneType
-    assert eq(dt.NoneType(), dt.NoneType())
-    assert not eq(dt.NoneType(), dt.Int())
+    assert eq(NoneType, NoneType)
+    assert not eq(NoneType, Int)
 
     # Class
-    class A(dtype.DataClassBase):
+    class A(DataClassBase):
         pass
 
-    class B(dtype.DataClassBase):
+    class B(DataClassBase):
         pass
 
     class C(A):
         pass
 
-    a = dt.from_typing(A)
-    a2 = dt.from_typing(A)
-    b = dt.from_typing(B)
-    c = dt.from_typing(C)
+    a = from_typing(A)
+    a2 = from_typing(A)
+    b = from_typing(B)
+    c = from_typing(C)
 
     assert eq(a, a2)
     assert not eq(a, b)
@@ -302,10 +319,10 @@ def test_is_equaltype():
     class C(A):
         pass
 
-    a = dt.from_typing(A)
-    a2 = dt.from_typing(A)
-    b = dt.from_typing(B)
-    c = dt.from_typing(C)
+    a = from_typing(A)
+    a2 = from_typing(A)
+    b = from_typing(B)
+    c = from_typing(C)
 
     assert eq(a, a2)
     assert eq(a2, a)
@@ -313,93 +330,92 @@ def test_is_equaltype():
     assert not eq(c, a)
 
     # Union
-    assert eq(dt.Union(dt.Int(), dt.Str()), dt.Union(dt.Int(), dt.Str()))
-    assert eq(dt.Union(dt.Int(), dt.Str()), dt.Union(dt.Str(), dt.Int()))
-    assert not eq(dt.Union(dt.Int(), dt.Str()), dt.Union(dt.Int(), dt.Str(), dt.Bool()))
-    assert eq(dt.Union(dt.Int()), dt.Int())
+    assert eq(Union(Int, Str), Union(Int, Str))
+    assert eq(Union(Int, Str), Union(Str, Int))
+    assert not eq(Union(Int, Str), Union(Int, Str, Bool))
+    assert eq(Union(Int), Int)
 
     # List
-    assert eq(dt.List(dt.Int()), dt.List(dt.Int()))
-    assert not eq(dt.List(dt.Int()), dt.List(dt.Str()))
+    assert eq(List(Int), List(Int))
+    assert not eq(List(Int), List(Str))
 
     # Dict
-    assert eq(dt.Dict(dt.Int(), dt.Str()), dt.Dict(dt.Int(), dt.Str()))
-    assert not eq(dt.Dict(dt.Int(), dt.Str()), dt.Dict(dt.Str(), dt.Str()))
-    assert not eq(dt.Dict(dt.Int(), dt.Str()), dt.Dict(dt.Int(), dt.Int()))
+    assert eq(Dict(Int, Str), Dict(Int, Str))
+    assert not eq(Dict(Int, Str), Dict(Str, Str))
+    assert not eq(Dict(Int, Str), Dict(Int, Int))
 
     # Tuple
-    assert eq(dt.Tuple(dt.Int(), dt.Str()), dt.Tuple(dt.Int(), dt.Str()))
-    assert not eq(dt.Tuple(dt.Int(), dt.Str()), dt.Tuple(dt.Int(), dt.Int()))
+    assert eq(Tuple(Int, Str), Tuple(Int, Str))
+    assert not eq(Tuple(Int, Str), Tuple(Int, Int))
 
     # Const
-    assert not eq(dt.Const(dt.Int()), dt.Int())
-    assert eq(dt.Const(dt.Int()), dt.Const(dt.Int()))
+    assert not eq(Const(Int), Int)
+    assert eq(Const(Int), Const(Int))
 
-    #assert eq(dt.Const(dt.Union(dt.Int())), dt.Union(dt.Const(dt.Int())))
-    #assert eq(dt.Const(dt.Union(dt.Int())), dt.Const(dt.Union(dt.Const(dt.Int()))))
+    #assert eq(Const(Union(Int)), Union(Const(Int)))
+    #assert eq(Const(Union(Int)), Const(Union(Const(Int))))
 
     # Any
-    assert eq(dt.Any(), dt.Any())
-    assert not eq(dt.Any(), dt.Int())
+    assert eq(Any, Any)
+    assert not eq(Any, Int)
 
     # TypeVar
-    t = dt.TypeVar(name="T")
-    u = dt.TypeVar(name="U")
+    t = TypeVar(name="T")
+    u = TypeVar(name="U")
 
     assert eq(t, t)
-    assert not eq(t, dt.Int())
+    assert not eq(t, Int)
     assert not eq(t, u)
 
     # NewType
-    t = dt.NewType(typing.NewType("NT1", int))
-    u = dt.NewType(typing.NewType("NT2", int))
+    t = NewType(typing.NewType("NT1", int))
+    u = NewType(typing.NewType("NT2", int))
 
     assert eq(t, t)
-    assert not eq(t, dt.Int())
+    assert not eq(t, Int)
     assert not eq(t, u)
 
-    t = dt.NewType(dt.Int(), name="NT1")
-    u = dt.NewType(dt.Int(), name="NT2")
+    t = NewType(Int, name="NT1")
+    u = NewType(Int, name="NT2")
 
     assert eq(t, t)
-    assert not eq(t, dt.Int())
+    assert not eq(t, Int)
     assert not eq(t, u)
 
 
 def test_is_subtype():
-    dt = dtype
-    sub = dt.is_subtype
+    sub = is_subtype
 
     # base
-    assert sub(dt.Int(), dt.Int())
-    assert not sub(dt.Int(), dt.Str())
+    assert sub(Int, Int)
+    assert not sub(Int, Str)
 
-    assert sub(dt.Str(), dt.Str())
-    assert sub(dt.Float(), dt.Float())
-    assert sub(dt.Bool(), dt.Bool())
+    assert sub(Str, Str)
+    assert sub(Float, Float)
+    assert sub(Bool, Bool)
 
-    assert sub(dt.Bool(), dt.Int())
-    assert not sub(dt.Int(), dt.Bool())
+    assert sub(Bool, Int)
+    assert not sub(Int, Bool)
 
     # NoneType
-    assert sub(dt.NoneType(), dt.NoneType())
-    assert not sub(dt.NoneType(), dt.Int())
-    assert not sub(dt.Int(), dt.NoneType())
+    assert sub(NoneType, NoneType)
+    assert not sub(NoneType, Int)
+    assert not sub(Int, NoneType)
 
     # Class
-    class A(dtype.DataClassBase):
+    class A(DataClassBase):
         pass
 
-    class B(dtype.DataClassBase):
+    class B(DataClassBase):
         pass
 
     class C(A):
         pass
 
-    a = dt.from_typing(A)
-    a2 = dt.from_typing(A)
-    b = dt.from_typing(B)
-    c = dt.from_typing(C)
+    a = from_typing(A)
+    a2 = from_typing(A)
+    b = from_typing(B)
+    c = from_typing(C)
 
 
     assert sub(a, a2)
@@ -418,10 +434,10 @@ def test_is_subtype():
     class C(A):
         pass
 
-    a = dt.from_typing(A)
-    a2 = dt.from_typing(A)
-    b = dt.from_typing(B)
-    c = dt.from_typing(C)
+    a = from_typing(A)
+    a2 = from_typing(A)
+    b = from_typing(B)
+    c = from_typing(C)
 
     assert sub(a, a2)
     assert sub(a2, a)
@@ -429,139 +445,138 @@ def test_is_subtype():
     assert sub(c, a)
     assert not sub(a, c)
 
-    assert sub(a, dt.Int())
-    assert not sub(dt.Int(), a)
+    assert sub(a, Int)
+    assert not sub(Int, a)
 
     # Union
-    assert sub(dt.Int(), dt.Union(dt.Int(), dt.Str()))
-    assert not sub(dt.Union(dt.Int(), dt.Str()), dt.Int())
-    assert sub(dt.Union(dt.Int(), dt.Str()), dt.Union(dt.Int(), dt.Str()))
-    assert sub(dt.Union(dt.Union(dt.Int()), dt.Str()), dt.Union(dt.Int(), dt.Str()))
-    assert sub(dt.Union(dt.Int(), dt.Str()), dt.Union(dt.Union(dt.Int()), dt.Str()))
+    assert sub(Int, Union(Int, Str))
+    assert not sub(Union(Int, Str), Int)
+    assert sub(Union(Int, Str), Union(Int, Str))
+    assert sub(Union(Union(Int), Str), Union(Int, Str))
+    assert sub(Union(Int, Str), Union(Union(Int), Str))
 
     # List
-    assert sub(dt.List(dt.Int()), dt.List(dt.Int()))
-    assert not sub(dt.List(dt.Int()), dt.List(dt.Str()))
+    assert sub(List(Int), List(Int))
+    assert not sub(List(Int), List(Str))
 
     # Dict
-    assert sub(dt.Dict(dt.Int(), dt.Str()), dt.Dict(dt.Int(), dt.Str()))
-    assert not sub(dt.Dict(dt.Int(), dt.Str()), dt.Dict(dt.Str(), dt.Str()))
-    assert not sub(dt.Dict(dt.Int(), dt.Str()), dt.Dict(dt.Int(), dt.Int()))
+    assert sub(Dict(Int, Str), Dict(Int, Str))
+    assert not sub(Dict(Int, Str), Dict(Str, Str))
+    assert not sub(Dict(Int, Str), Dict(Int, Int))
 
     # Tuple
-    assert sub(dt.Tuple(dt.Int(), dt.Str()), dt.Tuple(dt.Int(), dt.Str()))
-    assert not sub(dt.Tuple(dt.Int(), dt.Str()), dt.Tuple(dt.Int(), dt.Int()))
+    assert sub(Tuple(Int, Str), Tuple(Int, Str))
+    assert not sub(Tuple(Int, Str), Tuple(Int, Int))
 
     # Const
-    assert sub(dt.Const(dt.Int()), dt.Int())
-    assert not sub(dt.Int(), dt.Const(dt.Int()))
-    assert sub(dt.Const(dt.Int()), dt.Const(dt.Int()))
+    assert sub(Const(Int), Int)
+    assert not sub(Int, Const(Int))
+    assert sub(Const(Int), Const(Int))
 
-    #assert sub(dt.Const(dt.Const(dt.Int())), dt.Int())
+    #assert sub(Const(Const(Int)), Int)
 
-    #assert sub(dt.Const(dt.Tuple(dt.Int(), dt.Str())), dt.Tuple(dt.Const(dt.Int()), dt.Str()))
+    #assert sub(Const(Tuple(Int, Str)), Tuple(Const(Int), Str))
 
     # Any
-    assert sub(dt.Int(), dt.Any())
-    assert not sub(dt.Any(), dt.Int())
-    assert sub(dt.Any(), dt.Any())
+    assert sub(Int, Any)
+    assert not sub(Any, Int)
+    assert sub(Any, Any)
 
     # TypeVar
-    t = dt.TypeVar(name="T")
-    u = dt.TypeVar(name="U")
+    t = TypeVar(name="T")
+    u = TypeVar(name="U")
 
-    assert sub(dt.Int(), t)
-    assert sub(t, dt.Int())
+    assert sub(Int, t)
+    assert sub(t, Int)
     assert sub(t, u)
-    # assert sub(dt.Int(), dt.Union([t, u]))
-    assert sub(dt.Union(dt.Int(), dt.Str()), t)
-    # assert sub(dt.Union([dt.Int(), dt.Str()]), dt.Union([t, u]))
-    assert sub(dt.Tuple(dt.Union(dt.Int(), dt.Str()), dt.Int()), dt.Tuple(t, t))
-    assert sub(dt.Tuple(dt.Union(dt.Int(), dt.Str()), dt.Int()), dt.Tuple(dt.Union(t, dt.Str()), t))
+    # assert sub(Int, Union([t, u]))
+    assert sub(Union(Int, Str), t)
+    # assert sub(Union([Int, Str]), Union([t, u]))
+    assert sub(Tuple(Union(Int, Str), Int), Tuple(t, t))
+    assert sub(Tuple(Union(Int, Str), Int), Tuple(Union(t, Str), t))
 
-    b, vm, _ = dt.is_subtype_map(dt.Int(), t, {}, {})
-    assert dt.is_equaltype(vm[t], dt.Int())
+    b, vm, _ = is_subtype_map(Int, t, {}, {})
+    assert is_equaltype(vm[t], Int)
 
-    b, vm, _ = dt.is_subtype_map(dt.Union(dt.Int()), dt.Union(t), {}, {})
-    assert dt.is_equaltype(vm[t], dt.Int())
+    b, vm, _ = is_subtype_map(Union(Int), Union(t), {}, {})
+    assert is_equaltype(vm[t], Int)
 
-    b, vm, _ = dt.is_subtype_map(dt.Union(dt.Int()), dt.Union(t, dt.Int()), {}, {})
+    b, vm, _ = is_subtype_map(Union(Int), Union(t, Int), {}, {})
     assert vm == {}
 
-    b, vm, _ = dt.is_subtype_map(dt.List(dt.Int()), dt.List(t), {}, {})
-    assert dt.is_equaltype(vm[t], dt.Int())
+    b, vm, _ = is_subtype_map(List(Int), List(t), {}, {})
+    assert is_equaltype(vm[t], Int)
 
-    b, vm, _ = dt.is_subtype_map(dt.Tuple(dt.Int(), dt.Str()), dt.Tuple(t, t), {}, {})
-    assert dt.is_equaltype(vm[t], dt.Union(dt.Int(), dt.Str()))
+    b, vm, _ = is_subtype_map(Tuple(Int, Str), Tuple(t, t), {}, {})
+    assert is_equaltype(vm[t], Union(Int, Str))
 
-    b, vm, _ = dt.is_subtype_map(dt.Tuple(dt.Int(), dt.Str()), dt.Tuple(t, u), {}, {})
-    assert dt.is_equaltype(vm[t], dt.Int())
-    assert dt.is_equaltype(vm[u], dt.Str())
+    b, vm, _ = is_subtype_map(Tuple(Int, Str), Tuple(t, u), {}, {})
+    assert is_equaltype(vm[t], Int)
+    assert is_equaltype(vm[u], Str)
 
-    b, _, rest = dt.is_subtype_map(t, dt.Int(), {}, {})
-    assert dt.is_equaltype(rest[t], dt.Int())
+    b, _, rest = is_subtype_map(t, Int, {}, {})
+    assert is_equaltype(rest[t], Int)
 
-    b, _, rest = dt.is_subtype_map(t, dt.List(dt.Int()), {}, {})
-    assert dt.is_equaltype(rest[t], dt.List(dt.Int()))
+    b, _, rest = is_subtype_map(t, List(Int), {}, {})
+    assert is_equaltype(rest[t], List(Int))
 
-    b, vm, rest = dt.is_subtype_map(dt.Str(), u, {}, {u: dt.Int()})
+    b, vm, rest = is_subtype_map(Str, u, {}, {u: Int})
     assert not b
 
-    b, vm, rest = dt.is_subtype_map(t, u, {}, {u: dt.Int()})
-    assert dt.is_equaltype(vm[u], t)
-    assert dt.is_equaltype(rest[t], dt.Int())
+    b, vm, rest = is_subtype_map(t, u, {}, {u: Int})
+    assert is_equaltype(vm[u], t)
+    assert is_equaltype(rest[t], Int)
 
-    b, vm, rest = dt.is_subtype_map(t, dt.List(u), {}, {u: dt.Int()})
-    assert dt.is_equaltype(rest[t], dt.List(dt.Int()))
+    b, vm, rest = is_subtype_map(t, List(u), {}, {u: Int})
+    assert is_equaltype(rest[t], List(Int))
 
-    b, vm, rest = dt.is_subtype_map(dt.List(t), u, {}, {u: dt.List(dt.Int())})
-    assert dt.is_equaltype(vm[u], dt.List(t))
-    assert dt.is_equaltype(rest[t], dt.Int())
+    b, vm, rest = is_subtype_map(List(t), u, {}, {u: List(Int)})
+    assert is_equaltype(vm[u], List(t))
+    assert is_equaltype(rest[t], Int)
 
     # NewType
-    t = dt.NewType(typing.NewType("NT1", int))
-    u = dt.NewType(typing.NewType("NT2", int))
+    t = NewType(typing.NewType("NT1", int))
+    u = NewType(typing.NewType("NT2", int))
 
     assert sub(t, t)
-    assert sub(t, dt.Int())
-    assert sub(dt.Int(), t)
+    assert sub(t, Int)
+    assert sub(Int, t)
     assert sub(t, u)
 
-    t = dt.NewType(dt.Int(), name="NT1")
-    u = dt.NewType(dt.Int(), name="NT2")
+    t = NewType(Int, name="NT1")
+    u = NewType(Int, name="NT2")
 
     assert sub(t, t)
-    assert sub(t, dt.Int())
-    assert sub(dt.Int(), t)
+    assert sub(t, Int)
+    assert sub(Int, t)
     assert sub(t, u)
 
 
 def test_common_sub_type():
-    dt = dtype
-    com_sub = dt.common_sub_type
-    eq = dt.is_equaltype
+    com_sub = common_sub_type
+    eq = is_equaltype
 
     # base
-    b, t = com_sub(dt.Int(), dt.Int())
+    b, t = com_sub(Int, Int)
     assert b
-    assert eq(t, dt.Int())
+    assert eq(t, Int)
 
-    b, t = com_sub(dt.Int(), dt.Str())
+    b, t = com_sub(Int, Str)
     assert not b
 
-    b, t = com_sub(dt.Int(), dt.Bool())
+    b, t = com_sub(Int, Bool)
     assert b
-    assert eq(t, dt.Int())
+    assert eq(t, Bool)
 
-    b, t = com_sub(dt.Bool(), dt.Int())
+    b, t = com_sub(Bool, Int)
     assert b
-    assert eq(t, dt.Int())
+    assert eq(t, Bool)
 
     # Class
     A = create_class()
 
-    a = dt.from_typing(A)
-    a2 = dt.from_typing(A)
+    a = from_typing(A)
+    a2 = from_typing(A)
 
     b, t = com_sub(a, a2)
     assert b
@@ -571,78 +586,78 @@ def test_common_sub_type():
     class A(enum.IntEnum):
         pass
 
-    a = dt.from_typing(A)
-    a2 = dt.from_typing(A)
+    a = from_typing(A)
+    a2 = from_typing(A)
 
     b, t = com_sub(a, a2)
     assert b
     assert eq(t, a)
 
     # Union
-    b, t = com_sub(dt.Union(dt.Int(), dt.Str()), dt.Union(dt.Str(), dt.Float()))
+    b, t = com_sub(Union(Int, Str), Union(Str, Float))
     assert b
-    assert eq(t, dt.Str())
+    assert eq(t, Union(Int, Str))
 
-    b, t = com_sub(dt.Union(dt.Int(), dt.Str()), dt.Str())
+    b, t = com_sub(Union(Int, Str), Str)
     assert b
-    assert eq(t, dt.Str())
+    assert eq(t, Str)
 
-    b, t = com_sub(dt.Str(), dt.Union(dt.Str(), dt.Float()))
+    b, t = com_sub(Str, Union(Str, Float))
     assert b
-    assert eq(t, dt.Str())
+    assert eq(t, Str)
 
     # Tuple
-    b, t = com_sub(dt.Tuple(dt.Int(), dt.Str()), dt.Tuple(dt.Int(), dt.Str()))
+    b, t = com_sub(Tuple(Int, Str), Tuple(Int, Str))
     assert b
-    assert eq(t, dt.Tuple(dt.Int(), dt.Str()))
+    assert eq(t, Tuple(Int, Str))
 
-    b, t = com_sub(dt.Tuple(dt.Int(), dt.Str()), dt.Tuple(dt.Int(), dt.Int()))
+    b, t = com_sub(Tuple(Int, Str), Tuple(Int, Int))
     assert not b
 
     # List
-    b, t = com_sub(dt.List(dt.Int()), dt.List(dt.Int()))
+    b, t = com_sub(List(Int), List(Int))
     assert b
-    assert eq(t, dt.List(dt.Int()))
+    assert eq(t, List(Int))
 
-    b, t = com_sub(dt.List(dt.Int()), dt.List(dt.Str()))
+    b, t = com_sub(List(Int), List(Str))
     assert not b
 
     # Dict
-    b, t = com_sub(dt.Dict(dt.Int(), dt.Str()), dt.Dict(dt.Int(), dt.Str()))
+    b, t = com_sub(Dict(Int, Str), Dict(Int, Str))
     assert b
-    assert eq(t, dt.Dict(dt.Int(), dt.Str()))
+    assert eq(t, Dict(Int, Str))
 
-    b, t = com_sub(dt.Dict(dt.Int(), dt.Str()), dt.Dict(dt.Str(), dt.Str()))
+    b, t = com_sub(Dict(Int, Str), Dict(Str, Str))
     assert not b
 
-    b, t = com_sub(dt.Dict(dt.Int(), dt.Str()), dt.Dict(dt.Int(), dt.Int()))
+    b, t = com_sub(Dict(Int, Str), Dict(Int, Int))
     assert not b
 
     # Const
-    b, t = com_sub(dt.Const(dt.Int()), dt.Const(dt.Int()))
+    b, t = com_sub(Const(Int), Const(Int))
     assert b
-    assert eq(t, dt.Const(dt.Int()))
+    assert eq(t, Const(Int))
 
-    b, t = com_sub(dt.Const(dt.Int()), dt.Int())
+    b, t = com_sub(Const(Int), Int)
     assert b
-    assert eq(t, dt.Const(dt.Int()))
+    assert eq(t, Const(Int))
 
-    b, t = com_sub(dt.Int(), dt.Const(dt.Int()))
+    b, t = com_sub(Int, Const(Int))
     assert b
-    assert eq(t, dt.Const(dt.Int()))
+    assert eq(t, Const(Int))
 
-    # b, t = com_sub(dt.Const(dt.Union(dt.Int())), dt.Union(dt.Const(dt.Int())))
+    # b, t = com_sub(Const(Union(Int)), Union(Const(Int)))
     # assert b
-    # assert eq(t, dt.Const(dt.Union(dt.Int())))
+    # assert eq(t, Const(Union(Int)))
 
     # Any
-    b, t = com_sub(dt.Any(), dt.Any())
+    b, t = com_sub(Any, Any)
     assert b
-    assert eq(t, dt.Any())
+    assert eq(t, Any)
 
     # TypeVar
-    t = dt.TypeVar(name="T")
-    u = dt.TypeVar(name="U")
+    t = TypeVar(name="T")
+    u = TypeVar(name="U")
 
     b, tt = com_sub(t, t)
     assert b
@@ -652,8 +667,8 @@ def test_common_sub_type():
     assert not b
 
     # NewType
-    t = dt.NewType(dt.Int(), name="NT")
-    u = dt.NewType(dt.Int(), name="NT2")
+    t = NewType(Int, name="NT")
+    u = NewType(Int, name="NT2")
 
     b, tt = com_sub(t, t)
     assert b
@@ -664,52 +679,47 @@ def test_common_sub_type():
 
 
 def test_extract_type_var():
-    dt = dtype
+    t = TypeVar(name="T")
+    u = TypeVar(name="U")
 
-    t = dt.TypeVar(name="T")
-    u = dt.TypeVar(name="U")
-
-    assert dt.extract_type_var(t) == {t}
-    assert dt.extract_type_var(dt.Int()) == set()
-    assert dt.extract_type_var(dt.Tuple(t)) == {t}
-    # assert dt.extract_type_var(dt.Union([t, u])) == {t, u}
-    assert dt.extract_type_var(dt.Union(t, dt.Int())) == {t}
-    assert dt.extract_type_var(dt.List(t)) == {t}
-    assert dt.extract_type_var(dt.Dict(t, u)) == {t, u}
-    assert dt.extract_type_var(dt.Const(t)) == {t}
-    assert dt.extract_type_var(dt.Dict(dt.Str(), dt.List(t))) == {t}
-    # assert dt.extract_type_var(dt.Union([t, dt.Int(), dt.Union([u, dt.Str()])])) == {t, u}
-    # assert dt.extract_type_var(dt.NewType("NT", t)) == {t}
-    # assert list(dt.extract_type_var(dt.NewType(typing.NewType("NT", t.origin_type))))[0].origin_type is t.origin_type
+    assert extract_type_var(t) == {t}
+    assert extract_type_var(Int) == set()
+    assert extract_type_var(Tuple(t)) == {t}
+    # assert extract_type_var(Union([t, u])) == {t, u}
+    assert extract_type_var(Union(t, Int)) == {t}
+    assert extract_type_var(List(t)) == {t}
+    assert extract_type_var(Dict(t, u)) == {t, u}
+    assert extract_type_var(Const(t)) == {t}
+    assert extract_type_var(Dict(Str, List(t))) == {t}
+    # assert extract_type_var(Union([t, Int, Union([u, Str])])) == {t, u}
+    # assert extract_type_var(NewType("NT", t)) == {t}
+    # assert list(extract_type_var(NewType(typing.NewType("NT", t.origin_type))))[0].origin_type is t.origin_type
 
 
 def test_check_type_var():
-    dt = dtype
+    t = TypeVar(name="T")
 
-    t = dt.TypeVar(name="T")
-
-    assert dt.check_type_var(t, t)
-    assert dt.check_type_var(t, dt.Int())
-    assert not dt.check_type_var(dt.Int(), t)
+    assert check_type_var(t, t)
+    assert check_type_var(t, Int)
+    assert not check_type_var(Int, t)
 
 
 def test_substitute_type_vars():
-    dt = dtype
-    sub_tv = dt.substitute_type_vars
-    eq = dt.is_equaltype
+    sub_tv = substitute_type_vars
+    eq = is_equaltype
 
-    t = dt.TypeVar(name="T")
-    u = dt.TypeVar(name="U")
-    v = dt.TypeVar(name="V")
+    t = TypeVar(name="T")
+    u = TypeVar(name="U")
+    v = TypeVar(name="V")
 
     # type_var
     tt, vm = sub_tv(t, {})
     assert tt is t
     assert vm == {}
 
-    tt, vm = sub_tv(t, {t: dt.Int()})
-    assert eq(tt, dt.Int())
-    assert eq(vm[t], dt.Int())
+    tt, vm = sub_tv(t, {t: Int})
+    assert eq(tt, Int)
+    assert eq(vm[t], Int)
 
     # create_new
     tt, vm = sub_tv(t, {t: v}, create_new=True)
@@ -717,50 +727,49 @@ def test_substitute_type_vars():
     assert eq(vm[t], v)
 
     tt, vm = sub_tv(t, {}, create_new=True)
-    assert isinstance(tt, dt.TypeVar)
+    assert isinstance(tt, TypeVar)
     assert tt is not t
     assert eq(vm[t], tt)
 
     # recursive
-    tt, vm = sub_tv(t, {t: dt.List(u), u: dt.Int()}, recursive=True)
-    assert eq(tt, dt.List(dt.Int()))
+    tt, vm = sub_tv(t, {t: List(u), u: Int}, recursive=True)
+    assert eq(tt, List(Int))
 
     # Tuple
-    tt, vm = sub_tv(dt.Tuple(t, dt.Int()), {t: dt.Str()})
-    assert eq(tt, dt.Tuple(dt.Str(), dt.Int()))
+    tt, vm = sub_tv(Tuple(t, Int), {t: Str})
+    assert eq(tt, Tuple(Str, Int))
 
     # Union
-    tt, vm = sub_tv(dt.Union(t, dt.Int()), {t: dt.Str()})
-    assert eq(tt, dt.Union(dt.Str(), dt.Int()))
+    tt, vm = sub_tv(Union(t, Int), {t: Str})
+    assert eq(tt, Union(Str, Int))
 
     # List
-    tt, vm = sub_tv(dt.List(t), {t: dt.Str()})
-    assert eq(tt, dt.List(dt.Str()))
+    tt, vm = sub_tv(List(t), {t: Str})
+    assert eq(tt, List(Str))
 
     # Dict
-    tt, vm = sub_tv(dt.Dict(t, v), {t: dt.Str(), v: dt.Int()})
-    assert eq(tt, dt.Dict(dt.Str(), dt.Int()))
+    tt, vm = sub_tv(Dict(t, v), {t: Str, v: Int})
+    assert eq(tt, Dict(Str, Int))
 
     # Const
-    tt, vm = sub_tv(dt.Const(t), {t: dt.Str()})
-    assert eq(tt, dt.Const(dt.Str()))
+    tt, vm = sub_tv(Const(t), {t: Str})
+    assert eq(tt, Const(Str))
 
 
 def test_expand_var_map():
-    dt = dtype
-    eq = dt.is_equaltype
+    eq = is_equaltype
 
-    t = dt.TypeVar(name="T")
-    u = dt.TypeVar(name="U")
-    v = dt.TypeVar(name="V")
+    t = TypeVar(name="T")
+    u = TypeVar(name="U")
+    v = TypeVar(name="V")
 
     vm1 = {
-        u: dt.List(v),
-        t: dt.Int(),
-        v: dt.List(t)
+        u: List(v),
+        t: Int,
+        v: List(t)
     }
-    vm2 = dt.expand_var_map(vm1)
+    vm2 = expand_var_map(vm1)
     assert len(vm2) == 3
-    assert eq(vm2[t], dt.Int())
-    assert eq(vm2[u], dt.List(dt.List(dt.Int())))
-    assert eq(vm2[v], dt.List(dt.Int()))
+    assert eq(vm2[t], Int)
+    assert eq(vm2[u], List(List(Int)))
+    assert eq(vm2[v], List(Int))

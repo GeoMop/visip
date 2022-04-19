@@ -3,20 +3,14 @@ import typing_inspect
 import inspect
 import builtins
 import enum
-import attr
+import attrs
+from . import exceptions
 
+class _DummyClassBase:
+    pass
 
 class _ActionBase:
     pass
-
-class TypeBase:
-    # Future base class of all type hint classes
-    pass
-
-class _Empty(_ActionBase):
-    pass
-empty = _Empty()
-# Singleton value marking empty arguments of the Lazy action
 
 
 class Singleton(type):
@@ -46,58 +40,128 @@ class DataClassBase:
         except AttributeError:
             return None
 
+
 class DType:
     """
     Base class for all typing classes.
     """
-    def typevar_set(self):
+    def typevar_set(self) -> 'TypeVar':
         """
-        Returns set of all TypeVars from type.
+        Returns set of all TypeVars that are part of the full type tree.
         :return:
         """
         return set()
 
+    def code(self, make_rel_name:typing.Callable[[str,str], str]) -> str:
+        """
+        Code representation of the type.
+        :param make_rel_name: Function getting module and name of the type and producing final name after applying
+        aliases of the particular module.
+
+        This is basic implementation for non generic types, using their module and name attributes.
+        """
+        return make_rel_name(self.__module__, self.__name__)
+
+    def _eq_simplify(self):
+        """
+        Cast single member Union to the member type, for the equivalence.
+        """
+        return self
+
+    def __eq__(self, other):
+        return self._eq_simplify()._equal_(other._eq_simplify())
+
+
+VISIP_Type = typing.Union[DType, _ActionBase]
 
 class DTypeBase(DType):
     """
-    Base class for elementary typing classes.
+    Base class for non-composed typing classes.
     """
     pass
 
 
-class DTypeGeneric(DType):
+##############################
+#  Singleton types
+##############################
+
+
+class DTypeSingleton(DTypeBase):
     """
-    Base class for composed typing classes.
+    Singleton DTypes.
     """
-    def get_args(self):
-        assert False, "Not implemented."
+    __singleton_types = {}
+    __from_typing = {}
+    @staticmethod
+    def make(name:str, typing_type=None, subtypes:typing.List['DTypeSingleton']=None) -> 'DTypeSingleton':
+        try:
+            return DTypeSingleton.__singleton_types[name]
+        except KeyError:
+            singl_type_cls = type(f"{name}Type", (DTypeSingleton,), {})
+            instance = singl_type_cls(name, typing_type, subtypes)
+            if typing_type is not None:
+                DTypeSingleton.__from_typing[typing_type] = instance
+            return DTypeSingleton.__singleton_types.setdefault(name, instance)
 
-    def typevar_set(self):
-        ret = set()
-        for arg in self.get_args():
-            if isinstance(arg, DType):
-                ret.update(arg.typevar_set())
-        return ret
+    @staticmethod
+    def from_typing(type):
+        try:
+            return DTypeSingleton.__from_typing.get(type, None)
+        except TypeError as e:
+            print("Warning: ", e)
+        return type
+
+    def __init__(self, name, typing_type, subtypes):
+        self.__name__ = name
+        self.typing_type = typing_type
+        if subtypes is None:
+            self.subtypes = {self}
+        else:
+            subtypes.add(self)
+            self.subtypes = subtypes
+        #self.__module__ = 'visip'
+
+    def __hash__(self):
+        return hash(self.__name__)
+
+    def _equal_(self, other):
+        return self is other
+
+    def is_subtype(self, super_type):
+        return self in super_type.subtypes
 
 
-class Int(DTypeBase, metaclass=Singleton):
+
+class _Empty(_ActionBase):
     pass
+empty = _Empty()
+# Singleton value marking empty arguments of the Lazy action
+
+Bool = DTypeSingleton.make("Bool", bool)
+Int = DTypeSingleton.make("Int", int, subtypes={Bool})
+Float = DTypeSingleton.make("Float", float, subtypes={Bool, Int})
+Str = DTypeSingleton.make("Str", str)
+Bytes = DTypeSingleton.make("Bytes", bytes)
+EmptyType = DTypeSingleton.make("EmptyType", inspect.Signature.empty)
+"""
+Produced by `from_typing` for an empty type annotation,
+must be explicitelly treated by the caller,
+not accepted by other functions.
+"""
+
+Any = DTypeSingleton.make("Any", typing.Any)
+NoneType = DTypeSingleton.make("NoneType", builtins.type(None))
 
 
-class Float(DTypeBase, metaclass=Singleton):
-    pass
+###################################
+# DTypeBase - special
+###################################
 
 
-class Bool(DTypeBase, metaclass=Singleton):
-    pass
-
-
-class Str(DTypeBase, metaclass=Singleton):
-    pass
-
-
+@attrs.frozen
 class Class(DTypeBase):
     # Wrapper around various VISIP classes, in order to work with types as instances.
+    data_class: DataClassBase
 
     @staticmethod
     def wrap(type:DataClassBase):
@@ -108,125 +172,97 @@ class Class(DTypeBase):
 
         return visip_class
 
-    def __init__(self, data_class:DataClassBase):
-        self.data_class = data_class
+    # def __init__(self, data_class:DataClassBase):
+    #     self.data_class = data_class
 
-    def __repr__(self):
-        return f"dtype.Class:{self.module}.{self.name}"
+    # def __hash__(self):
+    #     return hash((self.__class__, self.data_class))
+
+    # def __repr__(self):
+    #     return f"dtype.Class:{self.module}.{self.name}"
 
     @property
-    def module(self):
+    def __module__(self):
         return self.data_class.__module__
 
     @property
-    def name(self):
+    def __name__(self):
         return self.data_class.__name__
 
+    def _equal_(self, other):
+        if isinstance(other, Class) and self.data_class is other.data_class:
+            assert self is other
+            # If assert holds we can simplify the check
+            return True
+        return False
 
+
+@attrs.frozen
 class Enum(DTypeBase):
-    def __init__(self, module, name, origin_type):
-        self.module = module
-        self.name = name
-        self.origin_type = origin_type
+    origin_type: enum.IntEnum
 
+    @staticmethod
+    def wrap(type: enum.IntEnum):
+        if hasattr(type, "__visip_type"):
+            return type.__visip_type
+        else:
+            visip_enum = Enum(type)
+            type.__visip_type = visip_enum
+            return visip_enum
 
-class List(DTypeGeneric):
-    def __init__(self, arg):
-        self.arg = arg
+    # def __init__(self, origin_type):
+    #     self.origin_type = origin_type
 
-    def get_args(self):
-        return [self.arg]
+    @property
+    def __module__(self):
+        return self.origin_type.__module__
 
+    @property
+    def __name__(self):
+        return self.origin_type.__name__
 
-class Dict(DTypeGeneric):
-    def __init__(self, key, value):
-        self.key = key
-        self.value = value
+    def _equal_(self, other):
+        return isinstance(other, Enum) and self.origin_type is other.origin_type
 
-    def get_args(self):
-        return [self.key, self.value]
-
-
-class Tuple(DTypeGeneric):
-    def __init__(self, *args):
-        self.args = args
-
-    def get_args(self):
-        return self.args
-
-
-class Union(DTypeGeneric):
-    def __init__(self, *args):
-        self.args = []
-
-        # expand nested unions
-        for a in args:
-            if isinstance(a, Union):
-                self.args.extend(a.args)
-            else:
-                self.args.append(a)
-
-        # remove duplicates
-        new_args = []
-        for a in self.args:
-            dup = False
-            for na in new_args:
-                if is_equaltype(na, a):
-                    dup = True
-                    break
-            if not dup:
-                new_args.append(a)
-        self.args = new_args
-
-        # check TypeVar count
-        tv_count = 0
-        tv_ind = -1
-        for i, a in enumerate(self.args):
-            if extract_type_var(a):
-                tv_count += 1
-                tv_ind = i
-                if tv_count > 1:
-                    raise TypeError("More than one argument with TypeVars in union.")
-
-        # place TypeVar argument to the end
-        if 0 <= tv_ind < len(self.args) - 1:
-            a = self.args.pop(tv_ind)
-            self.args.append(a)
-
-    def get_args(self):
-        return self.args
-
-
-class Const(DTypeGeneric):
-    def __init__(self, arg):
-        if not isinstance(arg, DType):
-            arg = from_typing(arg)
-        self.arg = arg
-        assert not isinstance(self.arg, Const)
-
-    def get_args(self):
-        return [self.arg]
 
 
 class TypeVar(DTypeBase):
-    def __init__(self, origin_type=None, name="T", converted_from_none=False):
-        if origin_type is None:
+    """
+    TypeVar
+    """
+    def __init__(self, origin_type=None, name="_TypeVar_"):
+        if origin_type is None or origin_type is EmptyType:
             origin_type = typing.TypeVar(name)
         else:
             assert typing_inspect.is_typevar(origin_type)
         self.origin_type = origin_type
-        self.converted_from_none = converted_from_none
+
+    @property
+    def __name__(self):
+        return self.origin_type.__name__
+
+    @property
+    def __module__(self):
+        return self.origin_type.__module__
 
     def __hash__(self):
         return self.origin_type.__hash__()
 
-    def __eq__(self, other):
+    def __repr__(self):
+        return f"TypeVar({self.origin_type}"
+
+    def _equal_(self, other):
         if isinstance(other, TypeVar):
             return other.origin_type is self.origin_type
         return False
 
+
+
     def typevar_set(self):
         return {self}
+
+    def code(self, make_rel_name):
+        return empty
 
 
 class NewType(DTypeBase):
@@ -247,38 +283,285 @@ class NewType(DTypeBase):
             self.name = origin_type.__name__
 
 
-class Any(DTypeBase, metaclass=Singleton):
-    pass
+    def __hash__(self):
+        return self.origin_type.__hash__()
+
+    def __repr__(self):
+        return f"NewType({self.origin_type}"
+
+    def _equal_(self, other):
+        #assert  self.origin_type is not None and other.origin_type is not None, f"None NewType: {self}, {other}"
+        if isinstance(other, NewType):
+            return self is other or (self.origin_type is not None and other.origin_type is not None and
+                                     self.origin_type is other.origin_type)
+        return False
+
+################################
+# DTypeGeneric
+################################
+
+class DTypeGeneric(DType):
+    """
+    Base class for composed typing classes.
+    """
+    def __init__(self, args: typing.List[VISIP_Type], n_args=0):
+        if n_args:
+            if len(args) != n_args:
+                raise exceptions.ExcGenericArgs(f"Wrong number {len(args)} of the generic tyep {self.__name__}, expected: {n_args}.")
+
+        # Unwrap Class and Enum
+        args = [_unwrap_action_type(a) for a in args]
+        for a in args:
+            if not isinstance(a, (DType, _ActionBase)):
+                raise exceptions.ExcNotDType(f"Argument {a} of generic type {self.__name__} is not DType (or Action).")
+        self._args = args
+
+    @property
+    def __name__(self):
+        return self.__class__.__name__
 
 
-class NoneType(DTypeBase, metaclass=Singleton):
-    pass
+    def __hash__(self):
+        return hash((self.__class__, *self.args))
+
+    @property
+    def args(self):
+        return self._args
+
+    def get_args(self) -> typing.List[DType]:
+        """
+        Return list of inner types.
+        """
+        return self.args
+
+    def code(self, make_rel_name):
+        # Overrides DType.code method.
+        assert len(self.args) > 0
+        args_code = ", ".join([type_code(arg, make_rel_name) for arg in self.args])
+        origin_name = make_rel_name(self.__module__, self.__name__)
+        code = f"{origin_name}({args_code})"
+        return code
+
+
+    def from_typing(self):
+        return self.__class__(*(from_typing(a) for a in self.args))
+
+    def typevar_set(self):
+        ret = set()
+        for arg in self.get_args():
+            if isinstance(arg, DType):
+                ret.update(arg.typevar_set())
+        return ret
+
+    def _equal_(self, other):
+        if isinstance(other, self.__class__):
+            return tuple(self.args) == tuple(other.args)
+        return False
+
+
+class List(DTypeGeneric):
+    def __init__(self, *args):
+        super().__init__(args, 1)
+
+    @property
+    def arg(self):
+        return self.args[0]
+
+
+
+class Dict(DTypeGeneric):
+    def __init__(self, *args):
+        super().__init__(args, 2)
+
+    @property
+    def key(self):
+        return self.args[0]
+
+    @property
+    def value(self):
+        return self.args[1]
+
+
+class Tuple(DTypeGeneric):
+    def __init__(self, *args):
+        super().__init__(args)
+
+
+class Union(DTypeGeneric):
+    def __init__(self, *args):
+
+        # expand nested unions, extract typevars
+        _args = set()
+        _tvars = []
+        for a in args:
+            if isinstance(a, Union):
+                _args.update(a.args)
+            else:
+                _args.add(a)
+        self._args = [_unwrap_action_type(a) for a in _args]   # omit DType check of args until we support Callable
+        # TODO: upse super() after introduction of Callable, makes problems in lazy test.
+
+        # check TypeVar count
+        # TODO: too restrictive, inner typevars are not problem
+        #  we should deal with this later in comparisons
+
+        tv_count = 0
+        tv_ind = -1
+        for i, a in enumerate(self.args):
+            if extract_type_var(a):
+                tv_count += 1
+                tv_ind = i
+                if tv_count > 1:
+                    raise TypeError("More than one argument with TypeVars in union.")
+
+        # place TypeVar argument to the end
+        if 0 <= tv_ind < len(self.args) - 1:
+            a = self.args.pop(tv_ind)
+            self.args.append(a)
+
+    def _eq_simplify(self):
+        if len(self.args) == 1:
+            return self.args[0]
+        return self
+
+    def _equal_(self, other):
+        if isinstance(other, Union) and len(self.args) == len(other.args):
+            return set(self.args) == set(self.args)
+        return False
+
+class Const(DTypeGeneric):
+    def __init__(self, *args):
+        super().__init__(args, 1)
+        assert not isinstance(self.args[0], Const)
+
+
+class TypeInspector:
+    @staticmethod
+    def is_constant(type):
+        return isinstance(type, Const)
+
+    @staticmethod
+    def constant_type(type):
+        return type.args[0]
+
+    @staticmethod
+    def have_attributes(type: 'dtype.DType'):
+        return type is Any or isinstance(type, (TypeVar, Class, Dict, Enum))
+
+    @staticmethod
+    def unwrap_type(type: Any):
+        """
+        Return wrapped type (DataClassBase or IntEnum) for
+        the DummyAction wrapper. Return original type otherwise.
+        """
+        return type
+
+def type_code(type_hint, make_rel_name):
+    assert isinstance(type_hint, DType), type_hint
+    if type_hint is EmptyType:
+        # TODO: represent None as no type annotation, but it should be forbidden.
+        return None
+    return type_hint.code(make_rel_name)
+
+    #raise Exception(f"No code representation for the type: {type_hint}")
+
+
+def type_of_value(value):
+    val_type = type(value)
+    assert not isinstance(val_type, (_DummyClassBase, DType))
+    basic_type = DTypeSingleton.from_typing(val_type)
+    if basic_type is not None:
+        return basic_type
+
+    # Class
+    if isinstance(value, DataClassBase):
+        return Class.wrap(val_type)
+
+    # Enum
+    if isinstance(value, enum.IntEnum):
+        return Enum.wrap(val_type)
+
+    # Tuple
+    if val_type is tuple:
+        args = [type_of_value(v) for v in value]
+        return Tuple(*args)
+
+    # List
+    if val_type is list:
+        args = [type_of_value(v) for v in value]
+        return List(Union(*args))
+
+    # Dict
+    if val_type is dict:
+        keys = [type_of_value(v) for v in value.keys()]
+        vals = [type_of_value(v) for v in value.values()]
+        return Dict(Union(*keys), Union(*vals))
+
+    if isinstance(value, _ActionBase):
+        return _ActionBase
+
+    raise TypeError(f"Value {value} of unsupported type: {val_type}")
+
+def _unwrap_action_type(type: Any) -> DType:
+    """
+    Unwrap action types (i.e. Class and Enum) that are wrppaed into DummyAction.
+    Pass through other types.
+    """
+    if isinstance(type, _DummyClassBase):
+        try:
+            data_class = type._action_value._data_class  # Class action
+            assert issubclass(data_class, DataClassBase)
+            return Class.wrap(data_class)
+        except AttributeError:
+            pass
+
+        try:
+            enum_class = type._action_value._enum_class  # Enum action
+            assert issubclass(enum_class, enum.IntEnum)
+            return Enum.wrap(enum_class)
+
+        except AttributeError:
+            pass
+    return type
 
 
 def from_typing(type):
-    # base
-    if type is int:
-        return Int()
+    """
+    Convert to dtype type:
+    - from Python typing types
+    - from VISIP Class and Enum actions (containing the underlying DataClass or IntEnum respectively)
+      these actions are wrapped into DummyAction objects.
+    - unwraping is done recursively even for the DType generic types
+    Produce EmptyType instance for missing annotation (inspect.Signature.empty / inspect.Parameter.empty)
+    must be treated by the caller.
+    """
+    if isinstance(type, DTypeGeneric):
+        return type.from_typing()
+    if isinstance(type, DType):
+        return type
 
-    if type is float:
-        return Float()
+    if isinstance(type, _DummyClassBase):
+        return _unwrap_action_type(type)
 
-    if type is bool:
-        return Bool()
+    basic_type = DTypeSingleton.from_typing(type)
+    if basic_type is not None:
+        return basic_type
 
-    if type is str:
-        return Str()
+    # Class
+    if inspect.isclass(type) and issubclass(type, DataClassBase):
+        return Class.wrap(type)
 
+    # Enum
+    if inspect.isclass(type) and issubclass(type, enum.IntEnum):
+        return Enum.wrap(type)
 
     # TypeVar
     if typing_inspect.is_typevar(type):
         return TypeVar(type)
 
-
     # NewType
     if typing_inspect.is_new_type(type):
         return NewType(type)
-
 
     # Tuple
     if typing_inspect.is_tuple_type(type):
@@ -287,7 +570,6 @@ def from_typing(type):
             args.append(from_typing(a))
         return Tuple(*args)
 
-
     # Union
     if typing_inspect.is_union_type(type):
         args = []
@@ -295,197 +577,90 @@ def from_typing(type):
             args.append(from_typing(a))
         return Union(*args)
 
-
     origin = typing_inspect.get_origin(type)
 
     # List
     if origin in [list, typing.List]:
-        return List(from_typing(typing_inspect.get_args(type, evaluate=True)[0]))
+        args = typing_inspect.get_args(type, evaluate=True)
+        return List(from_typing(args[0]))
 
     # Dict
     if origin in [dict, typing.Dict]:
         args = typing_inspect.get_args(type, evaluate=True)
         return Dict(from_typing(args[0]), from_typing(args[1]))
 
-    # Const
-    # No more supported
-    # if origin is dtype.Constant:
-    #     return Const(from_typing(typing_inspect.get_args(type, evaluate=True)[0]))
+    raise TypeError(f"Unsupported type: {type}")
 
 
-    # Class .. VISIP class must be directly subtype of ClassBase
-    if inspect.isclass(type) and issubclass(type, DataClassBase):
-         return Class.wrap(type)
 
-    # Enum
-    if inspect.isclass(type) and issubclass(type, enum.IntEnum):
-        return Enum(type.__module__, type.__name__, type)
-
-
-    # Any
-    if type is typing.Any:
-        return Any()
-
-
-    # NoneType
-    if type is builtins.type(None):
-        return NoneType()
-
-
-    #raise TypeError("Not supported type.")
-    return type
-
-
-def to_typing(type):
-    # base
-    if isinstance(type, Int):
-        return int
-
-    if isinstance(type, Float):
-        return float
-
-    if isinstance(type, Bool):
-        return bool
-
-    if isinstance(type, Str):
-        return str
-
-
-    # TypeVar
-    if isinstance(type, TypeVar):
-        return type.origin_type
-
-
-    # NewType
-    if isinstance(type, NewType):
-        return type.origin_type
-
-
-    # Tuple
-    if isinstance(type, Tuple):
-        args = []
-        for a in type.args:
-            args.append(to_typing(a))
-        return typing.Tuple[tuple(args)]
-
-
-    # Union
-    if isinstance(type, Union):
-        args = []
-        for a in type.args:
-            args.append(to_typing(a))
-        return typing.Union[tuple(args)]
-
-
-    # List
-    if isinstance(type, List):
-        return typing.List[to_typing(type.arg)]
-
-    # Dict
-    if isinstance(type, Dict):
-        return typing.Dict[to_typing(type.key), to_typing(type.value)]
-
-    # Const
-    if isinstance(type, Const):
-        #return dtype.Constant[to_typing(type.arg)]
-        assert False, "Unable to return unambiguous value."
-
-
-    # Class
-    if isinstance(type, Class):
-        return type.data_class
-
-    # Enum
-    if isinstance(type, Enum):
-        return type.origin_type
-
-
-    # Any
-    if isinstance(type, Any):
-        return typing.Any
-
-    # NoneType
-    if isinstance(type, NoneType):
-        return builtins.type(None)
-
-
-    raise TypeError("Not supported type.")
-
+# def to_typing(type):
+#     # base
+#     if isinstance(type, DTypeSingleton):
+#         return type.typing_type
+#
+#     # TypeVar
+#     if isinstance(type, TypeVar):
+#         return type.origin_type
+#
+#
+#     # NewType
+#     if isinstance(type, NewType):
+#         return type.origin_type
+#
+#
+#     # Tuple
+#     if isinstance(type, Tuple):
+#         args = []
+#         for a in type.args:
+#             args.append(to_typing(a))
+#         return typing.Tuple[tuple(args)]
+#
+#
+#     # Union
+#     if isinstance(type, Union):
+#         args = []
+#         for a in type.args:
+#             args.append(to_typing(a))
+#         return typing.Union[tuple(args)]
+#
+#
+#     # List
+#     if isinstance(type, List):
+#         return typing.List[to_typing(type.arg)]
+#
+#     # Dict
+#     if isinstance(type, Dict):
+#         return typing.Dict[to_typing(type.key), to_typing(type.value)]
+#
+#     # Const
+#     if isinstance(type, Const):
+#         #return dtype.Constant[to_typing(type.arg)]
+#         assert False, "Unable to return unambiguous value."
+#
+#
+#     # Class
+#     if isinstance(type, Class):
+#         return type.data_class
+#
+#     # Enum
+#     if isinstance(type, Enum):
+#         return type.origin_type
+#
+#
+#     # Any
+#     if isinstance(type, Any):
+#         return typing.Any
+#
+#     # NoneType
+#     if isinstance(type, NoneType):
+#         return builtins.type(None)
+#
+#
+#     raise TypeError("Not supported type.")
+#
 
 def is_equaltype(type, other):
-    # Const
-    if isinstance(type, Const):
-        if isinstance(other, Const):
-            return is_equaltype(type.arg, other.arg)
-
-    # Any
-    elif isinstance(type, Any):
-        return other is type
-
-    # TypeVar
-    elif isinstance(type, TypeVar):
-        if isinstance(other, TypeVar):
-            return type.origin_type is other.origin_type
-
-    # Union
-    elif isinstance(type, Union):
-        if len(type.args) == 1:
-            return is_equaltype(type.args[0], other)
-        elif isinstance(other, Union) and len(type.args) == len(other.args):
-            for arg in type.args:
-                eq = False
-                for oarg in other.args:
-                    if is_equaltype(arg, oarg):
-                        eq = True
-                        break
-                if not eq:
-                    return False
-            return True
-
-    elif isinstance(other, Union):
-        return is_equaltype(other, type)
-
-    # NewType
-    elif isinstance(type, NewType):
-        if isinstance(other, NewType):
-            return type is other or (type.origin_type is not None and other.origin_type is not None and
-                                     type.origin_type is other.origin_type)
-
-    # Int, Float, Bool, Str, NoneType
-    elif isinstance(type, (Int, Float, Bool, Str, NoneType)):
-        return other is type
-
-    # Class
-    elif isinstance(type, Class):
-        if isinstance(other, Class) and type.data_class is other.data_class:
-            assert type is other
-            # If assert holds we can simplify the check
-            return True
-        return False
-
-    # Enum
-    elif isinstance(type, Enum):
-        return isinstance(other, Enum) and type.origin_type is other.origin_type
-
-    # Tuple
-    elif isinstance(type, Tuple):
-        if isinstance(other, Tuple) and len(type.args) == len(other.args):
-            for arg, oarg in zip(type.args, other.args):
-                if not is_equaltype(arg, oarg):
-                    return False
-            return True
-
-    # List
-    elif isinstance(type, List):
-        if isinstance(other, List):
-            return is_equaltype(type.arg, other.arg)
-
-    # Dict
-    elif isinstance(type, Dict):
-        if isinstance(other, Dict):
-            return is_equaltype(type.key, other.key) and is_equaltype(type.value, other.value)
-
-    return False
+    return type == other
 
 
 def is_subtype(subtype, type):
@@ -515,25 +690,28 @@ def is_subtype_map(subtype, type, var_map, restraints, check_const=True):
     :return: (is_subtype, var_map, restraints)
     """
 
+    # TODO: turn following to assert after fixing check_types of recursive workflow
+    subtype = from_typing(subtype)
+
     # if check_const is True and type is Const, than subtype must be Const
     if isinstance(type, Const) and check_const:
         if isinstance(subtype, Const):
-            return is_subtype_map(subtype.arg, type.arg, var_map, restraints, False)
+            return is_subtype_map(subtype.args[0], type.args[0], var_map, restraints, False)
         elif not check_const:
-            return is_subtype_map(subtype, type.arg, var_map, restraints, False)
+            return is_subtype_map(subtype, type.args[0], var_map, restraints, False)
         else:
             return False, {}, {}
 
     # if subtype is Const, call recursive
     elif isinstance(subtype, Const):
-        return is_subtype_map(subtype.arg, type, var_map, restraints, False)
+        return is_subtype_map(subtype.args[0], type, var_map, restraints, False)
 
     # if type is NewType, than call recursively
     elif isinstance(type, NewType):
         return is_subtype_map(subtype, type.supertype, var_map, restraints, False)
 
     # if type is Any, always True
-    elif isinstance(type, Any):
+    elif type is Any:
         return True, var_map, restraints
 
     # if type is TypeVar
@@ -588,12 +766,11 @@ def is_subtype_map(subtype, type, var_map, restraints, check_const=True):
             return is_subtype_map(subtype.supertype, type, var_map, restraints, False)
 
     # if subtype is Int, Float, Str, NoneType, type must be the same
-    elif isinstance(subtype, (Int, Float, Str, NoneType)):
-        if type is subtype:
-            return True, var_map, restraints
+    elif isinstance(subtype, DTypeSingleton) and isinstance(type, DTypeSingleton) and subtype.is_subtype(type):
+        return True, var_map, restraints
 
     # if subtype is Bool, type must be Bool or Int
-    elif isinstance(subtype, Bool):
+    elif subtype is Bool:
         if isinstance(type, (Bool, Int)):
             return True, var_map, restraints
 
@@ -605,7 +782,7 @@ def is_subtype_map(subtype, type, var_map, restraints, check_const=True):
     # if subtype is Enum, type must be Enum and subtype.origin_type must be subclass of type.origin_type or type must be Int
     elif isinstance(subtype, Enum):
         if isinstance(type, Enum) and issubclass(subtype.origin_type, type.origin_type) \
-                or isinstance(type, Int):
+                or type is Int:
             return True, var_map, restraints
 
     # if subtype is Tuple, type must be Tuple and all args must be subtype
@@ -692,9 +869,9 @@ def common_sub_type(a, b):
     # Const
     if isinstance(a, Const):
         if isinstance(b, Const):
-            bb, sub = common_sub_type(a.arg, b.arg)
+            bb, sub = common_sub_type(a.args[0], b.args[0])
         else:
-            bb, sub = common_sub_type(a.arg, b)
+            bb, sub = common_sub_type(a.args[0], b)
         if bb:
             return True, Const(sub)
 
@@ -702,7 +879,7 @@ def common_sub_type(a, b):
         return common_sub_type(b, a)
 
     # Any
-    elif isinstance(a, Any):
+    elif a is Any:
         return True, b
 
     # TypeVar
@@ -731,22 +908,29 @@ def common_sub_type(a, b):
         if a is b:
             return True, a
 
-    # Float, Str, NoneType
-    elif isinstance(a, (Float, Str, NoneType)):
+    # DTypeSingleton
+    elif isinstance(a, DTypeSingleton) and isinstance(b, DTypeSingleton):
         if a is b:
             return True, a
+        common = a.subtypes.intersection(b.subtypes)
+        if len(common) == 0:
+            return False, None
+        elif len(common) == 2:  # Boll, Int
+            return True, Int
+        else:
+            return True, Bool
 
-    # Int
-    elif isinstance(a, Int):
-        if isinstance(b, (Int, Bool)):
-            return True, a
-
-    # Bool
-    elif isinstance(a, Bool):
-        if isinstance(b, Bool):
-            return True, a
-        elif isinstance(b, Int):
-            return True, b
+    # # Int
+    # elif a is Int:
+    #     if b in {Int, Bool}:
+    #         return True, a
+    #
+    # # Bool
+    # elif isinstance(a, Bool):
+    #     if isinstance(b, Bool):
+    #         return True, a
+    #     elif isinstance(b, Int):
+    #         return True, b
 
     # Class
     elif isinstance(a, Class):
@@ -789,15 +973,6 @@ def common_sub_type(a, b):
     return False, None
 
 
-class TypeInspector:
-    def is_constant(self, type):
-        return isinstance(type, Const)
-
-    def constant_type(self, type):
-        return type.arg
-
-    def have_attributes(self, type: 'dtype.DType'):
-        return isinstance(type, Any) or isinstance(type, TypeVar) or isinstance(type, Class) or isinstance(type, Dict)
 
 
 def extract_type_var(type):
@@ -881,7 +1056,7 @@ def substitute_type_vars(type, var_map, create_new=False, recursive=False):
 
     # Const
     if isinstance(type, Const):
-        t, var_map = substitute_type_vars(type.arg, var_map, create_new, recursive)
+        t, var_map = substitute_type_vars(type.args[0], var_map, create_new, recursive)
         return Const(t), var_map
 
     # others

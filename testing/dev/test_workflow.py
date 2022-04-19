@@ -12,14 +12,14 @@ def test_workflow_modification():
 
     ## Slot modifications
     # insert_slotg_data_item
-    w.insert_slot(0, "a_slot", dtype.Int())
-    w.insert_slot(1, "b_slot", dtype.Int())
+    w.insert_slot(0, "a_slot", dtype.Int)
+    w.insert_slot(1, "b_slot", dtype.Int)
     assert len(w.parameters) == 2
     assert w.parameters.at(0).name == 'a_slot'
     assert w.parameters.at(1).name == 'b_slot'
 
     # move_slot
-    w.insert_slot(2, "c_slot", dtype.Int())
+    w.insert_slot(2, "c_slot", dtype.Int)
     # A B C
     w.move_slot(1, 2)
     # A C B
@@ -78,8 +78,6 @@ def test_workflow_modification():
     # w:  (slot0 (B), slot2 (A))  List1 -> result
 
 
-
-
     # Test cycle
     w.set_action_input(list_1, 0, slots[0])
     list_2 = instance.ActionCall.create(constructor.A_list())
@@ -89,6 +87,24 @@ def test_workflow_modification():
     assert not res
     assert len(list_2.arguments) == 0
 
+def test_signature():
+    w = awf._Workflow("wf_signature")
+
+    # insert_slotg_data_item
+    w.insert_slot(0, "a_slot", dtype.Int)
+    w.insert_slot(1, "b_slot", dtype.Int)
+    assert len(w.parameters) == 2
+    assert w.parameters.at(0).name == 'a_slot'
+    assert w.parameters.at(1).name == 'b_slot'
+
+    # move_slot
+    w.insert_slot(2, "c_slot", dtype.Int)
+    # A B C
+    w.move_slot(1, 2)
+    # A C B
+    assert w.parameters.at(2).name == 'b_slot'
+    assert w.parameters.at(1).name == 'c_slot'
+
 
 @wf.workflow
 def var_args(self, *args):
@@ -96,5 +112,9 @@ def var_args(self, *args):
 
 @pytest.mark.skip
 def test_workflow_parameters():
+    """
+    Can not implement workflow with variadic parameters until we interpret code through AST.
+    :return:
+    """
     res = evaluation.run(var_args, 1, 2, 3)
     assert res == [1,2,3]

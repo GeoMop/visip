@@ -1,3 +1,5 @@
+import enum
+
 from ..dev.base import ActionBase
 from ..dev import dtype
 from ..dev.parameters import Parameters, ActionParameter
@@ -8,7 +10,9 @@ from ..dev import base
 class Value(ActionBase):
     def __init__(self, value):
         name = "Value"
-        params = Parameters([], dtype.from_typing(type(value)))
+        value_type = dtype.type_of_value(value)
+        assert value_type is not dtype.EmptyType
+        params = Parameters([], value_type)
         super().__init__(name, params)
         self.action_kind = base.ActionKind.Meta
         self.value = value
@@ -91,10 +95,10 @@ class A_tuple(_ListBase):
 class A_dict(ActionBase):
     def __init__(self):
     	# TODO: TypeVar
-        p =  ActionParameter(name='args', p_type=dtype.Tuple(dtype.Any(), dtype.Any()),
+        p =  ActionParameter(name='args', p_type=dtype.Tuple(dtype.Any, dtype.Any),
                             default=ActionParameter.no_default, kind=ActionParameter.VAR_POSITIONAL)
         self.action_kind = base.ActionKind.Generic
-        signature = Parameters((p, ), return_type=dtype.Any())
+        signature = Parameters((p, ), return_type=dtype.Any)
         super().__init__('dict', signature)
 
 
@@ -145,7 +149,7 @@ class ClassActionBase(ActionBase):
         :param make_rel_name:
         :return:
         """
-        lines = ['@wf.Class']
+        lines = [f"@{representer.make_rel_name('visip.code.decorators', 'Class')}"]
         lines.append('class {}:'.format(self.name))
         for attribute in self.parameters:
             lines.append(representer.parameter(attribute))
@@ -157,3 +161,49 @@ class ClassActionBase(ActionBase):
         for param in self.parameters:
             a_hash = data.hash(param.name, previous=a_hash)
         return a_hash
+
+
+
+class EnumActionBase(ActionBase):
+    """
+    Conversion from int to the enum.
+    """
+    def __init__(self, enum_class):
+        assert isinstance(enum_class, enum.EnumMeta), str(enum_class)
+        enum_class.__code__ = self.code_of_item
+        signature = Parameters([ActionParameter("enum_item", dtype.Int)], return_type=dtype.Enum(enum_class))
+        super().__init__(enum_class.__name__, signature)
+        self._enum_class = enum_class
+        # Attr.s dataclass
+        #self.__module__ = self._enum_class.__module__
+        # module where the data class is defined
+
+    def _evaluate(self, *args, **kwargs) -> dtype.DataClassBase:
+        return self._enum_class(*args, **kwargs)
+
+    def action_hash(self):
+        a_hash = data.hash(self.name)
+        for param in self.parameters:
+            a_hash = data.hash(param.name, previous=a_hash)
+        return a_hash
+
+
+    @staticmethod
+    def code_of_item(self: enum.IntEnum, representer):
+        """
+        Behaves as method of IntEnum, returns string with representation of the enum value.
+        """
+        enum_base, key = str(self).split('.')
+        enum_base = representer.make_rel_name(self.__module__, enum_base)
+        return '.'.join([enum_base, key])
+
+    def code_of_definition(self, representer):
+        """
+        """
+        indent_str = representer.n_indent * " "
+        lines = [f"@{representer.make_rel_name('visip.code.decorators', 'Enum')}"]
+        lines.append('class {}:'.format(self.__name__))
+        for item in self._enum_class:
+            lines.append(f"{indent_str}{item.name} = {item.value}")
+
+        return "\n".join(lines)

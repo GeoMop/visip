@@ -14,9 +14,11 @@ class MyEnum:
     d=PyEnum.b
 
 @wf.action_def
-def test(a,b):
-    print(f"a:{type(a)} = {a}. b:{type(b)} = {b}")
+def test(a, b) -> str:
+    s = f"a:{type(a)} = {a}. b:{type(b)} = {b}"
+    print(s)
+    return s
 
 @wf.analysis
 def script():
-    test(MyEnum.a, MyEnum.d)
+    return test(MyEnum(1), MyEnum.d)
