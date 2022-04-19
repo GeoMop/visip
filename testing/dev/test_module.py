@@ -61,6 +61,7 @@ def test_module_load():
     print("\n".join([str(x) for x in tm.items()]))
     point = tm[('analysis_in', 'Point')]
 
+@pytest.mark.skip
 def test_operations():
     """
     Test load, modify and safe a module.
@@ -78,7 +79,7 @@ def test_operations():
     assert c.find("class Rectangle")
     assert c.find("def yflip")
 
-
+@pytest.mark.skip
 def test_insert_imported_module():
     source = os.path.join(script_dir, "..", "code", "visip_sources", "import_user_defs_in.py")
     mod = module.Module.load_module(source)
