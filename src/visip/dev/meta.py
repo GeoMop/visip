@@ -206,10 +206,12 @@ class _Lazy(MetaAction):
         """
         """
         super().__init__("lazy")
+        #ReturnType = dtype.TypeVar(origin_type=None, name='ReturnType')
         ReturnType = typing.TypeVar('ReturnType')
-        params = [ActionParameter("action", typing.Callable[...,ReturnType]),
-                  ActionParameter("args", dtype.Any(), kind=ActionParameter.VAR_POSITIONAL),
-                  ActionParameter("kwargs", dtype.Any(), kind=ActionParameter.VAR_KEYWORD),
+
+        params = [ActionParameter("action", typing.Callable[..., ReturnType]),
+                  ActionParameter("args", dtype.Any, kind=ActionParameter.VAR_POSITIONAL),
+                  ActionParameter("kwargs", dtype.Any, kind=ActionParameter.VAR_KEYWORD),
                   ]
         self._parameters = Parameters(params, ReturnType)
 
@@ -286,8 +288,8 @@ class DynamicCall(MetaAction):
 
         ReturnType = typing.TypeVar('ReturnType')
         params = [ActionParameter(name="function", p_type=typing.Callable[..., ReturnType]),
-                  ActionParameter(name="args", p_type=dtype.Any(), kind=ActionParameter.VAR_POSITIONAL),
-                  ActionParameter(name="kwargs", p_type=dtype.Any(), kind=ActionParameter.VAR_KEYWORD)]
+                  ActionParameter(name="args", p_type=dtype.Any, kind=ActionParameter.VAR_POSITIONAL),
+                  ActionParameter(name="kwargs", p_type=dtype.Any, kind=ActionParameter.VAR_KEYWORD)]
         self._parameters = Parameters(params, ReturnType)
         # TODO: Support for kwargs forwarding.
         # TODO: Match 'function' parameters and given arguments.
@@ -320,7 +322,7 @@ class _If(MetaAction):
         params = []
         ReturnType = typing.TypeVar('ReturnType')
         params.append(
-            ActionParameter(name="condition", p_type=dtype.Bool()))
+            ActionParameter(name="condition", p_type=dtype.Bool))
         params.append(
             ActionParameter(name="true_body", p_type=typing.Callable[..., ReturnType]))
         params.append(

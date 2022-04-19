@@ -3,7 +3,7 @@ import inspect
 import builtins
 from . import dtype
 from . import data
-
+from . import exceptions
 
 class ActionParameter:
     """
@@ -11,7 +11,7 @@ class ActionParameter:
     Simple wrapper around inspect.Parameter
     At least we have to use our own types.
     """
-    no_default = inspect.Parameter.empty
+    no_default = dtype.empty
     POSITIONAL_ONLY         = inspect.Parameter.POSITIONAL_ONLY
     POSITIONAL_OR_KEYWORD   = inspect.Parameter.POSITIONAL_OR_KEYWORD
     VAR_POSITIONAL          = inspect.Parameter.VAR_POSITIONAL
@@ -39,10 +39,11 @@ class ActionParameter:
 
     @property
     def type(self):
-        if self._type is None:
-            return dtype.Any()
-        else:
-            return self._type
+        assert self._type is not None
+        # if self._type is None:
+        #     return dtype.Any
+        # else:
+        return self._type
 
     @property
     def type_defined(self):
@@ -57,7 +58,7 @@ class ActionParameter:
         return self._kind
 
     def get_default(self) -> Tuple[bool, Any]:
-        if self.default == ActionParameter.no_default:
+        if self.default is ActionParameter.no_default:
             return False, None
         else:
             return True, self.default
@@ -76,8 +77,8 @@ class Parameters:
     no_default = ActionParameter.no_default
     # For convenience when operating on the Parameters instance.
 
-    def __init__(self, params, return_type=None, had_self=False):
-        if return_type == ActionParameter.no_default:
+    def __init__(self, params: List[ActionParameter], return_type:dtype.DType = None, had_self=False):
+        if return_type is ActionParameter.no_default:
             return_type = None
         self._return_type = return_type
         self._signature = {p.name: p for p in params}
@@ -88,7 +89,7 @@ class Parameters:
     def return_type(self):
         rt = self._return_type
         if rt is None:
-            return dtype.Any()
+            return dtype.Any
         else:
             return rt
 
@@ -161,3 +162,32 @@ class Parameters:
         :return:
         """
         return iter(self._signature.values())
+
+    def check_type_vars(self):
+        """
+        Set ouf output type vars should be subset of the input type vars.
+        :return:
+        """
+        # todo: possible move to class Parameters
+        in_set = set()
+        for param in self.parameters:
+            in_set.update(dtype.extract_type_var(param.type))
+        out_set = dtype.extract_type_var(self.return_type)
+        assert out_set.issubset(in_set), f"Output TypeVars {out_set.difference(in_set)} are missing on input."
+
+    def process_empty(self, func):
+        """
+        Substitute the EmptyType of the parameter or return type by `func(var_name)`.
+        """
+        for p in self.parameters:
+            if p.type is dtype.EmptyType:
+                p._type = func(p.name)
+        if self.return_type is dtype.EmptyType:
+            self._return_type = func("__return__")
+
+    def check_no_empty(self):
+        def error(var):
+            raise exceptions.ExcNoType(
+                f"Missing type for parameter '{var}'.")
+            return type
+        self.process_empty(error)

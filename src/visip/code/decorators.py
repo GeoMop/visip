@@ -10,7 +10,8 @@ from ..action import constructor
 # from ..dev.parameters import ActionParameter, Parameters
 # from ..dev import exceptions, dtype_new
 from ..action.action_factory import ActionFactory
-from ..dev.extract_signature import unwrap_type, _extract_signature, ActionParameter
+from ..dev.extract_signature import _extract_signature, ActionParameter
+from ..dev.parameters import Parameters
 from ..dev import exceptions
 from .dummy import DummyAction, Dummy, DummyWorkflow
 
@@ -72,8 +73,8 @@ def _construct_from_params(name: str, params: typing.List[ActionParameter], modu
     :return:
     """
     data_class = _dataclass_from_params(name, params, module)
-    signature = _extract_signature(data_class.__init__, omit_self=True)
-    return constructor.ClassActionBase(data_class, signature)
+    signature_with_return_type = Parameters(params, return_type=dtype.from_typing(data_class))
+    return constructor.ClassActionBase(data_class, signature_with_return_type)
 
 def Class(data_class):
     """
@@ -91,9 +92,8 @@ def Class(data_class):
     """
     params = []
     for name, ann in data_class.__annotations__.items():
-        try:
-            attr_type = unwrap_type(ann)
-        except exceptions.ExcTypeBase:
+        attr_type = dtype.from_typing(ann)
+        if attr_type is dtype.EmptyType:
             raise exceptions.ExcNoType(
                 f"Missing type for attribute '{name}' of the class '{data_class.__name__}'.")
         attr_default = data_class.__dict__.get(name, ActionParameter.no_default)
@@ -106,13 +106,10 @@ def Class(data_class):
 def Enum(enum_cls):
     items = {key: val for key,val in inspect.getmembers(enum_cls) if not key.startswith("__") and not key.endswith("__")}
     int_enum_cls = enum.IntEnum(enum_cls.__name__, items)
-    def code(self, representer):
-        enum_base, key = str(self).split('.')
-        enum_base = representer.make_rel_name(enum_cls.__module__, enum_base)
-        return '.'.join([enum_base, key])
-    int_enum_cls.__code__ = code
     int_enum_cls.__module__ = enum_cls.__module__
-    return int_enum_cls
+    enum_action = constructor.EnumActionBase(int_enum_cls)
+    enum_action.__module__ = int_enum_cls.__module__
+    return public_action(enum_action)
 
 
 def action_def(func):
@@ -121,10 +118,13 @@ def action_def(func):
     Action name is given by the nama of the function.
     Input types are given by the type hints of the function params.
     """
+
+    signature = _extract_signature(func)
     try:
-        signature = _extract_signature(func)
-    except exceptions.ExcTypeBase as e:
-        raise exceptions.ExcTypeBase(f"Wrong signature of action:  {func.__module__}.{func.__name__}") from e
+        signature.process_empty(lambda var: dtype.Any)
+    except exceptions.ExcNoType as e:
+        raise exceptions.ExcNoType(f"Wrong signature of action:  {func.__module__}.{func.__name__}") from e
+
     action_name = func.__name__
     action_module = func.__module__  # attempt to fix imported modules, but it brakes chained (successive) imports
     action = ActionBase(action_name, signature)

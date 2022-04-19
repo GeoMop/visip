@@ -61,7 +61,7 @@ def test_if_action():
 
 # simpler if
 @wf.action_def
-def foo(x):
+def foo(x: int) -> int:
     return x + 1
 
 @wf.workflow

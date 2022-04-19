@@ -9,10 +9,10 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 
 
 
-@pytest.mark.skip
-@pytest.mark.parametrize("src_file", ["analysis_in.py", "dep_module_in.py", 'quadrature_in.py', 'wf_complex_in.py', 'import_user_defs_in.py', 'meta_actions_in.py'])
+#@pytest.mark.skip
+@pytest.mark.parametrize("src_file", ["analysis_in.py", "dep_module_in.py", 'quadrature_in.py', 'wf_complex_in.py', 'import_user_defs_in.py', 'meta_actions_in.py', 'enum_code_in.py'])
 #@pytest.mark.parametrize("src_file", ['meta_actions_in.py'])
-#@pytest.mark.parametrize("src_file", ["analysis_in.py", "dep_module_in.py", 'quadrature_in.py'])
+#@pytest.mark.parametrize("src_file", ["dep_module_in.py"])
 def test_representation(src_file):
     base, ext = os.path.splitext(src_file)
     assert ext == ".py"
@@ -23,16 +23,16 @@ def test_representation(src_file):
 
     base_dir = os.path.join(script_dir, "visip_sources")
     source_in_path = os.path.join(base_dir, src_file)
-    round_src_path = os.path.join(base_dir, "{}.round.py".format(base))
-    round2_src_path = os.path.join(base_dir, "{}.round2.py".format(base))
+    round_src_path = os.path.join(base_dir, "{}_round.py".format(base))
+    round2_src_path = os.path.join(base_dir, "{}_round2.py".format(base))
     reference_path = os.path.join(base_dir, "{}.ref.py".format(base))
 
-    test_mod = module.Module(source_in_path)
+    test_mod = module.Module.load_module(source_in_path)
     code = test_mod.code()
     with open(round_src_path, "w") as f:
         f.write(code)
 
-    round_module = module.Module(round_src_path)
+    round_module = module.Module.load_module(round_src_path)
     round_code = round_module.code()
     assert code == round_code
 

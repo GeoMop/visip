@@ -11,6 +11,12 @@ class _Slot(base.ActionBase):
 
 
 class _SlotCall(ActionCall):
+    """
+    Auxiliary action call representing an input parameter.
+    Slots are created according to the extracted parameters in
+    `actioncalls_from_function`
+
+    """
     def __init__(self, slot_name, param_type):
         """
         Auxiliary action to connect to a named input slot of the workflow.

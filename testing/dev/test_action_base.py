@@ -29,7 +29,7 @@ def test_dataclass_modification():
     point_wrap = Point
     point_action = point_wrap._action_value
     params = list(point_action.parameters)
-    params = [ActionParameter(p.name, dtype.to_typing(p.type), p.default) for p in params]
+    params = [ActionParameter(p.name, p.type, p.default) for p in params]
     param_z = ActionParameter("z", float, 0.0)
     params.append(param_z)
     point_xyz = public_action(_construct_from_params("PointXYZ", params) )

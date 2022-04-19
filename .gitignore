@@ -1,6 +1,6 @@
 # test results
-*.round.py
-*.round2.py
+*_round.py
+*_round2.py
 **/_workspace/*
 
 # Byte-compiled / optimized / DLL files
