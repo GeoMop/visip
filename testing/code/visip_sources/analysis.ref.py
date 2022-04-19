@@ -11,8 +11,8 @@ def test_list(self, a, b):
 
 @wf.Class
 class Point:
-    x:float
-    y:float
+    x:wf.Float
+    y:wf.Float
 
 
 @wf.workflow
@@ -42,6 +42,6 @@ def test_dict(self, a, b, c):
 
 
 @wf.action_def
-def add(a:float, b:float) -> float:
+def add(a: wf.Float, b: wf.Float) -> wf.Float:
     # User defined action cen not been represented.
     pass

@@ -12,6 +12,7 @@ class GetAttribute(base.ActionBase):
     """
     def __init__(self):
         signature = _extract_signature(self._evaluate)
+        signature.check_no_empty()
         super().__init__(signature=signature)
         self.action_kind = base.ActionKind.Generic
 
@@ -24,7 +25,7 @@ class GetAttribute(base.ActionBase):
         data_class_token = representer.token(arg_names[1])
         return representer.format(data_class_token, ".{}".format(key_name))
 
-    def _evaluate(self, key: dtype.Const(dtype.Str()), data_class: dtype.Any()) -> dtype.Any():
+    def _evaluate(self, key: dtype.Const(dtype.Str), data_class: dtype.Any) -> dtype.Any:
         return data_class.__getattribute__(key)
 
 
@@ -37,7 +38,7 @@ class GetItem(base.ActionBase):
         var_type_t = dtype.TypeVar(name="T")
         signature = Parameters((
             ActionParameter('data_list', dtype.List(var_type_t)),
-            ActionParameter('idx', dtype.Int())),
+            ActionParameter('idx', dtype.Int)),
             var_type_t)
         super().__init__(signature=signature)
         self.action_kind = base.ActionKind.Generic

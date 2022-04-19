@@ -2,13 +2,13 @@ import visip as wf
 
 
 @wf.action_def
-def read_file(input:wf.FileIn) -> int:
+def read_file(input: wf.FileIn) -> wf.Int:
     # User defined action cen not been represented.
     pass
 
 
 @wf.workflow
-def gmsh_run(self, geometry: wf.FileIn, mesh_step: float) -> wf.FileIn:
+def gmsh_run(self, geometry: wf.FileIn, mesh_step: wf.Float) -> wf.FileIn:
     self.mesh_file_out = wf.derived_file(f=geometry, ext='.msh')
     Value_5 = '{:8.2g}'
     list_1 = ['../gmsh.sh', geometry, '-2', '-clscale', wf.format(Value_5, mesh_step), '-format', 'msh2', '-o', self.mesh_file_out]

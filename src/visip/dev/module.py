@@ -39,7 +39,7 @@ class sys_path_append:
             pass
 
 
-def my_exec(cmd, globals=None, locals=None, description='source string'):
+def visip_exec(cmd, globals=None, locals=None, description='source string'):
     try:
         exec(cmd, globals, locals)
     except SyntaxError as err:
@@ -62,6 +62,8 @@ class _DefBase:
     def get_type(self):
         return None
 
+    def get_action(self, name) -> base.ActionBase:
+        return None
 
 @define
 class _DefImport(_DefBase):
@@ -83,10 +85,20 @@ class _DefAction(_DefBase):
     action: base.ActionBase
 
     def get_type(self):
-        if isinstance(self.action.output_type, dtype.Class):
+        if isinstance(self.action.output_type, (dtype.Class, dtype.Enum)):
             return self.action.output_type
         else:
             return None
+
+    def get_action(self, name) -> base.ActionBase:
+        if self.alias == name:
+            return self.action
+
+@define
+class _DefUnknown(_DefBase):
+    alias: str
+    obj: object
+
 
 class Module:
     """
@@ -120,10 +132,7 @@ class Module:
     Changes:
     - TODO: dict of (various) definitions for single module
       finalize and test for all Defs
-    - global list of types
-    - Enum as action (converting string or int to the enum value)
-    - enum Def
-    - replace 'imported_modules', '_name_to_def', 'ignored_definitions' by the new structure
+
     - remove trivial items from _object_names
     - nontrivial should use only: module aliases (imports), name aliasse (from)
       other recursion should not be necessary if we use the names of other Modules.
@@ -144,10 +153,10 @@ class Module:
         if cls._types_map is None or force:
             _types_map = {}
             for m in cls._modules.values():
-                for mn, d in m.new_definitions.items():
-                    type_obj = d.get_type()
+                for mod_name, def_ in m.new_definitions.items():
+                    type_obj = def_.get_type()
                     if type_obj is not None:
-                        key = (type_obj.module, type_obj.name)
+                        key = (type_obj.__module__, type_obj.__name__)
                         if key in _types_map:
                             assert _types_map[key] is type_obj
                         else:
@@ -180,8 +189,8 @@ class Module:
         visip_mod = cls(py_module, mod_path)
         cls._modules.setdefault(py_module.__name__, visip_mod)
         visip_mod.extract_definitions()
-        if visip_mod.is_visip_module():
-            print(visip_mod.info())
+        #if visip_mod.is_visip_module():
+        #    print(visip_mod.info())
         return visip_mod
 
     # @classmethod
@@ -214,7 +223,7 @@ class Module:
             # new_module = imp.new_module(module_name)
             spec = importlib.util.find_spec(module_name)
             new_module = importlib.util.module_from_spec(spec)
-            my_exec(source, new_module.__dict__, locals=None, description=module_name)
+            visip_exec(source, new_module.__dict__, locals=None, description=module_name)
         return cls.add_module(new_module)
 
     def __init__(self, py_module: ModuleType, module_path: str) -> None:
@@ -233,11 +242,11 @@ class Module:
         # data classes, enums.
         # GUI note: Can be directly reorganized by the GUI. Adding, removing, changing order.
         # TODO: implement a method for sorting the definitions (which criteria)
-        self._name_to_def = {}
+        #self._name_to_def = {}
         # Maps identifiers to the definitions. (e.g. name of a workflow to its object)
 
-        self.imported_modules = []
-        # List of imported modules.
+        # self.imported_modules = []
+        # # List of imported modules.
 
         self._object_names = {}
         # Map from the (obj.__module__, obj.__name__) of an object to
@@ -248,7 +257,7 @@ class Module:
 
         # TODO: generalize for other 'rebranding' packages.
 
-        self.ignored_definitions = []
+        #self.ignored_definitions = []
         # Objects of the module, that can not by sourced.
         # If there are any we can not reproduce the source.
 
@@ -269,6 +278,36 @@ class Module:
     @property
     def name(self):
         return self.py_module.__name__
+
+    # @property
+    # def _object_names(self):
+    #     # TODO:
+    #     return
+
+
+    @property
+    def imported_modules(self) -> List['Module']:
+        return [def_.module for mod_name, def_ in self.new_definitions.items() if isinstance(def_, _DefImport)]
+
+    @property
+    def ignored_definitions(self) -> List[str]:
+        return [def_.alias for mod_name, def_ in self.new_definitions.items() if isinstance(def_, _DefUnknown)]
+
+    # def _object_name(self, mod_name):
+    #     try:
+    #         # try to find own alias
+    #         return self.new_definitions[mod_name].alias
+    #     except KeyError:
+    #         pass
+    #     mod, name = mod_name
+    #     try:
+    #         # objects from imported modules
+    #         module = self.get_module(mod)
+    #     except KeyError:
+    #         assert False
+    #     try:
+    #
+    #     return
 
     def object_name(self, obj):
         return self._object_names.get(self.mod_name(obj), None)
@@ -306,7 +345,7 @@ class Module:
                 # import 'obj' as 'name'
                 visip_mod = self.add_module(obj)
                 assert visip_mod is not None
-                self.imported_modules.append(visip_mod)
+                #self.imported_modules.append(visip_mod)
                 self.new_definitions[(obj_module, obj_name)] = _DefImport(name, visip_mod)
 
                 #self._module_name_dict[obj.__name__] = name
@@ -319,7 +358,7 @@ class Module:
                     #assert False, "from .. import ..  : not implemented yet for VISIP objects "
                     pass
 
-                print("DBG wrap: ", obj)
+                #print("DBG wrap: ", obj)
                 mod_name = self.mod_name(visip_obj)
                 #self.add_module_by_name(mod_name[0])
 
@@ -336,9 +375,9 @@ class Module:
                     # we shoul import the source module and then take here reference to the created VISIP objects
 
                 else:
-                    self.ignored_definitions.append((name, obj))
-                    mod_name = self.mod_name(obj)
+                    self.new_definitions[(obj_module, obj_name)] = _DefUnknown(name, obj)
 
+        #print("Create object names module: ", self.py_module.__name__)
         self._create_object_names(self.py_module, "")
 
         if self.is_visip_module():
@@ -351,6 +390,12 @@ class Module:
             self.analysis = ActionCall.create(analysis)
         else:
             self.analysis = None
+
+    def new_object_names(self):
+        """
+        Create from extracted definitions.
+        :return:
+        """
 
 
     def _create_object_names(self, mod_obj, alias):
@@ -371,10 +416,12 @@ class Module:
         3. The generic type hints from `typing` module do not have __name__ attribute since Python 3.7 so we use
         the name from the module dictionary.
         4. We only process modules from the `visip` package and the modules importing the `visip` modules.
-        """
-        # TODO: use BFS to find minimal reference, use aux dist or set to mark visited objects
-        module_queue = deque()  # queue of (module, alias_module_name)
 
+        TODO: merge with creation of new_definitions.
+        - imported renamed modules must be taken into account
+        - possibly need helper dictionaries or getters to access e.g. only _DefImports of given name
+        """
+        module_queue = deque()  # queue of (module, alias_module_name)
         name, obj = alias, mod_obj
         obj_mod_name = self.mod_name(obj)
         if obj_mod_name in self._object_names:
@@ -431,11 +478,22 @@ class Module:
     ===================
     """
 
+    """
+    TODO: generalize modifications:
+    We consider the module as a list of definitions and support
+    insertion and removal from that list. 
+    Renaming is operation on the definition.
+    Curently new_definitions is a dict, but seems there is no usage for the key access.
+    """
+
     def insert_imported_module(self, mod_obj: 'Module', alias: str):
-        self.imported_modules.append(mod_obj)
-        if alias == "":
-            alias = getattr(mod_obj, "__name__", None)
-        self._create_object_names(mod_obj.py_module, alias)
+        mod_obj = Module.add_module(mod_obj.py_module)
+        mod_obj.extract_definitions()
+        self.new_definitions[self.mod_name(mod_obj)] = _DefImport(alias, mod_obj)
+        # self.imported_modules.append(mod_obj)
+        # if alias == "":
+        #     alias = getattr(mod_obj, "__name__", None)
+        # self._create_object_names(mod_obj.py_module, alias)
 
 
     def insert_definition(self, action: dtype._ActionBase, pos: int = None):
@@ -447,25 +505,29 @@ class Module:
         """
         if pos is None:
             pos = len(self.definitions)
-        print("DBG insert def:",  action)
+        #print("DBG insert def:",  action)
         assert isinstance(action, dtype._ActionBase) , action
                #or issubclass(action, constructor.visip_enum)
         self.definitions.insert(pos, action)
-        self._name_to_def[action.name] = action
+        #self._name_to_def[action.name] = action
 
     def rename_definition(self, name: str, new_name: str) -> None:
         """
-        Rename workflow or dataclass. Renaming other actions fails.
+        Rename workflow, dataclass, enum definition.
+        Renaming other actions fails.
+
+        Does not deal with references to the original name.
+        TODO: sort of global index with usages of individual definitions.
         """
         action = self.get_action(name)
         if isinstance(action, wf._Workflow):
             action.name = new_name
-            self._name_to_def[new_name] = action
-            del self._name_to_def[name]
+            #self._name_to_def[new_name] = action
+            #del self._name_to_def[name]
         elif isinstance(action, constructor.ClassActionBase):
             action.name = new_name
-            self._name_to_def[new_name] = action
-            del self._name_to_def[name]
+            #self._name_to_def[new_name] = action
+            #del self._name_to_def[name]
         else:
             assert False, "Only workflow and classes can be renamed."
 
@@ -481,8 +543,10 @@ class Module:
         reference_name = self._object_names.get(mod_name, None)
         if reference_name is None:
             print("Undef reference for:", mod_name)
-            return None
+            return f"{obj_module}.{obj_name}"
         return reference_name
+
+
     def code(self) -> str:
         """
         Generate the source code of the whole module.
@@ -534,13 +598,16 @@ class Module:
         analysis = [d for d in self.definitions if d.is_analysis]
         return analysis
 
-    def get_action(self, name: str) -> wf._Workflow:
+
+    def get_action(self, name: str) -> base.ActionBase:
         """
-        Get the workflow by the name.
-        :param name:
-        :return:
+        Get the action by the name (alias).
         """
-        return self._name_to_def[name]
+        for d in self.new_definitions.values():
+            action = d.get_action(name)
+            if action:
+                return action
+        return None
 
     # def get_dataclass(self, name:str) -> Callable[..., dtype.DataClassBase]:
     #     """

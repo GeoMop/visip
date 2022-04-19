@@ -15,8 +15,8 @@ from ..dev import tools
 #     read = 0
 #     write = 1
 
-Folder = dtype.NewType(dtype.Str(), 'Folder')
-FileOut = dtype.NewType(dtype.Str(), 'FileOut')
+Folder = dtype.NewType(dtype.Str, 'Folder')
+FileOut = dtype.NewType(dtype.Str, 'FileOut')
 
 @attr.s(auto_attribs=True)
 class FileIn(dtype.DataClassBase):
@@ -26,7 +26,7 @@ class FileIn(dtype.DataClassBase):
     The output files are just path, no hash. So possibly define these
     two as separate types.
     """
-    path: dtype.Str()
+    path: dtype.Str
     hash: dtype.from_typing(bytes)
 
     def __str__(self):
@@ -34,15 +34,15 @@ class FileIn(dtype.DataClassBase):
 
 @attr.s(auto_attribs=True)
 class ExecResult(dtype.DataClassBase):
-    args: dtype.List(dtype.Str())
-    return_code: dtype.Int()
+    args: dtype.List(dtype.Str)
+    return_code: dtype.Int
     workdir: Folder
-    stdout: dtype.Str()  # Exists when result is available.
-    stderr: dtype.Str()
+    stdout: dtype.Str  # Exists when result is available.
+    stderr: dtype.Str
 
 
 @decorators.action_def
-def file_in(path: dtype.Str(), workspace: Folder = "") -> FileIn:
+def file_in(path: dtype.Str, workspace: Folder = "") -> FileIn:
     # we assume to be in the root of the VISIP workspace
     full_path = os.path.abspath(os.path.join(workspace, path))
     # path relative to the root
@@ -54,7 +54,7 @@ def file_in(path: dtype.Str(), workspace: Folder = "") -> FileIn:
 
 
 @decorators.action_def
-def file_out(path: dtype.Str(), workspace: Folder = "") -> FileOut:
+def file_out(path: dtype.Str, workspace: Folder = "") -> FileOut:
     # we assume to be in the root of the VISIP workspace
     full_path = os.path.join(workspace, path)
     # path relative to the root
@@ -73,8 +73,8 @@ class SysFile:
     DEVNULL = subprocess.DEVNULL
 
 
-Command = dtype.NewType(dtype.List(dtype.Union(dtype.Str(), dtype.from_typing(FileIn))), 'Command')
-Redirection = dtype.NewType(dtype.Union(FileOut, dtype.NoneType(), dtype.from_typing(SysFile)), 'Redirection')
+Command = dtype.NewType(dtype.List(dtype.Union(dtype.Str, dtype.from_typing(FileIn))), 'Command')
+Redirection = dtype.NewType(dtype.Union(FileOut, dtype.NoneType, dtype.from_typing(SysFile)), 'Redirection')
 
 def _subprocess_handle(redirection):
     if type(redirection) is str:    # TODO: should be FileOut
@@ -83,7 +83,7 @@ def _subprocess_handle(redirection):
 
 
 @decorators.action_def
-def system(arguments: Command, stdout: Redirection = None, stderr: Redirection = None, workdir:dtype.Str() = '') -> ExecResult:
+def system(arguments: Command, stdout: Redirection = None, stderr: Redirection = None, workdir:dtype.Str = '') -> ExecResult:
     """
     Execute a system command.  No support for portability.
     The files in the 'arguments' are converted to the file names.
@@ -122,19 +122,19 @@ def system(arguments: Command, stdout: Redirection = None, stderr: Redirection =
         return exec_result
 
 @decorators.action_def
-def derived_file(f: FileIn, ext:dtype.Str()) -> FileOut:
+def derived_file(f: FileIn, ext:dtype.Str) -> FileOut:
     base, old_ext = os.path.splitext (f.path)
     new_file_name = base + ext
     return file_out.call(new_file_name)
 
 @decorators.action_def
-def format(format_str: dtype.Str(), *args: dtype.Any()) -> dtype.Str():
+def format(format_str: dtype.Str, *args: dtype.Any) -> dtype.Str:
     return format_str.format(*args)
 
 @decorators.action_def
 def file_from_template(template: dtype.Const(dtype.from_typing(FileIn)),
-                       parameters: dtype.Dict(dtype.Str(), dtype.Str()),
-                       delimiters: dtype.Const(dtype.Str())= "<>") -> FileIn:
+                       parameters: dtype.Dict(dtype.Str, dtype.Str),
+                       delimiters: dtype.Const(dtype.Str)= "<>") -> FileIn:
     """
     Substitute for placeholders of format '<name>' from the dict 'params'.
     :param file_in: Template file with extension '.tmpl'.

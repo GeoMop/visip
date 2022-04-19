@@ -51,13 +51,9 @@ class ActionBase(dtype._ActionBase):
         # Module where the action is defined.
         if signature is None:
             signature = Parameters([])
-        # self.check_type_annotations(signature)
-        # turn annotation checking once we provide automatic derivation of the workflow types
-        # that makes explicit annotations of the workflows optional, but imperative for other actions
 
         self._parameters = signature
         # Parameter specification list, class attribute, no parameters by default.
-        # Both _parameters and _outputtype can be extracted from type annotations of the evaluate method using the _extract_input_type.
 
     def __str__(self):
         return self.name
@@ -82,11 +78,6 @@ class ActionBase(dtype._ActionBase):
         :return:
         """
         return data.hash(self.name)
-
-    def check_type_annotations(self, params: Parameters):
-        for param in params.parameters:
-            assert param.type is not None, "Missing type annotation of parameter: {}  of action: {}".format(param.name, self.name)
-        assert params.return_type is not None, "Missing return type annotation of action: {}".format(self.name)
 
     @property
     def output_type(self):
@@ -165,14 +156,21 @@ class ActionBase(dtype._ActionBase):
         # TODO: make derived class for actions implemented in user module
         # and move thic method there
 
-        type_code = representer.type_code(self.output_type)
-        type_code = representer.make_rel_name(dtype.to_typing(self.output_type).__module__, type_code)
-        params_code = ", ".join([representer.parameter(p, indent = 0) for p in self.parameters])
+        indent_str = representer.n_indent * " "
+
+        params = []
+        for i, param in enumerate(self.parameters):
+            type_anot = representer.str_unless(': ', representer.type_code(param.type))
+
+            param_def = f"{param.name}{type_anot}"
+            params.append(param_def)
+        result_hint = representer.str_unless(' -> ', representer.type_code(self.parameters.return_type))
+
         lines = [
-            "@wf.action_def",
-            "def {}({}) -> {}:".format(self.name, params_code, type_code),
-            "    # User defined action cen not been represented.",
-            "    pass"]
+            f"@{representer.make_rel_name('visip.code.decorators', 'action_def')}",
+            f"def {self.name}({', '.join(params)}){result_hint}:",
+            f"{indent_str}# User defined action cen not been represented.",
+            f"{indent_str}pass"]
         return "\n".join(lines)
 
     def __code__(self, representer):
