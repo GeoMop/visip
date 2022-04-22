@@ -5,7 +5,7 @@ from ..dev import dtype
 from ..dev.parameters import Parameters, ActionParameter
 from ..dev import data
 from ..dev import base
-
+from ..dev.extract_signature import _extract_signature
 
 class Value(ActionBase):
     def __init__(self, value):
@@ -207,3 +207,12 @@ class EnumActionBase(ActionBase):
             lines.append(f"{indent_str}{item.name} = {item.value}")
 
         return "\n".join(lines)
+
+
+class _Operator(ActionBase):
+    def __init__(self, op_fn):
+        signature = _extract_signature(op_fn)
+        name = op_fn.__name__
+        self._evaluate = op_fn
+        super().__init__(name, signature)
+

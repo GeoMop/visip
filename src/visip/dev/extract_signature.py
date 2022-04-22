@@ -1,8 +1,5 @@
 import inspect
-from .type_inspector import TypeInspector
 from . parameters import Parameters, ActionParameter
-from .exceptions import ExcTypeBase
-from ..code.dummy import DummyAction
 from ..dev import dtype
 
 
@@ -14,8 +11,6 @@ def _parameter_from_inspect(param: inspect.Parameter) -> 'ActionParameter':
     param_type = dtype.from_typing(param.annotation)
     default =  ActionParameter.no_default if param.default is inspect.Signature.empty else param.default
     return ActionParameter(param.name, param_type, default, param.kind)
-
-
 
 
 def _extract_signature(func, omit_self=False):
