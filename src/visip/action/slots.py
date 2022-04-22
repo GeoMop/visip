@@ -1,4 +1,5 @@
 from ..dev import base
+from ..dev.exceptions import ExcVariableOverwrite
 from ..dev.parameters import Parameters
 from ..code.dummy import Dummy
 from ..dev.action_instance import ActionCall, ActionArgument, ActionInputStatus
@@ -39,6 +40,12 @@ class _SlotCall(ActionCall):
     def code(self, representer):
         return None
 
+    def set_name(self, instance_name: str):
+        """
+        Do not set _proper_instance_name, to omit "self." prefix for slots.
+        """
+        self.name = instance_name
+        return self
 
 
 
@@ -60,6 +67,8 @@ def actioncalls_from_function(af: 'ActionFactory', func, parameters) -> ActionCa
         works, but the name `x` is not preserved during code representation.
         """
         def __setattr__(self, key, value):
+            if key in self.__dict__:
+                raise ExcVariableOverwrite("Overwriting variable or parameter: ", key)
             value = ActionCall.into_action(value)
             value = value.set_name(key)
             self.__dict__[key] = Dummy(af, value)
@@ -73,6 +82,7 @@ def actioncalls_from_function(af: 'ActionFactory', func, parameters) -> ActionCa
     for p in parameters:
         slot = _SlotCall(p.name, p.type)
         slots.append(slot)
+        _self.__setattr__(p.name, slot)
     dummies = [Dummy(af, slot) for slot in slots]
     func_args.extend(dummies)
     output_action = ActionCall.into_action(func(*func_args))

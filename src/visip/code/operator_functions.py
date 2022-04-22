@@ -3,9 +3,11 @@ from ..dev import dtype
 
 AT = dtype.NewType(dtype.Union(dtype.Int, dtype.Float), name="TArithmetic")
 
-op_char = dict(
-    add='+', sub='-', mul='*', truediv='/', mod='%', pow='**',
-    lt='<', le='<=', gt='>', ge='>=', eq='==', ne='!=')
+# (operator_representation, operator_precedence)
+op_properties = dict(
+    lt=('<',0), le=('<=',0), gt=('>',0), ge=('>=',0), eq=('==',0), ne=('!=',0),
+    add=('+',1), sub=('-',1), mul=('*',2), truediv=('/',2), mod=('%',2), pow=('**',3),
+         )
 
 # TODO: use bounded TypeVar if ready
 def add(x:AT, y:AT) -> AT:

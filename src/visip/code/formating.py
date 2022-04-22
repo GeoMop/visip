@@ -60,7 +60,7 @@ class Format:
         Placeholders are named and can be substituted via. 'substitute' method.
         :param token_list:
         """
-        assert all([isinstance(t, (str, Placeholder)) for t in token_list])
+        assert all([isinstance(t, (str, Placeholder)) for t in token_list]), token_list
         self.tokens = token_list
 
 
