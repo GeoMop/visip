@@ -6,7 +6,7 @@ Problematic are actions generated from special constructs by the 'code' package:
 - actions that are already wrapped are just imported
 """
 from . import constructor
-from ..code.decorators import public_action
+from ..code.decorators import public_action, action_def
 from ..dev import meta
 from ..dev import dtype
 
@@ -59,3 +59,7 @@ empty = dtype.empty
 """
 Specific value used to mark unbound positional parameters in the 'lazy' meta action. 
 """
+abs = action_def(abs)
+round = action_def(round)
+pow = action_def(pow)
+divmod = action_def(divmod)

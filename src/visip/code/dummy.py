@@ -153,6 +153,9 @@ class Dummy:
     def binary_op(self, op,  x, y):
         return Dummy(self._af, self._af.create_operator(op, x, y))
 
+    def unary_op(self, op,  x):
+        return Dummy(self._af, self._af.create_operator(op, x))
+
     # Arithmetic operators
 
     def __add__(self, other):
@@ -168,7 +171,6 @@ class Dummy:
     def __rsub__(self, other):
         return self.binary_op(of.sub, other, self._value)
 
-
     def __mul__(self, other):
         return self.binary_op(of.mul, self._value, other)
 
@@ -181,6 +183,12 @@ class Dummy:
 
     def __rtruediv__(self, other):
         return self.binary_op(of.truediv, other, self._value, )
+
+    def __floordiv__(self, other):
+        return self.binary_op(of.floordiv, self._value, other)
+
+    def __rfloordiv__(self, other):
+        return self.binary_op(of.floordiv, self._value, other)
 
     def __mod__(self, other):
         return self.binary_op(of.mod, self._value, other)
@@ -214,6 +222,28 @@ class Dummy:
 
     def __ne__(self, other):
         return self.binary_op(of.ne, self._value, other)
+
+    # Unary operators
+    def __pos__(self):
+        return self.unary_op(of.pos, self._value)
+
+    def __neg__(self):
+        return self.unary_op(of.neg, self._value)
+
+
+
+    """    
+    __int__
+    __float__
+    __complex__
+    __oct__
+    __hex__
+    __index__
+    __floordiv__ 
+    
+    """
+
+
 
 
     # Binary

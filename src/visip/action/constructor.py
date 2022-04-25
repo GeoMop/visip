@@ -231,9 +231,18 @@ class _Operator(ActionBase):
             else:
                 return (token,)
 
-        assert len(arg_names) == 2   # currently only binary operators
-        return representer.format(
-            *parenthesis(arg_names[0], arg_values[0]), " ",
-            self.op_repr, " ",
-            *parenthesis(arg_names[1], arg_values[1])
-        )
+        assert len(self.parameters) == len(arg_names)
+        if len(arg_names) == 1:
+            return representer.format(
+                self.op_repr, " ",
+                *parenthesis(arg_names[0], arg_values[0])
+            )
+        elif len(arg_names) == 2:
+            return representer.format(
+                *parenthesis(arg_names[0], arg_values[0]), " ",
+                self.op_repr, " ",
+                *parenthesis(arg_names[1], arg_values[1])
+            )
+        else:
+            assert False, "Wrong number of operator arguments."
+
