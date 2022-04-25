@@ -14,7 +14,7 @@ All underscored names are private
 from .code.decorators import workflow, analysis, action_def, Class, Enum
 
 # builtin
-from .action.wrapped import list, dict, tuple, If, lazy, empty
+from .action.wrapped import list, dict, tuple, If, lazy, empty, abs, round, pow, divmod
 
 
 # std

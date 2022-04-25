@@ -537,14 +537,16 @@ class Module:
         :param module_dict: A dict mapping the full module path to its imported alias.
         :return: The action name using the alias instead of the full module path.
         """
-        if obj_module == 'builtins':
-            return obj_name
-        mod_name = (obj_module, obj_name)
-        reference_name = self._object_names.get(mod_name, None)
-        if reference_name is None:
-            print("Undef reference for:", mod_name)
-            return f"{obj_module}.{obj_name}"
-        return reference_name
+        try:
+            mod_name = (obj_module, obj_name)
+            return self._object_names[mod_name]
+        except KeyError:
+            if obj_module == 'builtins':
+                return obj_name
+            else:
+                print("Undef reference for:", mod_name)
+                return f"{obj_module}.{obj_name}"
+
 
 
     def code(self) -> str:

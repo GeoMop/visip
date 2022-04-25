@@ -338,7 +338,7 @@ class _Workflow(meta.MetaAction):
         decorator = 'analysis' if self.is_analysis else 'workflow'
         params = [base._VAR_]
         for i, param in enumerate(self.parameters):
-            assert (param.name == self._slots[i].name)
+            assert (param.name == self._slots[i].name), f"{param.name} != {self._slots[i].name}"
             type_anot = representer.str_unless(': ', representer.type_code(param.type))
 
             param_def = f"{param.name}{type_anot}"
