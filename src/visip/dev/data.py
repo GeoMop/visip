@@ -44,7 +44,10 @@ def hash_stream(stream: bytearray, previous:HashValue=b"") -> HashValue:
     return hasher_fn(stream, seed=previous)
 
 def hash(data, previous=b""):
-    return hash_stream(str(data).encode('utf-8'), previous)
+    try:
+        return hash_stream(data.__hash__().to_bytes(8, 'big', signed=True), previous)
+    except AttributeError:
+        return hash_stream(str(data).encode('utf-8'), previous)
 
 
 def hash_file(file_path):

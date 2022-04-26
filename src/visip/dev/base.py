@@ -77,7 +77,8 @@ class ActionBase(dtype._ActionBase):
         - hash values of constant parameters
         :return:
         """
-        return data.hash(self.name)
+        name_hash = data.hash((self.__module__, self.__name__))
+        return data.hash(self._evaluate.__code__.__hash__(), previous=name_hash)
 
     @property
     def output_type(self):

@@ -176,7 +176,7 @@ class _Workflow(meta.MetaAction):
         self.update()
         a_hash = data.hash(self.name)
         for acall in self._sorted_calls:
-            a_hash = data.hash(acall.action.action_hash, previous=a_hash)
+            a_hash = data.hash(acall.action.action_hash(), previous=a_hash)
         return a_hash
 
 
