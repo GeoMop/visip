@@ -60,6 +60,10 @@ empty = dtype.empty
 """
 Specific value used to mark unbound positional parameters in the 'lazy' meta action. 
 """
+abs = action_def(abs)
+round = action_def(round)
+pow = action_def(pow)
+divmod = action_def(divmod)
 
 @action_def
 def _is_none(x: dtype.Any) -> dtype.Bool:
