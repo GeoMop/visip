@@ -78,7 +78,13 @@ class ActionBase(dtype._ActionBase):
         :return:
         """
         name_hash = data.hash((self.__module__, self.__name__))
-        return data.hash(self._evaluate.__code__.__hash__(), previous=name_hash)
+        try:
+            code = self._evaluate.__code__
+        except AttributeError:
+            assert self._evaluate.__module__ == 'builtins'
+            code = self.name
+
+        return data.hash(code.__hash__(), previous=name_hash)
 
     @property
     def output_type(self):
@@ -174,7 +180,7 @@ class ActionBase(dtype._ActionBase):
             f"{indent_str}pass"]
         return "\n".join(lines)
 
-    def __code__(self, representer):
+    def __visip_code__(self, representer):
         return representer.make_rel_name(self.__module__, self.name)
 
 

@@ -8,6 +8,8 @@ Test proper hashing of the actions:
 #importlib.reload(module)
 from visip.dev import module
 import visip
+from visip.dev import data
+from visip.action import std
 
 mod1 = """
 import visip as wf
@@ -55,10 +57,35 @@ def test_action_def_hash():
 
 
 @visip.workflow
-def fac(i: int):
-    fac_action = visip.lazy(fac, i-1)
-    prev = visip.If(i == 0, 1, fac_action)
+def fac(self, i: int):
+    self.fac_action = visip.lazy(fac, i-1)
+    prev = visip.If(i == 0, 1, self.fac_action)
     return prev * i
+fac1 = fac
+
+@visip.workflow
+def fac(self, i: int):
+    fac_action = visip.lazy(fac, i-1)
+    self.prev = visip.If(i == 0, 1, fac_action)
+    return self.prev * i
+fac2 = fac
+
+@visip.workflow
+def fac(self, i: int):
+    fac_action = visip.lazy(fac, i - 1)
+    self.prev = visip.If(i == 1, 1, fac_action)
+    return self.prev * i
+fac3 = fac
 
 def test_meta():
-    print(fac.workflow.action_hash())
+    assert fac1.workflow.action_hash() == fac2.workflow.action_hash()
+    assert fac1.workflow.action_hash() != fac3.workflow.action_hash()
+
+def test_data():
+    a = data.hash(std.SysFile.PIPE._value.action.value)
+    b = data.hash(std.SysFile.STDOUT._value.action.value)
+    c = data.hash(std.SysFile.DEVNULL._value.action.value)
+    assert a != b
+    assert a != c
+    assert b != c
+
