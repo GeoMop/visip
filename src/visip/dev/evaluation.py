@@ -474,11 +474,11 @@ class Evaluation:
                 raise Exception(invalid_connections)
             self.expansion_iter = 0
             while not self.force_finish:
-                schedule = self.expand_tasks()
+                schedule = self.expand_tasks()  # returns list of expanded atomic tasks to schedule
                 if self.plot_expansion:
                     self._plot_task_graph(self.expansion_iter)
-                self.tasks_update(schedule)
-                self.scheduler.optimize()
+                self.tasks_update(schedule)     # pass the list to the scheduler, update its hash -> task dictionary
+                self.scheduler.optimize()       # currently performs full CPM algorithm
                 self.scheduler.update()
                 if self.scheduler.n_assigned_tasks == 0:
                     self.force_finish = True
@@ -507,18 +507,18 @@ class Evaluation:
         while self.queue and not self.force_finish and self.scheduler.can_expand():
             composed_id, time, composed_task = heapq.heappop(self.queue)
             task_dict = composed_task.expand(self.cache)
-            self.log.task_expand(composed_task, task_dict)
 
             if task_dict is None:
                 # Can not expand yet, return back into queue
                 postpone_expand.append(composed_task)
             else:
+                self.log.task_expand(composed_task, task_dict)
                 # print("Expanded: ", task_dict)
                 for task in task_dict.values():
                     if isinstance(task, task_mod.Composed):
                         self.enqueue(task)
                     schedule.append(task)
-                self.tasks_update([composed_task])
+                self.tasks_update([composed_task])  # ?? direct scheduling of resulting composed task stub, can be avoided ?
         for task in postpone_expand:
             self.enqueue(task)
         return schedule

@@ -255,6 +255,15 @@ class Composed(Atomic):
             None if the expansion can not be performed, yet.
             Dictionary of child tasks (action_instance_name -> task)
             Empty dict is valid result, used to indicate end of a loop e.g. in the case of ForEach and While actions.
+        TODO: tail expansion:
+        - no (artificial) task dependent on the body of expansion
+        - remove auxiliary Pass tasks from the DAG, can possibly be done with two side hash links
+        - task.outputs used in expand() and _collect_finished()
+        - composed inputs are hashes, expansion must replace slots (in their outputs)
+        - or we can have dedicated PassTask (for slots etc.) this can be removed on any  DAG search
+        - tasks dependent on the result - got through composed.outputs (must be pair task, input), must replace particular input hash
+        - tasks dependent on the composed have invalid hash
+
         """
         assert self.action.task_type is base.TaskType.Composed
         assert hasattr(self.action, 'expand')
