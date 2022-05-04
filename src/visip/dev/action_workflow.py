@@ -361,7 +361,8 @@ class _Workflow(meta.MetaAction):
             if code:
                 inst_repr = self.InstanceRepr(code, subst_prob)
                 for name in code.placeholders:
-                    inst_exprs[name].n_uses += 1
+                    if name in inst_exprs:
+                        inst_exprs[name].n_uses += 1
                 inst_order.append(full_name)
             else:
                 inst_repr = self.InstanceRepr(None, 0.0)
@@ -379,12 +380,13 @@ class _Workflow(meta.MetaAction):
                 placeholders = inst_repr.code.placeholders
                 while len(placeholders) == 1:
                     arg_full_name = placeholders.pop()
-                    arg_repr = inst_exprs[arg_full_name]
-                    if arg_repr.subst_prob > 0.0 and arg_repr.n_uses < 2:
-                        inst_repr.code = inst_repr.code.substitute(arg_full_name, arg_repr.code)
-                        del inst_exprs[arg_full_name]
-                    else:
-                        break
+                    if arg_full_name in inst_exprs:
+                        arg_repr = inst_exprs[arg_full_name]
+                        if arg_repr.subst_prob > 0.0 and arg_repr.n_uses < 2:
+                            inst_repr.code = inst_repr.code.substitute(arg_full_name, arg_repr.code)
+                            del inst_exprs[arg_full_name]
+                        else:
+                            break
 
         # Substitute into multi arg actions
         for full_inst in reversed(inst_order):
@@ -394,7 +396,7 @@ class _Workflow(meta.MetaAction):
 
                 while True:
                     subst_candidates = [(inst_exprs[n].code.len_est(), n)
-                                        for n in inst_repr.code.placeholders if inst_exprs[n].prob() > 0]
+                                        for n in inst_repr.code.placeholders if n in inst_exprs and inst_exprs[n].prob() > 0]
                     if not subst_candidates:
                         break
                     len_est, name = min(subst_candidates)
@@ -562,7 +564,7 @@ class _Workflow(meta.MetaAction):
             In particular slots are named by corresponding parameter name and result task have name '__result__'
         """
         if self.update() != self.Status.ok:
-            raise exceptions.ExcInvalidWorkflow
+            raise exceptions.ExcInvalidWorkflow(self.status)
         childs = {}
         assert len(self._slots) == len(task.inputs)
         for slot, input in zip(self._slots, task.inputs):

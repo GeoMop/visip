@@ -73,16 +73,16 @@ class EvaluationScene(GBaseModelScene):
 
     def update_states(self, finished=False):
         if self.task.childs is not None:
-            for instance_name, instance in self.task.childs.items():
-                if isinstance(instance.action, _Value):
-                    if not isinstance(instance.action.value, dtype._ActionBase):
+            for instance_name, task in self.task.childs.items():
+                if isinstance(task.action, _Value):
+                    if not isinstance(task.action.value, dtype._ActionBase):
                         continue
 
                 action = self.get_action(instance_name)
-                status = StatusMaping[instance.status]
+                status = StatusMaping[task.status]
                 if action.status != status:
                     action.status = status
-                    action.widget.set_data(instance._result)
+                    action.widget.set_data(self.eval_gui.cached_result(task.result_hash))
         if not self.eval_gui.eval_thread.is_alive() and not finished:
             self.eval_gui.finished.emit()
 
