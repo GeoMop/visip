@@ -52,8 +52,9 @@ class ActionArgument:
     type_exception: ExcTypeBase = None
     # exception or other kind of error specification
     call_type: Optional[dtype.DType] = None
+    # parameter.type with unique typevar instances.
     actual_type: Optional[dtype.DType] = None
-
+    # Type after workflow check and possible typevar substitutions.
 
 class ActionCall:
     @staticmethod

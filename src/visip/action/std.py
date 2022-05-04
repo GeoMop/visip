@@ -104,7 +104,7 @@ def system(arguments: Command, stdout: Redirection = None, stderr: Redirection =
         args = [str(arg) for arg in arguments]
         stdout = _subprocess_handle(stdout)
         stderr = _subprocess_handle(stderr)
-        print("syscall: ", args)
+        #print("syscall: ", args)
         if sys.platform == 'win32':
             result = subprocess.run(args, stdout=stdout, stderr=stderr, shell=True) # solution from https://stackoverflow.com/questions/24306205/file-not-found-error-when-launching-a-subprocess-containing-piped-commands
         else:
