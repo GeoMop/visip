@@ -30,7 +30,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self._init_menu()
         self._init_docks()
 
-
         if not self.cfg.contains("mainWindow/geometry"):
             self.resize(1000, 720)
             self.move(300, 50)
@@ -86,6 +85,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.properities_dock.setObjectName("properities_dock")
         self.properities_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea)
         self.addDockWidget(Qt.RightDockWidgetArea, self.properities_dock)
+
+    def open_module(self, filename):
+        self.tab_widget.open_module(filename)
 
     def export_to_file(self, filename=None):
         if not isinstance(filename, str):
