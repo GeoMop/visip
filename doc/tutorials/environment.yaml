@@ -1,0 +1,18 @@
+# total number of reserved process, separated to groups: 
+np : 8
+
+# Reserve folloving for parallel resources (external MPI processes trigered by the master)
+parallel_resources: 
+    - 2 # one parallel resource consisting of 2 processes 
+    - 4 # one parallel resource consisting of 4 processes
+
+# Create a PBS job and run inside it.
+pbs:
+    queue: charon24
+    memory: 1GB
+    # additional keys, in particular ncpu
+
+# A singularity container URL.
+container: docker://flow123d/visip.py:ci_<commit>
+
+    
