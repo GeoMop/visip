@@ -99,6 +99,10 @@ class _DefUnknown(_DefBase):
     alias: str
     obj: object
 
+class StringModuleLoader(importlib.abc.Loader):
+    pass
+
+
 
 class Module:
     """
@@ -172,9 +176,10 @@ class Module:
         return len(name) > 4 and name.isascii() and name.startswith('__') and name.endswith('__')
 
     @classmethod
-    def add_module(cls, py_module):
+    def add_module(cls, py_module, reload=False):
         try:
-            return cls._modules[py_module.__name__]
+            if not reload:
+                return cls._modules[py_module.__name__]
         except KeyError:
             pass
         try:
@@ -193,21 +198,20 @@ class Module:
         #    print(visip_mod.info())
         return visip_mod
 
-    # @classmethod
-    # def add_module_by_name(cls, mod_name:str):
-    #     try:
-    #         mod = sys.modules[mod_name]
-    #     except KeyError:
-    #         if mod_name is not None:
-    #             print(f"DBG No module: {mod_name}")
-    #         pass
-    #     else:
-    #         cls.add_module(mod)
+    @classmethod
+    def make_module(cls, module_name: str, source_string: str) -> 'Module':
+        loader = StringModuleLoader()
+        spec = importlib.machinery.ModuleSpec(module_name, loader)
+        new_module = importlib.util.module_from_spec(spec)
+        visip_exec(source_string, new_module.__dict__, locals=None, description=module_name)
+        new_module.__file__ = "__from_string__"
+        return cls.add_module(new_module, reload=True)
 
     @classmethod
     def load_module(cls, file_path: str) -> 'Module':
         """
-        Import the python module from the file.
+        Load VISIP main module, recursively search all loaded modules detect
+        VISIP modules and moke Module instances for them.
         Temporary add its directory to the sys.path in order to find modules in the same directory.
         TODO: Create an empty module if the file doesn't exist.
         :param file_path: Module path to load.
@@ -220,11 +224,10 @@ class Module:
         with open(file_path, "r") as f:
             source = f.read()
         with sys_path_append(module_dir):
-            # new_module = imp.new_module(module_name)
             spec = importlib.util.find_spec(module_name)
             new_module = importlib.util.module_from_spec(spec)
             visip_exec(source, new_module.__dict__, locals=None, description=module_name)
-        return cls.add_module(new_module)
+            return cls.add_module(new_module)
 
     def __init__(self, py_module: ModuleType, module_path: str) -> None:
         """

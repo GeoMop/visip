@@ -18,6 +18,9 @@ class Value(ActionBase):
         self.action_kind = base.ActionKind.Meta
         self.value = value
 
+    def __repr__(self):
+        return f"Value({self.value})"
+
     def action_hash(self):
         salt_hash = data.hash("Value")
         # In the case of "action" value with action having no parameters, we have to distinguish
@@ -171,7 +174,7 @@ class EnumActionBase(ActionBase):
     """
     def __init__(self, enum_class):
         assert isinstance(enum_class, enum.EnumMeta), str(enum_class)
-        enum_class.__code__ = self.code_of_item
+        enum_class.__visip_code__ = self.code_of_item
         signature = Parameters([ActionParameter("enum_item", dtype.Int)], return_type=dtype.Enum(enum_class))
         super().__init__(enum_class.__name__, signature)
         self._enum_class = enum_class

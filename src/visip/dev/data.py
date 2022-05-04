@@ -44,8 +44,20 @@ def hash_stream(stream: bytearray, previous:HashValue=b"") -> HashValue:
     return hasher_fn(stream, seed=previous)
 
 def hash(data, previous=b""):
-    return hash_stream(str(data).encode('utf-8'), previous)
+    #return hash_stream(str(data).encode('utf-8'), previous)
+    if isinstance(data, int):
+        int_data = int(data)
+        return hash_stream(int_data.to_bytes(8,'big',signed=True))
 
+    hash_method = None
+    try:
+        hash_method = data.__hash__
+    except AttributeError:
+        pass
+    if hash_method is not None:
+        return hash_stream(hash_method().to_bytes(8, 'big', signed=True), previous)
+    else:
+        return hash_stream(str(data).encode('utf-8'), previous)
 
 def hash_file(file_path):
     # BUF_SIZE is totally arbitrary, change for your app!

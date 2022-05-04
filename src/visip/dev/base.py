@@ -55,7 +55,7 @@ class ActionBase(dtype._ActionBase):
         self._parameters = signature
         # Parameter specification list, class attribute, no parameters by default.
 
-    def __str__(self):
+    def __repr__(self):
         return self.name
 
     # @property
@@ -77,7 +77,14 @@ class ActionBase(dtype._ActionBase):
         - hash values of constant parameters
         :return:
         """
-        return data.hash(self.name)
+        name_hash = data.hash((self.__module__, self.__name__))
+        try:
+            code = self._evaluate.__code__
+        except AttributeError:
+            assert self._evaluate.__module__ == 'builtins'
+            code = self.name
+
+        return data.hash(code.__hash__(), previous=name_hash)
 
     @property
     def output_type(self):
@@ -173,7 +180,7 @@ class ActionBase(dtype._ActionBase):
             f"{indent_str}pass"]
         return "\n".join(lines)
 
-    def __code__(self, representer):
+    def __visip_code__(self, representer):
         return representer.make_rel_name(self.__module__, self.name)
 
 
