@@ -249,8 +249,9 @@ class _Workflow(meta.MetaAction):
         self._action_calls = actions
         self._sorted_calls = topology_sort
 
-        #if self._status != self.Status.cycle:
-        self._check_types()
+        if self._status != self.Status.cycle:
+            #print("Check WF ", self.name)
+            self._check_types()
 
         return self.status
 

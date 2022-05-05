@@ -249,7 +249,7 @@ class TypeVar(DTypeBase):
         return self.origin_type.__hash__()
 
     def __repr__(self):
-        return f"TypeVar({self.origin_type}"
+        return f"TypeVar({self.origin_type})"
 
     def _equal_(self, other):
         if isinstance(other, TypeVar):
@@ -998,27 +998,21 @@ def check_type_var(input, output):
     return out_set.issubset(in_set)
 
 
-def substitute_type_vars(type, var_map, create_new=False, recursive=False):
+def substitute_type_vars(type, var_map, create_new=False):
     """
     If type contains type_var which is in var_map than substitutes it.
     If create_new is True than every type_var which is not in var_map is substituted with new type_var.
-    If recursive is True than all type_vars in substituted type are substituted too.
 
     :param type:
     :param var_map: 
     :param create_new: 
-    :param recursive: 
     :return: (substituted_type, updated_var_map)
     """
 
     # TypeVar
     if isinstance(type, TypeVar):
         if type in var_map:
-            if recursive:
-                sub, var_map = substitute_type_vars(var_map[type], var_map, create_new, True)
-                return sub, var_map
-            else:
-                return var_map[type], var_map
+            return var_map[type], var_map
         if create_new:
             t = TypeVar(name=type.origin_type.__name__)
             var_map = var_map.copy()
@@ -1031,7 +1025,7 @@ def substitute_type_vars(type, var_map, create_new=False, recursive=False):
     if isinstance(type, Tuple):
         args = []
         for a in type.args:
-            t, var_map = substitute_type_vars(a, var_map, create_new, recursive)
+            t, var_map = substitute_type_vars(a, var_map, create_new)
             args.append(t)
         return Tuple(*args), var_map
 
@@ -1039,24 +1033,24 @@ def substitute_type_vars(type, var_map, create_new=False, recursive=False):
     if isinstance(type, Union):
         args = []
         for a in type.args:
-            t, var_map = substitute_type_vars(a, var_map, create_new, recursive)
+            t, var_map = substitute_type_vars(a, var_map, create_new)
             args.append(t)
         return Union(*args), var_map
 
     # List
     if isinstance(type, List):
-        t, var_map = substitute_type_vars(type.arg, var_map, create_new, recursive)
+        t, var_map = substitute_type_vars(type.arg, var_map, create_new)
         return List(t), var_map
 
     # Dict
     if isinstance(type, Dict):
-        k, var_map = substitute_type_vars(type.key, var_map, create_new, recursive)
-        v, var_map = substitute_type_vars(type.value, var_map, create_new, recursive)
+        k, var_map = substitute_type_vars(type.key, var_map, create_new)
+        v, var_map = substitute_type_vars(type.value, var_map, create_new)
         return Dict(k, v), var_map
 
     # Const
     if isinstance(type, Const):
-        t, var_map = substitute_type_vars(type.args[0], var_map, create_new, recursive)
+        t, var_map = substitute_type_vars(type.args[0], var_map, create_new)
         return Const(t), var_map
 
     # others
@@ -1069,11 +1063,17 @@ def expand_var_map(var_map):
     :param var_map:
     :return:
     """
-    exp_var_map = {}
-    for var, t in var_map.items():
-        sub, _ = substitute_type_vars(t, var_map, recursive=True)
-        exp_var_map[var] = sub
-    return exp_var_map
+    new_var_map = var_map
+    var_map = {}
+    while var_map != new_var_map:
+        var_map = new_var_map
+        var_map_list = list(var_map.items())
+        new_var_map = {}
+        for var, t in var_map_list:
+            sub, _ = substitute_type_vars(t, var_map)
+            new_var_map[var] = sub
+
+    return var_map
 
 
 valid_base_types = (bool, int, float, complex, str)
