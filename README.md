@@ -1,9 +1,29 @@
-# visip
-Visual Simulation Programming
+# Visip - VIsual SImulation Programming
 
+## Rationale
+Simulation workflows are usually composed from several dependent steps forming a directid acyclic graph ([DAG](https://en.wikipedia.org/wiki/Directed_acyclic_graph)).
+A single step of this DAG could be a simple task as copying of a file or extracting a few numbers from a file via. a Python script, 
+ot it may be a complex task as several hours long parallel finite element calculation.
+Developing such a DAG is often painful for following reasons:
 
+### Slow Feedback
+Slow error feedback is related to the complex tasks. Thier runtimes are huge and usage of an [HPC](https://en.wikipedia.org/wiki/High-performance_computing) system is necessary.
+Further latency is caused by waiting to the free resources as the task is processed by the job scheduling system (JSS), e.g. [PBS](https://en.wikipedia.org/wiki/Portable_Batch_System)).
+One solution is to test the task DAG with simplified complex tasks (e.g. using a coarse computational grid) idealy on the local workstation without dealing with JSS.
+However, this leads to other issues ..
 
-## Essential features (TODO)
+### Scaling and Portability Issues
+Porting the workflow from the workstation to the HPC system is laborous due to complex software dependencies.
+
+## Essential features 
+- simulation workflow DAG is described in a form of simple pure functional language based on Python
+- automatic type deduction and checking is performed to catch some errors before execution
+- task results are stored to a permanent cache allowing to skip repeated calculations for the same inputs
+- automatic parallelization (grouping of small tasks)
+- graphical language
+- conteiners
+
+## Pure Functional Language
 - visip docker image
 - typy: time map (time -> snapshot), bilance, VTK,
 - zobrazovani dat z vypoctu: hodnoty, pole, BREP, MSH, VTK

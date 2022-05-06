@@ -29,7 +29,7 @@ class DataClassBase:
     """
     @classmethod
     def set_visip_type(cls, type):
-        print("Set visip: ", cls, " = ", type)
+        #print("Set visip: ", cls, " = ", type)
         cls.__visip_type = type
         return type
 

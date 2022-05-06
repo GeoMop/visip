@@ -1,7 +1,8 @@
 import attr
 import enum
+from typing import *
 from typing import Any, Optional
-from . import base
+from . import base, data
 from . import dfs
 from . import meta
 from . import exceptions
@@ -138,7 +139,7 @@ class _Workflow(meta.MetaAction):
         # internal structures
         self._action_calls = {self._result_call}
         # Dict:  unique action instance name -> action instance.
-        self._sorted_calls = []
+        self._sorted_calls: List[ActionCall] = []
         # topologically sorted action instance names (result last)
         self._type_var_map = {}
         # type_var mapping, define lower limit of TypeVar, in algorithm may be raised, like T -> Int to T -> Union[Int, Str]
@@ -170,6 +171,14 @@ class _Workflow(meta.MetaAction):
     @property
     def status(self):
         return self._status
+
+    def action_hash(self):
+        self.update()
+        a_hash = data.hash(self.name)
+        for acall in self._sorted_calls:
+            a_hash = data.hash(acall.action.action_hash(), previous=a_hash)
+        return a_hash
+
 
     def set_signature_from_function(self, func):
         #try:
@@ -277,11 +286,11 @@ class _Workflow(meta.MetaAction):
                 type_var_restraints_back = self._type_var_restraints
                 try:
                     b, self._type_var_map, self._type_var_restraints = dtype.is_subtype_map(
-                        arg.value.actual_output_type, arg.actual_type, self._type_var_map, self._type_var_restraints)
+                        arg.value.call_output_type, arg.call_type, self._type_var_map, self._type_var_restraints)
                     if not b:
                         types_ok = False
                         arg.status = ActionInputStatus.error_type
-                        self._type_error_list.append(WorkflowTypeErrorItem(call, arg, arg.value.actual_output_type, arg.actual_type))
+                        self._type_error_list.append(WorkflowTypeErrorItem(call, arg, arg.value.call_output_type, arg.call_type))
                         self._type_var_map = type_var_map_back
                         self._type_var_restraints = type_var_restraints_back
                 except TypeError:
@@ -298,8 +307,8 @@ class _Workflow(meta.MetaAction):
         # forward
         for call in self._sorted_calls:
             for arg in call.arguments:
-                arg.actual_type, _ = dtype.substitute_type_vars(arg.actual_type, self._type_var_map)
-            call.actual_output_type, _ = dtype.substitute_type_vars(call.actual_output_type, self._type_var_map)
+                arg.actual_type, _ = dtype.substitute_type_vars(arg.call_type, self._type_var_map)
+            call.actual_output_type, _ = dtype.substitute_type_vars(call.call_output_type, self._type_var_map)
 
     def dependencies(self):
         """
@@ -339,7 +348,7 @@ class _Workflow(meta.MetaAction):
         decorator = 'analysis' if self.is_analysis else 'workflow'
         params = [base._VAR_]
         for i, param in enumerate(self.parameters):
-            assert (param.name == self._slots[i].name)
+            assert (param.name == self._slots[i].name), f"{param.name} != {self._slots[i].name}"
             type_anot = representer.str_unless(': ', representer.type_code(param.type))
 
             param_def = f"{param.name}{type_anot}"
@@ -567,18 +576,20 @@ class _Workflow(meta.MetaAction):
         if self.update() != self.Status.ok:
             raise exceptions.ExcInvalidWorkflow(self.status)
         childs = {}
+        tasks = {}
         assert len(self._slots) == len(task.inputs)
         for slot, input in zip(self._slots, task.inputs):
             # shortcut the slots
             # task = task_creator(slot.name, Pass(), [input])
-            childs[slot.name] = input
+            tasks[slot.name] = input
         for action_call in self._sorted_calls:
             if isinstance(action_call, _SlotCall):
                 continue
             # TODO: eliminate dict usage, assign a call rank to the action calls
             # TODO: use it to index tasks in the resulting task list 'childs'
-            arg_tasks = [childs[arg.value.name] for arg in action_call.arguments]
+            arg_tasks = [tasks[arg.value.name] for arg in action_call.arguments]
             task_binding = TaskBinding(action_call.name, action_call.action, action_call.id_args_pair, arg_tasks)
             child_task = task_creator(task_binding)
             childs[action_call.name] = child_task
+            tasks[action_call.name] = child_task
         return childs

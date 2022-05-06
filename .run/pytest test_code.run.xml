@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="pytest test_code" type="tests" factoryName="py.test">
+  <configuration default="false" name="pytest test_code" type="tests" factoryName="py.test" folderName="code">
     <module name="visip" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />

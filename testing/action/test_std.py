@@ -36,10 +36,10 @@ def test_file():
 @wf.workflow
 def system_test_wf(self, script_name: str)  -> wf.ExecResult:
     script = wf.file_in(script_name)
-    self.res = wf.system(
+    self.msg = wf.system(
         ['echo', "Hallo world"],
         stdout=wf.file_out('msg_file.txt'))
-    self.msg_file = wf.file_in('msg_file.txt', self.res.workdir)
+    self.msg_file = wf.file_in('msg_file.txt', self.msg.workdir)
     self.res = wf.system(['python', script, "-m", self.msg_file, "123"], stdout=wf.SysFile.PIPE, stderr=wf.SysFile.STDOUT)
     return self.res
 

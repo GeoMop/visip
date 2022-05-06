@@ -26,7 +26,7 @@ def test_enum_decorator():
     """
     TODO:
     - fix get_attr for Enum
-    - enumitem.__code__, 
+    - enumitem.__visip_code__, 
     - tox
     
     """
