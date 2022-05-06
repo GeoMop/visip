@@ -16,6 +16,7 @@ from typing import Optional, List, Dict, Tuple, Any, Union
 import logging
 import heapq
 import time
+from .environment import Environment
 
 from . import data, task as task_mod, base, dfs, action_instance as instance, dtype
 from .task_result import TaskResult
@@ -24,85 +25,8 @@ from ..eval.cache import ResultCache
 from ..code.unwrap import into_action
 from ..code.dummy import Dummy, DummyAction, DummyWorkflow
 from . import tools
+from . import resource
 
-
-class Resource:
-    """
-    Model for a computational resource.
-    Resource can provide various kind of feautres specified by dictionary of tags with values None, int or string.
-    A task (resp. its action) can specify requested tags, such task can be assigned only to the resource that
-    have these tags and have value of an integer tag greater then value of the task.
-
-    We shall start with fixed number of resources, dynamic creation of executing PBS jobs can later be done.
-
-    """
-    def __init__(self, cache:ResultCache):
-        """
-        Initialize time scaling and other features of the resource.
-        """
-        self.start_latency = 0.0
-        # Average time from assignment to actual execution of the task. [seconds]
-        self.stop_latency = 0.0
-        # Average time from finished task till assignment to actual execution of the task. [seconds]
-        self.ref_time = 1.0
-        # Average run time for a reference task with respect to the execution on the reference resource.
-        self.n_threads = 1
-        # Number of threads we can assign to the resource.
-        self.n_mpi_proces = 0
-        # Maximal number of MPI processes one can assign.
-        self._finished = []
-
-
-        self.cache = cache
-
-        self.action_kind_list = [base.ActionKind.Regular, base.ActionKind.Meta, base.ActionKind.Generic]
-        # list of action kind that this resource is capable run
-
-    # def assign_task(self, task, i_thread=None):
-    #     """
-    #     Just evaluate tthe task immediately.
-    #     :param task:
-    #     :param i_thread:
-    #     :return:
-    #     """
-    #     task.evaluate()
-    #
-    # def assign_mpi_task(self, task, n_mpi_procs=None):
-    #     pass
-
-    def get_finished(self):
-        """
-        Return list of the tasks finished since the last call.
-        :return:
-        """
-        finished = self._finished
-        self._finished = []
-        return finished
-
-    def submit(self, task):
-        """
-        Basic resource implementation with immediate evaluation of the task during submit.
-        :param task:
-        :return:
-        """
-
-        # TODO: move skipping of finished tasks to the scheduler before submit
-        # Do not test again in the Resource, possibly only for longer tasks
-        res_value = self.cache.value(task.result_hash)
-        if res_value is self.cache.NoValue:
-            #assert task.is_ready()
-            data_inputs = [self.cache.value(ih) for ih in task.input_hashes]
-            #if any([i is self.cache.NoValue for i in data_inputs]):
-            #    print(task.action, data_inputs)
-            assert not any([i is self.cache.NoValue for i in data_inputs])
-            args, kwargs = task.inputs_to_args(data_inputs)
-            res_value = task.evaluate_fn(*args, **kwargs)
-            # print(task.action)
-            # print(task.inputs)
-            # print(task_hash, res_value)
-            self.cache.insert(task.result_hash, res_value)
-
-        self._finished.append(task)
 
 
 class EvalLogger:
@@ -145,7 +69,7 @@ class EvalLogger:
         #     self._logger.info(f"    Can not expand yet.")
 
 class Scheduler:
-    def __init__(self, resources:Resource, cache:ResultCache, n_tasks_limit:int = 1024):
+    def __init__(self, resources: resource.ResourceBase, cache:ResultCache, n_tasks_limit:int = 1024):
         """
         :param tasks_dag: Tasks to be evaluated.
         """
@@ -367,7 +291,7 @@ class Evaluation:
         self.cache = ResultCache()
 
         if scheduler is None:
-            scheduler = Scheduler([ Resource(self.cache) ], self.cache)
+            scheduler = Scheduler([ resource.Resource(self.cache) ], self.cache)
         self.scheduler = scheduler
         self.scheduler.log = self.log
         self.workspace = workspace
@@ -637,3 +561,15 @@ def run_plot(action: Union[dtype._ActionBase, DummyAction],
     """
     return Evaluation(plot_expansion=True).run(action, *args, **kwargs).result
 
+def run_env(script_path:str, env_cfg: dict=None):
+    if env_cfg is None:
+        env_cfg = {}
+    env = Environment.load(env_cfg)
+    if env.pbs is None:
+        assert env.container is None
+        cache = ResultCache()
+        resources = [resource.Resource(cache)] # always have the local resource
+        resources.extend([resource.Multiprocess(n, cache) for n in env.np])
+
+        scheduler = Scheduler(resources, cache)
+        Evaluation(scheduler, env.workspace)

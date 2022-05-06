@@ -1,18 +1,38 @@
-# total number of reserved process, separated to groups: 
-np : 8
+#############
+# Environment template/example file.
+# Uee cases:
+#   local - run multiprocess/MPI in container, can contain PBSResource
+#   PBS - create the PBS script, reserve processes (collect from resources), start processes from the PBS script
 
-# Reserve folloving for parallel resources (external MPI processes trigered by the master)
-parallel_resources: 
-    - 2 # one parallel resource consisting of 2 processes 
-    - 4 # one parallel resource consisting of 4 processes
+# Directory name. Can use '~' which is correctly replaced by th HOME directory
+# Allows to have different HOME dir at remote resources.
+# Can have different HOME path at nodes.
+workspace: _visip_workspace
 
-# Create a PBS job and run inside it.
+# total number of reserved process, separated to groups:
+resources:
+    # single local resource is always at the beginning
+    - type: 'MultiProcess'
+      multiplicity: 2 #  # instancies
+      np: 1 # multiprocess pool size per instance
+      # TODO: allow multiprocess or MPI process polls on remote nodes.
+      # automate creation of the PBS job file
+
+    #- type: 'PBSResource'
+      # multiplicity: ...
+      #queue:
+      #np: # ...
+      #memory: Multiprocess pool
+
+
+# Create a wrapping PBS job and run whole analysis inside it.
 pbs:
     queue: charon24
     memory: 1GB
-    # additional keys, in particular ncpu
+    # additional keys
+    # nproc should be determined automatically from resources
 
 # A singularity container URL.
-container: docker://flow123d/visip.py:ci_<commit>
+container: docker://flow123d/visip:ci_<commit>
 
     
