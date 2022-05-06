@@ -30,7 +30,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self._init_menu()
         self._init_docks()
 
-
         if not self.cfg.contains("mainWindow/geometry"):
             self.resize(1000, 720)
             self.move(300, 50)
@@ -87,9 +86,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.properities_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea | Qt.BottomDockWidgetArea)
         self.addDockWidget(Qt.RightDockWidgetArea, self.properities_dock)
 
+    def open_module(self, filename):
+        self.tab_widget.open_module(filename)
+
     def export_to_file(self, filename=None):
         if not isinstance(filename, str):
-            filename = QtWidgets.QFileDialog.getSaveFileName(self, "Export Module", self.cfg.last_opened_directory, "Python File (*.py))")[0]
+            filename = QtWidgets.QFileDialog.getSaveFileName(self, "Export Module", self.cfg.last_opened_directory, "Python source (*.py);;All (*)")[0]
         if filename != "":
             self.cfg.last_opened_directory = os.path.dirname(filename)
             code = self.tab_widget.currentWidget()._module.code()

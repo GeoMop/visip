@@ -55,6 +55,12 @@ class ActionArgument:
     # parameter.type with unique typevar instances.
     actual_type: Optional[dtype.DType] = None
     # Type after workflow check and possible typevar substitutions.
+    # @property
+    # def value(self):
+    #     if self._value is None:
+    #         return dtype.empty
+    #     else:
+    #         return self._value
 
 class ActionCall:
     @staticmethod
@@ -453,7 +459,8 @@ class ActionCall:
         Return a representation of the action instance.
         This is generic representation code that calls the constructor.
         """
-        arg_names = [arg.value.get_code_instance_name() for arg in self.arguments]
+        name_for_val = lambda v : "__empty__" if v is None else v.get_code_instance_name()
+        arg_names = [name_for_val(arg.value) for arg in self.arguments]
         arg_values = [arg.value for arg in self.arguments]
 
         full_action_name = representer.make_rel_name(self.action.__module__, self.action.__name__)

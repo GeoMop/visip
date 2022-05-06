@@ -12,6 +12,7 @@ from visip_gui.widgets.evaluation_scene import EvaluationScene
 from visip_gui.widgets.evaluation_view import EvaluationView
 
 
+
 class GUIEvaluation(QWidget):
     finished = pyqtSignal()
     def __init__(self, analysis, eval_window):
@@ -54,6 +55,8 @@ class GUIEvaluation(QWidget):
         #while thread.is_alive():
         #    QApplication.processEvents()
 
+    def cached_result(self, result_hash):
+        return self.evaluation.cache.value(result_hash)
 
     def end_evaluation(self):
         self.timer.stop()

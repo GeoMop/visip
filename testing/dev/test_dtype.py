@@ -731,9 +731,6 @@ def test_substitute_type_vars():
     assert tt is not t
     assert eq(vm[t], tt)
 
-    # recursive
-    tt, vm = sub_tv(t, {t: List(u), u: Int}, recursive=True)
-    assert eq(tt, List(Int))
 
     # Tuple
     tt, vm = sub_tv(Tuple(t, Int), {t: Str})
