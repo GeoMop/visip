@@ -386,13 +386,14 @@ class Module:
         if self.is_visip_module():
             assert self.module_file != "", f"Missing file path for the VISIP module: {self}"
 
-        assert len(analysis) <= 1
-        if analysis:
-            # make instance of the main workflow
-            analysis = analysis[0]
-            self.analysis = ActionCall.create(analysis)
-        else:
-            self.analysis = None
+        # self.analysis = analysis
+        # #assert len(analysis) <= 1, [x.name for x in analysis]
+        # if analysis:
+        #     # make instance of the main workflow
+        #     analysis = analysis[0]
+        #     self.analysis = ActionCall.create(analysis)
+        # else:
+        #     self.analysis = None
 
     def new_object_names(self):
         """

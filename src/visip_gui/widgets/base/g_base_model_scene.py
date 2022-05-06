@@ -72,7 +72,7 @@ class GBaseModelScene(QGraphicsScene):
                     status = action_argument.status
                     if action_argument.parameter.type is not None:
                         if hasattr(action_argument.parameter.type, '__name__'):
-                            if ti.TypeInspector().is_constant(action_argument.parameter.type):
+                            if dtype.TypeInspector.is_constant(action_argument.parameter.type):
                             #if action_argument.parameter.type.__name__ == "Constant":  # hacky way, but the only one that I found
                                 g_action = self.get_action(action_name)
                                 port = g_action.in_ports[i]

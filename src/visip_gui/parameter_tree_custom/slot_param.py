@@ -52,7 +52,7 @@ class SlotParam(parametertree.parameterTypes.GroupParameter):
 
     def get_data(self):
         if self.arg is not None and self.arg.value is not None:
-            if isinstance(self.arg.value.action, _Value):
+            if isinstance(self.arg.value.action, Value):
                 if isinstance(self.arg.value.action.value, dtype._ActionBase):
                     return "Connected to: " + self.arg.value.name
                 else:
