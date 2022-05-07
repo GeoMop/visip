@@ -1,5 +1,5 @@
 import visip as wf
-import toolbox  # visip module
+from modules import toolbox  # visip module
 """
 Simple analysis:
 + several interconnected workflows 

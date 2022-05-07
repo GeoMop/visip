@@ -7,7 +7,7 @@
 # Directory name. Can use '~' which is correctly replaced by th HOME directory
 # Allows to have different HOME dir at remote resources.
 # Can have different HOME path at nodes.
-workspace: _visip_workspace
+workspace: "~/_visip_workspace"
 
 # total number of reserved process, separated to groups:
 resources:
@@ -18,12 +18,16 @@ resources:
       # TODO: allow multiprocess or MPI process polls on remote nodes.
       # automate creation of the PBS job file
 
+    # External process, may need separate container. ??
+    #- type: 'Subprocess'
+    #  np: 2
+    #  container
     #- type: 'PBSResource'
       # multiplicity: ...
       #queue:
       #np: # ...
       #memory: Multiprocess pool
-
+      # container
 
 # Create a wrapping PBS job and run whole analysis inside it.
 pbs:
@@ -33,6 +37,7 @@ pbs:
     # nproc should be determined automatically from resources
 
 # A singularity container URL.
+# Container for the min VISIP process and multiprocess workers.
 container: docker://flow123d/visip:ci_<commit>
 
     

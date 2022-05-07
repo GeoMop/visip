@@ -24,8 +24,8 @@ from .action_workflow import _Workflow
 from ..eval.cache import ResultCache
 from ..code.unwrap import into_action
 from ..code.dummy import Dummy, DummyAction, DummyWorkflow
-from . import tools
-from . import resource
+from . import tools, module, resource
+
 
 
 
@@ -182,11 +182,16 @@ class Scheduler:
                         self._task_map[key].append(task)
                     else:
                         self._task_map[key] = [task]
-                        self.resources[task.resource_id].submit(task.task)
-                        value = self.cache.value(task.id)
-                        self.log.task_submit(task, value)
+                        self.assign_task(task)
+
                 del self.tasks[task.id]
         return finished
+
+    def assign_task(self, task):
+
+        self.log.task_submit(task, resource)
+        self.resources[task.resource_id].submit(task.task)
+
 
     def optimize(self):
         """
@@ -566,10 +571,29 @@ def run_env(script_path:str, env_cfg: dict=None):
         env_cfg = {}
     env = Environment.load(env_cfg)
     if env.pbs is None:
-        assert env.container is None
+        # locally running VISIP
+        assert env.container is None    # not supported yet
         cache = ResultCache()
-        resources = [resource.Resource(cache)] # always have the local resource
-        resources.extend([resource.Multiprocess(n, cache) for n in env.np])
 
+        resources_lists = [resource.create(r, cache) for r in env.resources]
+        resources = [resource.Resource(cache)] # always have the local resource
+        for rl in resources_lists:
+            resources.extend([r for r in rl if r is not None])
         scheduler = Scheduler(resources, cache)
-        Evaluation(scheduler, env.workspace)
+        eval = Evaluation(scheduler, env.workspace)
+
+        mod = module.Module.load_module(script_path)
+        analysis = mod.get_analysis()
+        if len(analysis) == 0:
+            raise ValueError(f"Missing analysis in the script file: {script_path}")
+        if len(analysis) > 1:
+            raise ValueError(f"More then one analysis in the script file: {script_path}")
+        analysis = analysis[0]
+
+        return eval.run(analysis)
+
+        # must load module, only module analysis
+        # done in the same
+    else:
+        # PBS
+        pass

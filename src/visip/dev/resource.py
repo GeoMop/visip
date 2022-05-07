@@ -2,6 +2,8 @@ import multiprocessing
 import queue
 from abc import ABC, abstractmethod
 
+import attrs
+
 from ..eval.cache import ResultCache
 from .task import _TaskBase
 from . import base
@@ -13,6 +15,7 @@ class ResourceBase(ABC):
     Constructor should take care of starting the resource's task executing script (pool)
     and connection to it.
     """
+
     @abstractmethod
     def get_finished(self):
         """
@@ -114,8 +117,17 @@ class Multiprocess:
       - passing workspace
       - passing function through mpi4py
     """
-    def __init__(self, np: int, cache:ResultCache):
-        self.pool = multiprocessing.Pool(np)
+    @attrs.define
+    class Config:
+        type: str
+        multiplicity: int = attrs.field(converter=int, default=1)
+        np: int = attrs.field(converter=int, default=1)
+
+
+    def __init__(self, config: dict, cache:ResultCache):
+        self._cfg = self.Config(**config)
+        self.cache = cache
+        self.pool = multiprocessing.Pool(self._cfg.np)
         self.finished = queue.Queue()
         self.action_kind_list = [base.ActionKind.Regular, base.ActionKind.Generic]
 
@@ -127,8 +139,17 @@ class Multiprocess:
         except queue.Empty:
             return out
 
-    def add_finished(self, task):
+    def add_finished(self, res_task):
+        result, task = res_task
+        self.cache.insert(task.result_hash, result)
         self.queue.put(task)
+
+    class action_eval_wrapper:
+        def __init__(self, task):
+            self.task = task
+        def __call__(self, *args, **kwargs):
+            res = self.task.evaluate_fn(*args, **kwargs)
+            return (res, self.task)
 
     def submit(self, task: _TaskBase):
         res_value = self.cache.value(task.result_hash)
@@ -139,7 +160,7 @@ class Multiprocess:
             #    print(task.action, data_inputs)
             assert not any([i is self.cache.NoValue for i in data_inputs])
             args, kwargs = task.inputs_to_args(data_inputs)
-            self.pool.apply_async(task.evaluate_fn, *args, **kwargs, callback=self.add_finished)
+            self.pool.apply_async(self.action_eval_wrapper(task), *args, **kwargs, callback=self.add_finished)
         else:
             self.finished.put(task)
 
@@ -147,3 +168,20 @@ class Multiprocess:
     def process_task(task):
         self.cache.insert(task.result_hash, res_value)
 
+
+_resource_classes = [
+    Multiprocess
+]
+_resources_dict = {r.__name__: r for r in _resource_classes}
+def create(conf: dict, cache: ResultCache):
+    """
+    Create particular resource instance from a dict.
+    """
+    resource_type = conf.get('type', None)
+    if resource_type is None:
+        raise ValueError("Missing key 'type', resource type.")
+    res_class = _resources_dict.get(resource_type, None)
+    if res_class is None:
+        raise ValueError(f"Wrong resource type: {resource_type}. Possible values: {_resources_dict.keys()}.")
+    n_instances = conf.get('multiplicity', 1)
+    return [res_class(conf, cache) for i in range(n_instances)]

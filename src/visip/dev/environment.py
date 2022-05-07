@@ -7,11 +7,12 @@ class PBS:
     queue: str
     memory: int
 
+
+
 @attr.define
 class Environment:
     workspace: str = "~/_visip_workspace"
-    np: List[int] = 1
-    parallel_resources: List[int] = []
+    resources: list = []
     pbs: PBS = None
     container: str = None
 
@@ -19,9 +20,7 @@ class Environment:
     def load(config:Dict[str, Any]):
         if 'pbs' in config:
             config['pbs'] = PBS(config['pbs'])
-        env =  Environment(**config)
-        if isinstance(env.np, int):
-            env.np = [env.np]
+        env = Environment(**config)
 
         # full workspace path
         env.workspace = os.path.abspath(os.path.expanduser(env.workspace))

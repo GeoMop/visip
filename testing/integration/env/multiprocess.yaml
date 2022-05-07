@@ -3,7 +3,10 @@
 workspace: _visip_workspace
 
 # total number of reserved process, separated to groups:
-np : [2, 2]  # Two pools per 2 cores,
+resources:
+  - type: "Multiprocess"
+    multiplicity: 2
+    np: 2           # Two pools per 2 cores,
 
 ## Reserve folloving for parallel resources (external MPI processes trigered by the master)
 #parallel_resources:
