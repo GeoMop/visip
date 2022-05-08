@@ -202,9 +202,7 @@ class _Closure(MetaAction):
 
         # TODO: Abstart ActionCall.bind and use it here and in DynamicCall to check bindindg errors
         #
-
-        task_binding = tools.TaskBinding(self._action, id_args_pair, inputs)
-        task = task_creator(task_binding)
+        task = task_creator(self._action, id_args_pair, inputs)
         return {'__result__': task}
 
 
@@ -259,8 +257,7 @@ class _Lazy(MetaAction):
             closure = _Closure(action, args[1:], kwargs)
             cache.insert(task.result_hash, closure)
             # empty task to proceed
-            task_binding = tools.TaskBinding(Pass(), ([0], {}), [task])
-            pass_task = task_creator(task_binding)
+            pass_task = task_creator(Pass(), ([0], {}), [task])
 
             return {'__result__': pass_task}
         else:
@@ -315,8 +312,7 @@ class DynamicCall(MetaAction):
             id_args, id_kwargs = task.task.id_args_pair
             id_args = [i - 1 for i in id_args[1:]]
             id_kwargs = {k: (i-1) for k, i in id_kwargs.items()}
-            task_binding = tools.TaskBinding(action, (id_args, id_kwargs), task.inputs[1:])
-            task = task_creator(task_binding)
+            task = task_creator(action, (id_args, id_kwargs), task.inputs[1:])
             return {'__result__': task}
         else:
             return None
@@ -347,8 +343,7 @@ class _If(MetaAction):
                 action = self.dynamic_action(cache.value(task.inputs[1].result_hash))
             else:
                 action = self.dynamic_action(cache.value(task.inputs[2].result_hash))
-            task_binding = tools.TaskBinding(action, ([], {}), [])
-            return {'__result__': task_creator(task_binding)}
+            return {'__result__': task_creator(action, ([], {}), [])}
 
         else:
             return None

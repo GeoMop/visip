@@ -3,7 +3,7 @@ from typing import *
 from . import data
 from . import base
 from ..eval import cache
-from .tools import compose_arguments, TaskBinding
+from .tools import compose_arguments
 
 class Status(enum.IntEnum):
     none = 0
@@ -231,11 +231,11 @@ class Composed(Atomic):
         return self.childs is not None
 
 
-    def create_child_task(self, task_binding: TaskBinding) -> _TaskBase:
-        args, kwargs = task_binding.id_args_pair
-        assert len(args) + len(kwargs) == len(task_binding.inputs)
-        input_hashes = [input.result_hash for input in task_binding.inputs]
-        return _TaskBase(task_binding.action, input_hashes, task_binding.id_args_pair)
+    def create_child_task(self, action, id_args_pair, inputs) -> _TaskBase:
+        args, kwargs = id_args_pair
+        assert len(args) + len(kwargs) == len(inputs)
+        input_hashes = [input.result_hash for input in inputs]
+        return _TaskBase(action, input_hashes, id_args_pair)
 
     def expand(self, cache) -> Dict[str, TaskSchedule]:
         """

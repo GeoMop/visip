@@ -11,7 +11,6 @@ from .action_instance import ActionCall, ActionArgument, ActionInputStatus
 from ..action.constructor import _ListBase, Value
 from .parameters import Parameters, ActionParameter
 from .extract_signature import _extract_signature
-from ..dev.tools import TaskBinding
 from ..action.slots import _SlotCall, _Slot   # provide to GUI
 
 """
@@ -588,8 +587,7 @@ class _Workflow(meta.MetaAction):
             # TODO: eliminate dict usage, assign a call rank to the action calls
             # TODO: use it to index tasks in the resulting task list 'childs'
             arg_tasks = [tasks[arg.value.name] for arg in action_call.arguments]
-            task_binding = TaskBinding(action_call.action, action_call.id_args_pair, arg_tasks)
-            child_task = task_creator(task_binding)
+            child_task = task_creator(action_call.action, action_call.id_args_pair, arg_tasks)
             childs[action_call.name] = child_task
             tasks[action_call.name] = child_task
         return childs

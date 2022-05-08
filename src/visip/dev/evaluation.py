@@ -107,6 +107,8 @@ class Scheduler:
         # Maps task.result_hash to scheduler task.
         # - get TaskSchedule from finished TaskBase
         # - flexible referencing inputs and outputs
+        # TODO: implement deleting of completed tasks (possible problem with dependent tasks)
+
 
         self._start_time = time.perf_counter()
         # Start time of the DAG evaluation.
