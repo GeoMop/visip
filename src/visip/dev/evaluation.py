@@ -10,6 +10,7 @@ Evaluation of a workflow.
     relay on equality of the data if the hashes are equal.
 4. Tasks are assigned to the resources by scheduler,
 """
+import queue
 import sys
 import os
 from typing import Optional, List, Dict, Tuple, Any, Union
@@ -25,7 +26,6 @@ from ..eval.cache import ResultCache
 from ..code.unwrap import into_action
 from ..code.dummy import Dummy, DummyAction, DummyWorkflow
 from . import tools, module, resource
-
 
 
 
@@ -69,6 +69,19 @@ class EvalLogger:
         #     self._logger.info(f"    Can not expand yet.")
 
 class Scheduler:
+    """
+    Simplest scheduler:
+    - topological sort, simulated asignment to the resource (implemented in ResourceBase)
+    - get resource with minimal load
+    TODO: Scheduler based on Khan algorithm tracking the front of tasks with complete prerequisities.
+    See: Coffman–Graham algorithm : add first the task that had been added as the first to the front, i.e. use front data structure fo the
+    task front representation. Without accounting for the task times, assign at most 2-3 tasks to the resource in advance.
+    - task time estimation model
+    - select critical tasks first,
+    - determine resources "result latency" for the task
+    - assign to the lowest latency resource
+    - then assign tasks with lower priority (have a slack), use the slack possibly to use larger latency resources
+    """
     def __init__(self, resources: resource.ResourceBase, cache:ResultCache, n_tasks_limit:int = 1024):
         """
         :param tasks_dag: Tasks to be evaluated.
@@ -90,8 +103,10 @@ class Scheduler:
         # Priority queue of the 'ready' tasks.  Used to submit the ready tasks without
         # whole DAG optimization. Priority is the
 
-        self._task_map = {}
-        # Maps task.result_hash to list of scheduler tasks.
+        self._task_map: Dict[int, task_mod.TaskSchedule] = {}
+        # Maps task.result_hash to scheduler task.
+        # - get TaskSchedule from finished TaskBase
+        # - flexible referencing inputs and outputs
 
         self._start_time = time.perf_counter()
         # Start time of the DAG evaluation.
@@ -123,12 +138,14 @@ class Scheduler:
     def get_time(self):
         return time.perf_counter() - self._start_time
 
-    def append(self, tasks):
+    def append(self, tasks: List[task_mod.TaskSchedule]):
         """
         Add more tasks of the same DAG to be scheduled to the resources,
         :param tasks: All tasks that are new or have changed inputs.
         :return: List of composed tasks to expand. If empty the optimization should be called.
         """
+        new_task_dict = {t.id: t for t in tasks}
+        self._task_map.update(new_task_dict)
         self.tasks.update({ t.id: t for t in tasks})
 
     def ready_queue_push(self, task):
@@ -150,9 +167,7 @@ class Scheduler:
             # new_finished = list(itertools.chain.from_iterable(res_finished_iter))
             new_finished = []
             for task in resource.get_finished():
-                scheduled_tasks = self._task_map[task.result_hash]
-                new_finished.extend(scheduled_tasks)
-                scheduled_tasks.clear()
+                new_finished.append(self._task_map[task.result_hash])
 
             for task in new_finished:
                 for dep_task in task.outputs:
@@ -161,11 +176,13 @@ class Scheduler:
         return finished
 
 
-    def update(self):
+    def update(self, tasks):
         """
         Update resources, collect finished tasks, submit new ready tasks.
         Should be called approximately every 'call_period' seconds.
         """
+        self.optimize()  # currently performs full CPM algorithm
+
         finished = self._collect_finished()
         while self._ready_queue:
             task = heapq.heappop(self._ready_queue)
@@ -177,12 +194,7 @@ class Scheduler:
                     # However should be accompanied by the checking the database in order to allow memoizing only
                     # short term history of tasks.
                     key = task.result_hash
-                    if key in self._task_map:
-                        # We skip evaluation of all tasks with the same result hash.
-                        self._task_map[key].append(task)
-                    else:
-                        self._task_map[key] = [task]
-                        self.assign_task(task)
+                    self.assign_task(task)
 
                 del self.tasks[task.id]
         return finished
@@ -198,6 +210,11 @@ class Scheduler:
         Perform CPM on the DAG of non-submitted tasks.
         Assign start_times and priorities according to the slack time.
         Assume just a single resource.
+
+        Update:
+         - task.start_time - currently no use
+         - update ready_queue (if finish doesn't work)
+         - _topological_sort - not in use
         :return:
         """
         # perform topological sort
@@ -407,8 +424,7 @@ class Evaluation:
                 if self.plot_expansion:
                     self._plot_task_graph(self.expansion_iter)
                 self.tasks_update(schedule)     # pass the list to the scheduler, update its hash -> task dictionary
-                self.scheduler.optimize()       # currently performs full CPM algorithm
-                self.scheduler.update()
+                self.scheduler.update(schedule)
                 if self.scheduler.n_assigned_tasks == 0:
                     self.force_finish = True
                 self.expansion_iter += 1
@@ -447,7 +463,10 @@ class Evaluation:
                     if isinstance(task, task_mod.Composed):
                         self.enqueue(task)
                     schedule.append(task)
-                self.tasks_update([composed_task])  # ?? direct scheduling of resulting composed task stub, can be avoided ?
+                #schedule.append(composed_task)
+                self.tasks_update([composed_task])
+                # ?? direct scheduling of resulting composed task stub, can be avoided ?
+                # While runs in an infinite loop
         for task in postpone_expand:
             self.enqueue(task)
         return schedule

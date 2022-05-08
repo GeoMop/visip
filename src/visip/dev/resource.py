@@ -152,6 +152,7 @@ class Multiprocess:
             return (res, self.task)
 
     def submit(self, task: _TaskBase):
+        print("multiproc submit")
         res_value = self.cache.value(task.result_hash)
         if res_value is self.cache.NoValue:
             #assert task.is_ready()
@@ -165,8 +166,8 @@ class Multiprocess:
             self.finished.put(task)
 
 
-    def process_task(task):
-        self.cache.insert(task.result_hash, res_value)
+    # def process_task(task):
+    #     self.cache.insert(task.result_hash, res_value)
 
 
 _resource_classes = [
