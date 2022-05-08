@@ -93,7 +93,6 @@ def compose_arguments(id_args_pair: ArgsPair[int],
 
 @attr.s(auto_attribs=True)
 class TaskBinding:
-    child_name: str
     action: '_ActionBase'
     id_args_pair: ArgsPair[int]
     inputs: List['Task']

@@ -17,6 +17,7 @@ class Status(enum.IntEnum):
 
 
 
+TaskHash = data.HashValue
 class _TaskBase:
     """
     Data class passed to the computational Resources.
@@ -31,7 +32,7 @@ class _TaskBase:
     no_value = cache.ResultCache.NoValue
 
     def __init__(self, action: base.ActionBase,
-                 input_hashes: List['data.HashValue'], binding):
+                 input_hashes: List[TaskHash], binding):
         self.action = action
         # Action (like function definition) of the task (like function call).
         self.input_hashes = input_hashes
@@ -69,24 +70,23 @@ class _TaskBase:
     def inputs_to_args(self, data_inputs):
         return compose_arguments(self.id_args_pair, data_inputs)
 
-
 class TaskSchedule:
     """
     Task used by Scheduler.
     """
-    def __init__(self, parent: 'Composed', task_binding: TaskBinding):
+    def __init__(self, parent: 'Composed', child_name, task_base: _TaskBase, scheduler):
 
-        input_hashes = [input.result_hash for input in task_binding.inputs]
-        self.task = _TaskBase(task_binding.action, input_hashes, task_binding.id_args_pair)
-
+        self._task_base = task_base
         # Input tasks for the action's arguments.
-        self.outputs: List['TaskSchedule'] = []
+        self._outputs: Set[TaskHash] = set()
         # List of tasks dependent on the result. (Try to not use and eliminate.)
 
         self.parent: Optional['Composed'] = parent
         # parent task
-        self.child_id = task_binding.child_name
+        self.child_id = child_name
         # name of current task within parent
+
+        self._scheduler = scheduler
         self.status = Status.none
         # Status of the task, possibly need not to be stored explicitly.
 
@@ -96,14 +96,26 @@ class TaskSchedule:
         self.end_time = -1
         self.eval_time = 0
 
-        self._inputs = task_binding.inputs # reset in Workflow to its result, but we yet keep original in the task_binding
-        # Connect to inputs.
-        # TODO: remove dirrect referencing of the tasks use scheduler to refference through the result hashes
-        for input in task_binding.inputs:
+        for input in self.inputs:
             assert isinstance(input, TaskSchedule)
-            input.outputs.append(self)
+            input.dependent_task(self.id)
 
         self.set_evaluate_fn()  # set during construction
+
+    @property
+    def task(self):
+        return self._task_base
+
+    @property
+    def inputs(self):
+        return [self._scheduler.task(h) for h in self.task.input_hashes]
+
+    @property
+    def outputs(self):
+        return [self._scheduler.task(h) for h in self._outputs]
+
+    def dependent_task(self, task_hash):
+        self._outputs.add(task_hash)
 
     @property
     def id(self):
@@ -116,10 +128,6 @@ class TaskSchedule:
     @property
     def id_args_pair(self):
         return self.task.id_args_pair
-
-    @property
-    def inputs(self):
-        return self._inputs
 
     @property
     def result_hash(self):
@@ -142,21 +150,6 @@ class TaskSchedule:
 
     def __lt__(self, other):
         return self.priority < other.priority
-
-    @staticmethod
-    def _create_task(parent_task, task_binding) -> 'TaskSchedule':
-        """
-        Create task from the given action and its input tasks.
-        """
-        task_type = task_binding.action.task_type
-        if task_type == base.TaskType.Atomic:
-            child = Atomic(parent_task, task_binding)
-        elif task_type == base.TaskType.Composed:
-            #task_binding.id_args_pair = ([0], {}) # for final auxiliary action
-            child = Composed(parent_task, task_binding)
-        else:
-            assert False
-        return child
 
     def set_evaluate_fn(self):
         assert False, "Not implemented"
@@ -198,9 +191,9 @@ class Composed(Atomic):
     through the expanded task. So the expansion doesn't break existing task dependencies.
     """
 
-    def __init__(self, parent: 'Composed', task_binding: TaskBinding):
+    def __init__(self, *args):
         # TODO: modify Task.create to accept input binding in form of id_args_pair
-        super().__init__(parent, task_binding)
+        super().__init__(*args)
 
         self.time_estimate = 0
         # estimate of the start time, used as expansion priority
@@ -238,10 +231,11 @@ class Composed(Atomic):
         return self.childs is not None
 
 
-    def create_child_task(self, task_binding: TaskBinding) -> TaskSchedule:
+    def create_child_task(self, task_binding: TaskBinding) -> _TaskBase:
         args, kwargs = task_binding.id_args_pair
         assert len(args) + len(kwargs) == len(task_binding.inputs)
-        return TaskSchedule._create_task(self, task_binding)
+        input_hashes = [input.result_hash for input in task_binding.inputs]
+        return _TaskBase(task_binding.action, input_hashes, task_binding.id_args_pair)
 
     def expand(self, cache) -> Dict[str, TaskSchedule]:
         """
@@ -263,27 +257,14 @@ class Composed(Atomic):
         - or we can have dedicated PassTask (for slots etc.) this can be removed on any  DAG search
         - tasks dependent on the result - got through composed.outputs (must be pair task, input), must replace particular input hash
         - tasks dependent on the composed have invalid hash
-
+        TODO: can possibly be eradicated as main code is moved directly into Evaluate.expand_tasks
         """
         assert self.action.task_type is base.TaskType.Composed
         assert hasattr(self.action, 'expand')
 
         # Generate and connect body tasks.
+        # Dict[(child_name, _TaskBase)]
         childs = self.action.expand(self, self.create_child_task, cache)
-        if childs is not None:
-            assert len(childs) > 0
-            self.childs = childs #{task.child_id: task for task in childs}
-            #self.childs.expand({})
-            result_task = self.childs['__result__']
-            assert len(result_task.outputs) == 0
-            result_task.outputs.append(self)
-            self.task.id_args_pair = ([0],{})
-            #B: self._inputs = [result_task]
-            #print(f"Expanding {self}#{self.short_hash(self.id)} depends on {result_task}#{self.short_hash(result_task.result_hash)}")
-            self.task.input_hashes = [result_task.result_hash]
-            # After expansion the composed task is just a dummy task dependent on the previoous result.
-            # This works with Workflow, see how it will work with other composed actions:
-            # if, reduce (for, while)
 
         return childs
 

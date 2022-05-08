@@ -588,7 +588,7 @@ class _Workflow(meta.MetaAction):
             # TODO: eliminate dict usage, assign a call rank to the action calls
             # TODO: use it to index tasks in the resulting task list 'childs'
             arg_tasks = [tasks[arg.value.name] for arg in action_call.arguments]
-            task_binding = TaskBinding(action_call.name, action_call.action, action_call.id_args_pair, arg_tasks)
+            task_binding = TaskBinding(action_call.action, action_call.id_args_pair, arg_tasks)
             child_task = task_creator(task_binding)
             childs[action_call.name] = child_task
             tasks[action_call.name] = child_task

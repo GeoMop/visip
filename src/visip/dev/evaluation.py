@@ -204,6 +204,23 @@ class Scheduler:
         self.log.task_submit(task, resource)
         self.resources[task.resource_id].submit(task.task)
 
+    def task(self, task_hash):
+        return self._task_map[task_hash]
+
+    def create_task(self, parent, child_name, task_base):
+        """
+        Create task from the given action and its input tasks.
+        """
+        task_type = task_base.action.task_type
+        if task_type == base.TaskType.Atomic:
+            sched_task = task_mod.Atomic(parent, child_name, task_base, self)
+        elif task_type == base.TaskType.Composed:
+            sched_task = task_mod.Composed(parent, child_name, task_base, self)
+        else:
+            assert False
+        self._task_map[sched_task.id] = sched_task
+        return sched_task
+
 
     def optimize(self):
         """
@@ -406,8 +423,8 @@ class Evaluation:
         :return:
         """
         #TODO: Reinit scheduler and own structures to allow reuse of the Evaluation object.
-        task_binding = tools.TaskBinding('__root__', analysis, ([],{}), [])
-        self.final_task = task_mod.TaskSchedule._create_task(None, task_binding)
+        task_base = task_mod._TaskBase(analysis, [], ([],{}))
+        self.final_task = self.scheduler.create_task(None, '__root__', task_base)
         self.enqueue(self.final_task)
         # init scheduler
         self.tasks_update([self.final_task])
@@ -451,12 +468,25 @@ class Evaluation:
 
         while self.queue and not self.force_finish and self.scheduler.can_expand():
             composed_id, time, composed_task = heapq.heappop(self.queue)
-            task_dict = composed_task.expand(self.cache)
-
-            if task_dict is None:
+            raw_task_dict = composed_task.expand(self.cache)
+            if raw_task_dict is None:
                 # Can not expand yet, return back into queue
                 postpone_expand.append(composed_task)
             else:
+                assert len(raw_task_dict) > 0
+                task_dict = {name: self.scheduler.create_task(composed_task, name, task)
+                             for name, task in raw_task_dict.items()}
+
+                composed_task.childs = task_dict  # {task.child_id: _TaskBase}
+                result_task = composed_task.childs['__result__']
+                assert len(result_task.outputs) == 0
+                result_task.outputs.append(self)
+                composed_task.task.id_args_pair = ([0], {})
+                composed_task.task.input_hashes = [result_task.result_hash]
+                # After expansion the composed task is just a dummy task dependent on the previoous result.
+                # This works with Workflow, see how it will work with other composed actions:
+                # if, reduce (for, while)
+
                 self.log.task_expand(composed_task, task_dict)
                 # print("Expanded: ", task_dict)
                 for task in task_dict.values():
@@ -467,6 +497,7 @@ class Evaluation:
                 self.tasks_update([composed_task])
                 # ?? direct scheduling of resulting composed task stub, can be avoided ?
                 # While runs in an infinite loop
+
         for task in postpone_expand:
             self.enqueue(task)
         return schedule
