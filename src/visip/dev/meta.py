@@ -158,9 +158,10 @@ class _Closure(MetaAction):
         # TODO: get callable type and check given arguments against signature
         # TODO: how to consistently reports errors at this stage
 
+    closure_hash = data.hash(hash("Closure"))
     def action_hash(self):
         # TODO: test that the hash is the same as the direct call of the action.
-        task_hash = self._action.action_hash()
+        task_hash = data.hash(self._action.action_hash(), previous=self.closure_hash)
         for task in self._args:
             task_hash = data.hash(task.result_hash, previous=task_hash)
         for task in self._kwargs.values():
@@ -168,7 +169,8 @@ class _Closure(MetaAction):
         return task_hash
 
     def __repr__(self):
-        return f"Closure({self._action}; {[task.short_hash(task.id) for task in self._args]})"
+        return f"Closure({self._action}; {[task.short_hash(task.id) for task in self._args]}," \
+               f" { {k:t.short_hash(t.id) for k, t in self._kwargs.items()} })"
 
     def expand(self, task: '_ClosureTask', task_creator, cache):
         # Always expand create the task with merged inputs.
@@ -253,13 +255,9 @@ class _Lazy(MetaAction):
             args, kwargs = tools.compose_arguments(task.id_args_pair, task.inputs)
             action = self.dynamic_action(cache.value(args[0].result_hash))
 
-
             closure = _Closure(action, args[1:], kwargs)
-            cache.insert(task.result_hash, closure)
-            # empty task to proceed
-            pass_task = task_creator(Pass(), ([0], {}), [task])
-
-            return {'__result__': pass_task}
+            result = task_creator(Value(closure), ([], {}), [])
+            return {'__result__': result}
         else:
             return None
 

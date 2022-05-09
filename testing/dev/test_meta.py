@@ -29,7 +29,7 @@ def tst_adder() -> float:
 
 
 
-@pytest.mark.skip
+#@pytest.mark.skip
 def test_action_returning_action():
     result = evaluation.run(tst_adder)
     assert result == 3
@@ -48,7 +48,7 @@ def false_body():
 
 
 @wf.workflow
-def wf_condition(cond: int) -> int:
+def wf_condition(cond: wf.Bool) -> wf.Int:
     return wf.If(cond, true_body, false_body)
 
 
@@ -68,7 +68,7 @@ def foo(x: int) -> int:
 def wf_condition(cond: int) -> int:
     return wf.If(cond, foo(100), 100)
 
-@pytest.mark.skip
+#@pytest.mark.skip
 def test_if_action():
     result = evaluation.run(wf_condition, True)
     assert result == 101
@@ -78,7 +78,15 @@ def test_if_action():
 
 #######################
 # Test lazy meta action.
-# No control over free positional arguments, must use keyword arguments instead.
+
+@wf.action_def
+def add(a, b):
+    return a + b
+
+@wf.workflow
+def basic_lazy_wf():
+    inc = wf.lazy(add, wf.empty, 1)
+    return inc(2)
 
 @wf.action_def
 def lazy_action(i:int, j:float, *args, a:bool, b:str, **kwargs):
@@ -93,9 +101,13 @@ def lazy_wf():
     a = a1(4)
     return (a, b)
 
-@pytest.mark.skip
+#@pytest.mark.skip
 def test_lazy():
+    result = evaluation.run(basic_lazy_wf)
+    assert result == 3
+
     #result = evaluation.run(lazy_wf, [], plot_expansion=True)
+
     result = evaluation.run(lazy_wf)
     assert result[0] == "lazy_action(4 1 (5,) 2 7 {'c': 3})"
     assert result[1] == "lazy_action(100 101 (102,) a b {'d': 'd'})"
@@ -216,6 +228,7 @@ def fibonacci(n):
     fib = wf.While(_fib_body, (n, 1, 1))
     return fib[1]
 
+#@pytest.mark.skip
 def test_while():
     assert evaluation.run(fibonacci, 0) == 1
     assert evaluation.run(fibonacci, 1) == 1
