@@ -6,14 +6,13 @@ from ..eval import cache
 from .tools import compose_arguments
 
 class Status(enum.IntEnum):
-    none = 0
-    composed = 1
-    assigned = 2
-    determined = 3
-    ready = 4
-    submitted = 5
-    running = 6
-    finished = 7
+    none = 0            # should never happen
+    scheduled = 1
+    expanded = 2        # composed tasks stop here instead of finished
+    ready = 3
+    submitted = 4
+    running = 5         # only available through cache, latenacy, only indicative for GUI (in future)
+    finished = 6
 
 
 
