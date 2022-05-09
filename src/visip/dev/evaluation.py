@@ -27,25 +27,27 @@ from ..code.unwrap import into_action
 from ..code.dummy import Dummy, DummyAction, DummyWorkflow
 from . import tools, module, resource
 
+logger = logging.getLogger(__name__)
+def setup_logger(logger):
+    formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
 
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_handler.setLevel(logging.DEBUG)
+    stdout_handler.setFormatter(formatter)
+
+    file_handler = logging.FileHandler('evaluation.log')
+    file_handler.setLevel(logging.DEBUG)
+    file_handler.setFormatter(formatter)
+
+    logger.addHandler(file_handler)
+    logger.addHandler(stdout_handler)
+    logger.setLevel(logging.INFO)
+
+    return logger
+setup_logger(logger)
 
 class EvalLogger:
     def __init__(self):
-        logger = logging.getLogger('eval_logger')
-
-        logger.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
-
-        stdout_handler = logging.StreamHandler(sys.stdout)
-        stdout_handler.setLevel(logging.DEBUG)
-        stdout_handler.setFormatter(formatter)
-
-        file_handler = logging.FileHandler('evaluation.log')
-        file_handler.setLevel(logging.DEBUG)
-        file_handler.setFormatter(formatter)
-
-        logger.addHandler(file_handler)
-        logger.addHandler(stdout_handler)
         self._logger = logger
 
     def task_submit(self, task: task_mod.TaskSchedule, value):
