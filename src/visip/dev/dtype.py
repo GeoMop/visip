@@ -161,33 +161,18 @@ NoneType = DTypeSingleton.make("NoneType", builtins.type(None))
 @attrs.frozen
 class Class(DTypeBase):
     # Wrapper around various VISIP classes, in order to work with types as instances.
-    data_class: DataClassBase
+    data_class: DataClassBase = attrs.field()
+    __module__: str = attrs.field()
+    __name__: str = attrs.field()
 
     @staticmethod
     def wrap(type:DataClassBase):
         visip_class = type.visip_type()
         if visip_class is None or visip_class.data_class is not type:
-            visip_class = Class(type)
+            visip_class = Class(type, type.__module__, type.__name__)
             type.set_visip_type(visip_class)
 
         return visip_class
-
-    # def __init__(self, data_class:DataClassBase):
-    #     self.data_class = data_class
-
-    # def __hash__(self):
-    #     return hash((self.__class__, self.data_class))
-
-    # def __repr__(self):
-    #     return f"dtype.Class:{self.module}.{self.name}"
-
-    @property
-    def __module__(self):
-        return self.data_class.__module__
-
-    @property
-    def __name__(self):
-        return self.data_class.__name__
 
     def _equal_(self, other):
         if isinstance(other, Class) and self.data_class is other.data_class:
@@ -199,27 +184,19 @@ class Class(DTypeBase):
 
 @attrs.frozen
 class Enum(DTypeBase):
-    origin_type: enum.IntEnum
+    origin_type: enum.IntEnum = attrs.field()
+    __module__: str = attrs.field()
+    __name__: str = attrs.field()
 
     @staticmethod
     def wrap(type: enum.IntEnum):
         if hasattr(type, "__visip_type"):
             return type.__visip_type
         else:
-            visip_enum = Enum(type)
+            visip_enum = Enum(type, type.__module__, type.__name__)
             type.__visip_type = visip_enum
             return visip_enum
 
-    # def __init__(self, origin_type):
-    #     self.origin_type = origin_type
-
-    @property
-    def __module__(self):
-        return self.origin_type.__module__
-
-    @property
-    def __name__(self):
-        return self.origin_type.__name__
 
     def _equal_(self, other):
         return isinstance(other, Enum) and self.origin_type is other.origin_type
@@ -236,14 +213,9 @@ class TypeVar(DTypeBase):
         else:
             assert typing_inspect.is_typevar(origin_type)
         self.origin_type = origin_type
+        self.__name__ = origin_type.__name__
+        self.__module__ = origin_type.__module__
 
-    @property
-    def __name__(self):
-        return self.origin_type.__name__
-
-    @property
-    def __module__(self):
-        return self.origin_type.__module__
 
     def __hash__(self):
         return self.origin_type.__hash__()
