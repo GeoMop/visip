@@ -92,7 +92,7 @@ def test_type_of_value():
     assert type_of_value([1, 1.4, "1"]) == List(Union(Int, Float, Str))
     assert type_of_value({0:1, "f":1.4, 2:"1"}) == Dict(Union(Int, Str), Union(Int, Float, Str))
     assert type_of_value( (1, 1.4, "1") ) == Tuple(Int, Float, Str)
-    assert type_of_value( ( A.a, B(), C()) ) == Tuple(Enum(A), Class(B), Class(C))
+    assert type_of_value( ( A.a, B(), C()) ) == Tuple(Enum.wrap(A), Class.wrap(B), Class.wrap(C))
 
 def test_from_typing():
     # bas
