@@ -61,7 +61,7 @@ class EvalLogger:
         if new_tasks is not None:
             self._logger.info(f"Expand: {composed} <- {[composed.short_hash(h) for h in composed.task.input_hashes]}")
             for t in new_tasks.values():
-                self._logger.info(f"    {t.action}#{t.short_hash(t.id)}  <- {[t.short_hash(h) for h in t.task.input_hashes]}")
+                self._logger.info(f"    {t.action}#{t.short_hash(t.result_hash)}  <- {[t.short_hash(h) for h in t.input_hashes]}")
         # else:
         #     self._logger.info(f"    Can not expand yet.")
 
@@ -144,13 +144,56 @@ class Scheduler:
     def can_expand(self):
         return self.n_assigned_tasks < self.n_tasks_limit
 
+    def is_finished(self, task: task_mod.TaskSchedule):
+        return self.cache.is_finished(task.result_hash)
+
     # @property
     # def n_assigned_tasks(self):
     #     return len(self.tasks)
 
-    def is_finished(self, task: task_mod.TaskSchedule):
-        return self.cache.is_finished(task.result_hash)
+    """
+    ####  Graph modification functions.
+    """
 
+    def task(self, task_hash):
+        return self._task_map[task_hash]
+
+    def create_task(self, parent, child_name, task_base):
+        """
+        Create task from the given action and its input tasks.
+        """
+        try:
+            task = self.task(task_base.result_hash)
+            #print("Duplicit: ", task, task_base)
+            return task
+        except KeyError:
+            pass
+
+        task_type = task_base.action.task_type
+        if task_type == base.TaskType.Atomic:
+            sched_task = task_mod.Atomic(parent, child_name, task_base, self)
+        elif task_type == base.TaskType.Composed:
+            sched_task = task_mod.Composed(parent, child_name, task_base, self)
+        else:
+            assert False
+        self.log.task_schedule(sched_task)
+        self._task_map[sched_task.id] = sched_task
+        self.n_scheduled_tasks += 1
+        self._scheduled_not_finished.add(sched_task.id)
+        return sched_task
+
+    def expand_task(self, composed, result):
+        # assert len(result.output_tasks) == 0
+        # result could have existing outputs if it is duplicate
+        # that could happen for Value and constant value actions, e.g. factorial(16)
+        # could be used repetitively leading to repetitive expansion, but results
+        # are taken from the result cache.
+
+        composed.shortcut(result_task=result)
+        for t in result.output_tasks:
+            self.ready_queue_push(t)
+        self.finish_task(composed)
+        composed.status = task_mod.Status.expanded
 
     def get_time(self):
         return time.perf_counter() - self._start_time
@@ -167,12 +210,6 @@ class Scheduler:
                 print(f"Duplicate: {task}")
             self._all_ready_set.add(task.id)
             heapq.heappush(self._ready_queue, task)
-
-    def log_submit(self, task):
-        pass
-
-    def log_expand(self, task):
-        pass
 
 
     def _collect_finished(self):
@@ -242,32 +279,6 @@ class Scheduler:
         task.status = task_mod.Status.submitted
         resource.submit(task.task)
 
-    def task(self, task_hash):
-        return self._task_map[task_hash]
-
-    def create_task(self, parent, child_name, task_base):
-        """
-        Create task from the given action and its input tasks.
-        """
-        try:
-            task = self.task(task_base.result_hash)
-            print("Duplicit: ", task, task_base)
-            return task
-        except KeyError:
-            pass
-
-        task_type = task_base.action.task_type
-        if task_type == base.TaskType.Atomic:
-            sched_task = task_mod.Atomic(parent, child_name, task_base, self)
-        elif task_type == base.TaskType.Composed:
-            sched_task = task_mod.Composed(parent, child_name, task_base, self)
-        else:
-            assert False
-        self.log.task_schedule(sched_task)
-        self._task_map[sched_task.id] = sched_task
-        self.n_scheduled_tasks += 1
-        self._scheduled_not_finished.add(sched_task.id)
-        return sched_task
 
 
     def optimize(self):
@@ -518,21 +529,10 @@ class Evaluation:
                 self.log.task_expand(composed_task, raw_task_dict)
                 task_dict = {name: self.scheduler.create_task(composed_task, name, task)
                              for name, task in raw_task_dict.items()}
-
-
                 composed_task.childs = task_dict  # {task.child_id: _TaskBase}
                 result_task = composed_task.childs['__result__']
 
-                # assert len(result_task.output_tasks) == 0
-                # result could have existing outputs if it is duplicate
-                # that could happen for Value and constant value actions
-
-                # TODO: move composed shortcutting to appropriate scheduler method
-                composed_task.shortcut(result_task=result_task)
-                for t in result_task.output_tasks:
-                    self.scheduler.ready_queue_push(t)
-                self.scheduler.finish_task(composed_task)
-                composed_task.status = task_mod.Status.expanded
+                self.scheduler.expand_task(composed_task, result_task)
 
                 for task in task_dict.values():
                     if isinstance(task, task_mod.Composed):

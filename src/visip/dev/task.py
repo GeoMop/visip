@@ -100,11 +100,17 @@ class TaskSchedule:
 
         for i, input in enumerate(self.inputs):
             assert isinstance(input, TaskSchedule)
-            new_input = input.dependent_task(i, self.id)
-            if new_input.id != input.id:
-                self._task_base.input_hashes[i] = new_input.id
+            # input dereferencing must only be done for Closure actions, can possibly be done in _Closure.expand
+            new_input = input.true_result_task   # update after possible expansion of input
+            self._task_base.input_hashes[i] = new_input.id
+            new_input.dependent_task(i, self.id)
+
 
         self.task.evaluate_fn = self.action.evaluate
+
+    @property
+    def true_result_task(self):
+        return self
 
     def __repr__(self):
         return f"{self.__class__.__name__}: {self.task}"
@@ -216,6 +222,18 @@ class Composed(Atomic):
         self.childs: Dict[Union[int, str], Atomic] = {}
         # map child_id to the child task, filled during expand.
 
+    @property
+    def true_result_task(self):
+        """
+        When a Composed task `self` is a wrapped input of a closure, then after `self` (multiple) expansion its result
+        is a `input_task` that is returned.
+        """
+        input_task = self
+        while input_task.status == Status.expanded:
+            input_task = input_task.childs['__result__']
+
+        return input_task
+
     def is_ready(self, cache):
         """
         Block submission of unexpanded tasks.
@@ -223,27 +241,6 @@ class Composed(Atomic):
         """
         return False
         #self.is_expanded() and Atomic.is_ready(self, cache)
-
-    def dependent_task(self, i_input, task_hash):
-        """
-        Connect a input 'i_input' of task dependent on self.
-        """
-        # print(f"{self} add output: {self.short_hash(task_hash)}, {i_input}")
-        input_task = self
-        while input_task.status == Status.expanded:
-            # Can happen when Composed task is wrapped into closure before expansion.
-            # TODO: rathed keep composed tasks after epansion instead of the result task,
-            # just change input of the composed task
-            # TODO: expansion is more like call:
-            # - Composed should declare which inputs must be evaluated and which are tasks and which are actions.
-            # - This allow faster detection of possible expansion.
-            # - Allows preparation of the input list (interaction with cache, etc.) out of the metaaction, avoiding direct interaction with the cache.
-            input_task = input_task.childs['__result__']
-            #print(f"{task_hash} can not depend on expanded: {self}")
-            #raise ValueError
-
-        input_task._outputs.add((task_hash, i_input))
-        return input_task
 
 
     def child(self, item: Union[int, str]) -> Optional[Atomic]:
