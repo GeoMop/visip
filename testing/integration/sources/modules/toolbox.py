@@ -8,3 +8,10 @@ def sleep(t: float):
     """
     time.sleep(t)
 
+@wf.action_def
+def print(*args: wf.Any):
+    """
+    Python sleep wrapper.
+    """
+    print(*args)
+

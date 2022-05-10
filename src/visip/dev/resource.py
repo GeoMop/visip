@@ -1,5 +1,8 @@
 import multiprocessing
+import dill
 import queue
+import time
+import collections
 from abc import ABC, abstractmethod
 
 import attrs
@@ -8,6 +11,25 @@ from ..eval.cache import ResultCache
 from .task import _TaskBase
 from . import base
 from multiprocessing import Process, Pipe
+
+class Time:
+    """
+    See: https://peps.python.org/pep-0418
+    Starting with use of monotonic, try high resolution timers if neccessry.
+    """
+
+    def __init__(self, sync_time):
+        self._own_sync_time = self.time()
+        self._global_sync_time = sync_time
+        self._time_correction = self._global_sync_time - self._own_sync_time
+        self.clock_res = time.get_clock_info("monotonic").resolution
+
+    def time(self):
+        return time.monotonic()
+
+    def sync_time(self):
+        return self.time_correction + self.time()
+
 
 class ResourceBase(ABC):
     """
@@ -29,6 +51,13 @@ class ResourceBase(ABC):
         Pass the task to be processed (asynchronously).
         """
         pass
+
+    def estimate_time(self, task:'TaskSchedule') -> float:
+        """
+        Return estimated time of completition of the task on the resource.
+        Time is given as number of seconds from the evaluation start, using resource synchronisation
+        time and time from last synchronisation.
+        """
 
 class Resource:
     """
@@ -62,17 +91,9 @@ class Resource:
         self.action_kind_list = [base.ActionKind.Regular, base.ActionKind.Meta, base.ActionKind.Generic]
         # list of action kind that this resource is capable run
 
-    # def assign_task(self, task, i_thread=None):
-    #     """
-    #     Just evaluate tthe task immediately.
-    #     :param task:
-    #     :param i_thread:
-    #     :return:
-    #     """
-    #     task.evaluate()
-    #
-    # def assign_mpi_task(self, task, n_mpi_procs=None):
-    #     pass
+    def estimate_time(self, task):
+        return 2
+
 
     def get_finished(self):
         """
@@ -100,13 +121,17 @@ class Resource:
             #    print(task.action, data_inputs)
             assert not any([i is self.cache.NoValue for i in data_inputs])
             args, kwargs = task.inputs_to_args(data_inputs)
-            res_value = task.evaluate_fn(*args, **kwargs)
+            res_value = task.action.evaluate(*args, **kwargs)
             # print(task.action)
             # print(task.inputs)
             # print(task_hash, res_value)
             self.cache.insert(task.result_hash, res_value)
 
         self._finished.append(task)
+
+    def close(self):
+        pass
+
 
 
 class Multiprocess:
@@ -127,29 +152,48 @@ class Multiprocess:
     def __init__(self, config: dict, cache:ResultCache):
         self._cfg = self.Config(**config)
         self.cache = cache
-        self.pool = multiprocessing.Pool(self._cfg.np)
-        self.finished = queue.Queue()
+        self.pool = multiprocessing.get_context("spawn").Pool(processes=self._cfg.np)
+        self.finished = collections.deque()
         self.action_kind_list = [base.ActionKind.Regular, base.ActionKind.Generic]
 
+        self.n_assigned = 0
+        self.time_assigned = 0
+        self.n_finished = 0
+        self.time_completed = 0
+
+    def estimate_time(self, task):
+        return self.n_assigned - self.n_finished
+
     def get_finished(self):
+        n = len(self.finished)
         out = []
-        try:
-            while True:
-                out.append(self.finished.get_nowait())
-        except queue.Empty:
-            return out
+        for i in range(n):
+            out.append(self.finished.popleft())
+        return out
 
-    def add_finished(self, res_task):
-        result, task = res_task
+    def add_finished(self, result_blob, err, task):
+        if result_blob is None:
+            result = None
+        else:
+            result = dill.loads(result_blob)
+        task.error = err
         self.cache.insert(task.result_hash, result)
-        self.queue.put(task)
+        self.finished.append(task)
+        self.n_finished += 1
 
-    class action_eval_wrapper:
-        def __init__(self, task):
-            self.task = task
-        def __call__(self, *args, **kwargs):
-            res = self.task.evaluate_fn(*args, **kwargs)
-            return (res, self.task)
+    # class action_eval_wrapper:
+    #     def __init__(self, task):
+    #         self.task = task
+    #     def __call__(self, *args, **kwargs):
+    #         res = self.task.evaluate_fn(*args, **kwargs)
+    #         return (res, self.task)
+    #
+    #
+
+    @staticmethod
+    def do_work(dill_blob):
+        fn, args, kwargs = dill.loads(dill_blob)
+        return dill.dumps(fn(*args, **kwargs))
 
     def submit(self, task: _TaskBase):
         print("multiproc submit")
@@ -161,11 +205,28 @@ class Multiprocess:
             #    print(task.action, data_inputs)
             assert not any([i is self.cache.NoValue for i in data_inputs])
             args, kwargs = task.inputs_to_args(data_inputs)
-            self.pool.apply_async(self.action_eval_wrapper(task), *args, **kwargs, callback=self.add_finished)
+
+            def finished(res):
+                print("Finished.")
+                self.add_finished(res, None, task)
+
+            def error(err):
+                print("Error: ", err)
+                self.add_finished(None, err, task)
+
+
+            self.n_assigned += 1
+            #self.pool.apply_async(task.evaluate_fn, args, kwargs, callback=finished)
+            print("apply_async: ", self.do_work, args, kwargs)
+            dill_blob = dill.dumps( (task.action.evaluate, args, kwargs), byref=True )
+            self.pool.apply_async(self.do_work, (dill_blob,), {}, callback=finished, error_callback=error)
         else:
             self.finished.put(task)
 
-
+    def close(self):
+        if self.pool is not None:
+            self.pool.close()
+            self.pool = None
     # def process_task(task):
     #     self.cache.insert(task.result_hash, res_value)
 

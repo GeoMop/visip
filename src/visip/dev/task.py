@@ -40,10 +40,8 @@ class _TaskBase:
         self.id_args_pair = binding
         # binding of inputs to args and kwargs to be passed to actual evaluation function
 
-        self.evaluate_fn = lambda x: None
-        # Returns a function accepting the input data and computing the result.
-        # e.g. action.evaluate
-        # TODO: set from TaskSchedule during construction
+        self.error = None
+        # Task evaluation error.
 
         self._result_hash = self._lazy_hash()
         # Hash of the result
@@ -92,7 +90,8 @@ class TaskSchedule:
         self.status = Status.scheduled
         # Status of the task, possibly need not to be stored explicitly.
 
-        self.resource_id = None
+        self.resource = None
+        # Assigned resource
 
         self.start_time = -1
         self.end_time = -1
@@ -106,7 +105,7 @@ class TaskSchedule:
             new_input.dependent_task(i, self.id)
 
 
-        self.task.evaluate_fn = self.action.evaluate
+        #self.task.evaluate_fn = self.action.evaluate
 
     @property
     def true_result_task(self):

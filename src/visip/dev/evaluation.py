@@ -130,16 +130,21 @@ class Scheduler:
         self.n_assigned_tasks = 0
         self.n_finished_tasks = 0
 
-        self._resource_map = {base.ActionKind.Regular: [],
-                              base.ActionKind.Meta: [],
-                              base.ActionKind.Generic: []}
         # map from action kind to list of capable resources
         self._scheduled_not_finished = set()
         self._all_ready_set = set()
 
-        for i, res in enumerate(self.resources):
+        self._resource_map : Dict[base.ActionKind, List[resource.ResourceBase]] = {}
+
+        for res in self.resources:
             for kind in res.action_kind_list:
-                self._resource_map[kind].append(i)
+                kind_list = self._resource_map.setdefault(kind, [])
+                kind_list.append(res)
+
+    def __del__(self):
+        print("Closing Scheduler resources.")
+        for r in self.resources:
+            r.close()
 
     def can_expand(self):
         return self.n_assigned_tasks < self.n_tasks_limit
@@ -216,6 +221,8 @@ class Scheduler:
         # collect finished tasks, update ready queue
         for resource in self.resources:
             for task in resource.get_finished():
+                if task.error is not None:
+                    raise Exception(task.error)
                 self.finish_task(task)
 
     def finish_task(self, task):
@@ -273,11 +280,12 @@ class Scheduler:
         kind = task.task.action.action_kind
         kind_list = self._resource_map[kind]
         assert kind_list, 'There are no resource capable of run "{}".'.format(kind)
-        task.resource_id = kind_list[0]
-        resource = self.resources[task.resource_id]
-        self.log.task_assign(task, resource)
+        time, ires = min([(resource.estimate_time(task), ires) for ires, resource in enumerate(kind_list)])
+        task.resource = kind_list[ires]
+
+        self.log.task_assign(task, task.resource)
         task.status = task_mod.Status.submitted
-        resource.submit(task.task)
+        task.resource.submit(task.task)
 
 
 
@@ -492,6 +500,7 @@ class Evaluation:
                     self._plot_task_graph(self.expansion_iter)
                 completed = self.scheduler.update(schedule)
                 if completed:
+                #if completed or self.expansion_iter > 100:
                     break
                 self.expansion_iter += 1
         return TaskResult(self.final_task, self.cache)

@@ -344,7 +344,8 @@ class Module:
                 continue
             obj_module, obj_name = self.mod_name(obj)
             if type(obj) is ModuleType:
-
+                if obj_name == "dill":
+                    continue
                 # import 'obj' as 'name'
                 visip_mod = self.add_module(obj)
                 assert visip_mod is not None

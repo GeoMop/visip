@@ -11,12 +11,14 @@ Simple analysis:
 
 @wf.workflow
 def make_mesh(mesh_step: float):
+    toolbox.print("make_mesh:", mesh_step)
     mesh_size = 1000 / mesh_step
     toolbox.sleep(1e-6 * mesh_size)
     return mesh_size
 
 @wf.workflow
 def compute(mesh: float, data: float):
+    toolbox.print("compute:", mesh, data)
     return
 
 
