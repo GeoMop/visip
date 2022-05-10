@@ -41,7 +41,6 @@ class _Result(_ListBase):
         self._parameters = Parameters(params, return_type=out_type)
         # The "side effects" of the workflow.
         # TODO: Do we realy need this? We should rather introduce an action Head(*args): return args[0], that way one can do desired efect explicitly
-        # TODO: suport multiple return values ( better in GUI)
 
     def _evaluate(self, *args, **kwargs):
         return args[0]

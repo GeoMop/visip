@@ -40,15 +40,18 @@ class _TaskBase:
         self.id_args_pair = binding
         # binding of inputs to args and kwargs to be passed to actual evaluation function
 
-        self._result_hash = None
-        # Hash of the result
-
         self.evaluate_fn = lambda x: None
         # Returns a function accepting the input data and computing the result.
         # e.g. action.evaluate
         # TODO: set from TaskSchedule during construction
 
         self._result_hash = self._lazy_hash()
+        # Hash of the result
+        # Should distinguish task id hash, that could be based on previous composed.
+        # And true result hash, which should be computed only from Atomic tasks.
+
+    def __repr__(self):
+        return f"{self.action}#{self.short_hash(self.result_hash)}"
 
     def short_hash(self, h:bytes) -> str:
         return h.hex()[:4]
@@ -77,7 +80,7 @@ class TaskSchedule:
 
         self._task_base = task_base
         # Input tasks for the action's arguments.
-        self._outputs: Set[TaskHash] = set()
+        self._outputs: Set[Tuple[TaskHash, int]] = set() # (TaskHash, i_input)
         # List of tasks dependent on the result. (Try to not use and eliminate.)
 
         self.parent: Optional['Composed'] = parent
@@ -86,7 +89,7 @@ class TaskSchedule:
         # name of current task within parent
 
         self._scheduler = scheduler
-        self.status = Status.none
+        self.status = Status.scheduled
         # Status of the task, possibly need not to be stored explicitly.
 
         self.resource_id = None
@@ -95,11 +98,16 @@ class TaskSchedule:
         self.end_time = -1
         self.eval_time = 0
 
-        for input in self.inputs:
+        for i, input in enumerate(self.inputs):
             assert isinstance(input, TaskSchedule)
-            input.dependent_task(self.id)
+            new_input = input.dependent_task(i, self.id)
+            if new_input.id != input.id:
+                self._task_base.input_hashes[i] = new_input.id
 
-        self.set_evaluate_fn()  # set during construction
+        self.task.evaluate_fn = self.action.evaluate
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}: {self.task}"
 
     @property
     def task(self):
@@ -110,11 +118,9 @@ class TaskSchedule:
         return [self._scheduler.task(h) for h in self.task.input_hashes]
 
     @property
-    def outputs(self):
-        return [self._scheduler.task(h) for h in self._outputs]
-
-    def dependent_task(self, task_hash):
-        self._outputs.add(task_hash)
+    def output_tasks(self):
+        unique_hashes = {task_hash for task_hash, _ in self._outputs}
+        return [self._scheduler.task(h) for h in unique_hashes]
 
     @property
     def id(self):
@@ -136,6 +142,27 @@ class TaskSchedule:
     def priority(self):
         return 1
 
+
+    def dependent_task(self, i_input, task_hash):
+        """
+        Connect a input 'i_input' of task dependent on self.
+        """
+        self._outputs.add((task_hash, i_input))
+        return self
+
+    def shortcut(self, result_task:'TaskSchedule'):
+        """
+        Reconnect all dependent tasks to result_task.
+        """
+        for dep_hash, i_input in self._outputs:
+            sched_task = self._scheduler.task(dep_hash)
+            sched_task._task_base.input_hashes[i_input] = result_task.id
+            result_task.dependent_task(i_input, dep_hash)
+        self._outputs = set()
+
+
+
+
     def short_hash(self, h):
         return self.task.short_hash(h)
 
@@ -150,9 +177,6 @@ class TaskSchedule:
     def __lt__(self, other):
         return self.priority < other.priority
 
-    def set_evaluate_fn(self):
-        assert False, "Not implemented"
-
 
 
 class Atomic(TaskSchedule):
@@ -163,19 +187,12 @@ class Atomic(TaskSchedule):
         Update ready status, return
         :return:
         """
-        if self.status < Status.ready:
-            is_ready = all([cache.is_finished(input_hash) for input_hash in self.task.input_hashes])
-            if is_ready:
-                self.status = Status.ready
-        return self.status >= Status.ready
+        #
+        #return all([cache.is_finished(input_hash) for input_hash in self.task.input_hashes])
+        # TODO: use probably more effective approach, how ever need to make read_queue update
+        # robust for the case when outputs of finished tasks are ready before their inputs are marked as finished.
+        return all([self._scheduler.task(input_hash).status == Status.finished for input_hash in self.task.input_hashes])
 
-    def set_evaluate_fn(self):
-        """
-        For given data evaluate the action and store the result.
-        TODO: should handle just status and possibly store the result
-        since Resource may execute the task remotely.
-        """
-        self.task.evaluate_fn = self.action.evaluate
 
 
 class Composed(Atomic):
@@ -193,21 +210,40 @@ class Composed(Atomic):
     def __init__(self, *args):
         # TODO: modify Task.create to accept input binding in form of id_args_pair
         super().__init__(*args)
-
+        self.task.evaluate_fn = None
         self.time_estimate = 0
         # estimate of the start time, used as expansion priority
         self.childs: Dict[Union[int, str], Atomic] = {}
         # map child_id to the child task, filled during expand.
-
-    def __repr__(self):
-        return f"{self.action}"
 
     def is_ready(self, cache):
         """
         Block submission of unexpanded tasks.
         :return:
         """
-        return self.is_expanded() and Atomic.is_ready(self, cache)
+        return False
+        #self.is_expanded() and Atomic.is_ready(self, cache)
+
+    def dependent_task(self, i_input, task_hash):
+        """
+        Connect a input 'i_input' of task dependent on self.
+        """
+        # print(f"{self} add output: {self.short_hash(task_hash)}, {i_input}")
+        input_task = self
+        while input_task.status == Status.expanded:
+            # Can happen when Composed task is wrapped into closure before expansion.
+            # TODO: rathed keep composed tasks after epansion instead of the result task,
+            # just change input of the composed task
+            # TODO: expansion is more like call:
+            # - Composed should declare which inputs must be evaluated and which are tasks and which are actions.
+            # - This allow faster detection of possible expansion.
+            # - Allows preparation of the input list (interaction with cache, etc.) out of the metaaction, avoiding direct interaction with the cache.
+            input_task = input_task.childs['__result__']
+            #print(f"{task_hash} can not depend on expanded: {self}")
+            #raise ValueError
+
+        input_task._outputs.add((task_hash, i_input))
+        return input_task
 
 
     def child(self, item: Union[int, str]) -> Optional[Atomic]:
@@ -267,13 +303,13 @@ class Composed(Atomic):
 
         return childs
 
-    def set_evaluate_fn(self):
-        """
-        Composed tasks use evaluate to finish expansion.
-        """
-        #TODO: move to calling point: assert len(self.inputs) == 1
-        def ff(*args):
-            return args[0]
-        #self.task.evaluate_fn = lambda *args: args[0]
-        self.task.evaluate_fn = ff
+    # def set_evaluate_fn(self):
+    #     """
+    #     Composed tasks use evaluate to finish expansion.
+    #     """
+    #     #TODO: move to calling point: assert len(self.inputs) == 1
+    #     def ff(*args):
+    #         return args[0]
+    #     #self.task.evaluate_fn = lambda *args: args[0]
+    #     self._task_base.evaluate_fn = ff
 

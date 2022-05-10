@@ -26,6 +26,7 @@ from ..eval.cache import ResultCache
 from ..code.unwrap import into_action
 from ..code.dummy import Dummy, DummyAction, DummyWorkflow
 from . import tools, module, resource
+from ..action.constructor import Value
 
 logger = logging.getLogger(__name__)
 def setup_logger(logger):
@@ -50,12 +51,6 @@ class EvalLogger:
     def __init__(self):
         self._logger = logger
 
-    def task_submit(self, task: task_mod.TaskSchedule, value):
-        self._logger.info(f"Finished: {task.action.name}#{task.short_hash(task.id)} := {value}")
-        hashes = [task.short_hash(h) for h in task.task.input_hashes]
-        self._logger.info(f"        Inputs: {hashes}\n")
-
-
     def task_expand(self, composed: task_mod.Composed, new_tasks: Dict[str, task_mod.TaskSchedule]):
         """
         :param composed:
@@ -64,11 +59,21 @@ class EvalLogger:
         """
 
         if new_tasks is not None:
-            self._logger.info(f"Expand: {composed}, {composed.short_hash(composed.id)}")
+            self._logger.info(f"Expand: {composed} <- {[composed.short_hash(h) for h in composed.task.input_hashes]}")
             for t in new_tasks.values():
                 self._logger.info(f"    {t.action}#{t.short_hash(t.id)}  <- {[t.short_hash(h) for h in t.task.input_hashes]}")
         # else:
         #     self._logger.info(f"    Can not expand yet.")
+
+    def task_schedule(self, task: task_mod.TaskSchedule):
+        self._logger.info(f"Schedule: {task}")
+
+    def task_assign(self, task: task_mod.TaskSchedule, resource):
+        self._logger.info(f"Assign: {task} to {resource}")
+        hashes = [task.short_hash(h) for h in task.task.input_hashes]
+        self._logger.info(f"        Inputs: {hashes}\n")
+
+
 
 class Scheduler:
     """
@@ -97,7 +102,8 @@ class Scheduler:
         # When number of assigned (and unprocessed) tasks is over the limit we do not accept
         # further DAG expansion.
 
-        self.tasks = {}
+        # self.tasks = {}
+        # !! possibly depricated
         # all not yet sumitted tasks, vertices of the DAG that is optimized by the scheduler
         # maps task ID to the task
 
@@ -115,14 +121,21 @@ class Scheduler:
         self._start_time = time.perf_counter()
         # Start time of the DAG evaluation.
 
-        self._topology_sort = []
+
+        # self._topology_sort = []
+        # !! possibly depricated
         # Topological sort of the tasks.
 
+        self.n_scheduled_tasks = 0
+        self.n_assigned_tasks = 0
+        self.n_finished_tasks = 0
 
         self._resource_map = {base.ActionKind.Regular: [],
                               base.ActionKind.Meta: [],
                               base.ActionKind.Generic: []}
         # map from action kind to list of capable resources
+        self._scheduled_not_finished = set()
+        self._all_ready_set = set()
 
         for i, res in enumerate(self.resources):
             for kind in res.action_kind_list:
@@ -131,9 +144,9 @@ class Scheduler:
     def can_expand(self):
         return self.n_assigned_tasks < self.n_tasks_limit
 
-    @property
-    def n_assigned_tasks(self):
-        return len(self.tasks)
+    # @property
+    # def n_assigned_tasks(self):
+    #     return len(self.tasks)
 
     def is_finished(self, task: task_mod.TaskSchedule):
         return self.cache.is_finished(task.result_hash)
@@ -142,18 +155,17 @@ class Scheduler:
     def get_time(self):
         return time.perf_counter() - self._start_time
 
-    def append(self, tasks: List[task_mod.TaskSchedule]):
-        """
-        Add more tasks of the same DAG to be scheduled to the resources,
-        :param tasks: All tasks that are new or have changed inputs.
-        :return: List of composed tasks to expand. If empty the optimization should be called.
-        """
-        new_task_dict = {t.id: t for t in tasks}
-        self._task_map.update(new_task_dict)
-        self.tasks.update({ t.id: t for t in tasks})
-
     def ready_queue_push(self, task):
+        if task.status >= task_mod.Status.ready:
+            #print("RQ dupl: ", task)
+            # assert isinstance(task.action, Value), task
+            return
+
         if task.is_ready(self.cache):
+            task.status = task_mod.Status.ready
+            if task.id in self._all_ready_set:
+                print(f"Duplicate: {task}")
+            self._all_ready_set.add(task.id)
             heapq.heappush(self._ready_queue, task)
 
     def log_submit(self, task):
@@ -165,48 +177,70 @@ class Scheduler:
 
     def _collect_finished(self):
         # collect finished tasks, update ready queue
-        finished = []
         for resource in self.resources:
-            # res_finished_iter = ( self._task_map.pop(task.result_hash) for task in resource.get_finished() )
-            # new_finished = list(itertools.chain.from_iterable(res_finished_iter))
-            new_finished = []
             for task in resource.get_finished():
-                new_finished.append(self._task_map[task.result_hash])
+                self.finish_task(task)
 
-            for task in new_finished:
-                for dep_task in task.outputs:
-                     self.ready_queue_push(dep_task)
-            finished.extend(new_finished)
-        return finished
-
+    def finish_task(self, task):
+        print("Finish: ", task)
+        sched_task = self._task_map[task.result_hash] # !!!! ???? pop
+        try:
+            self._scheduled_not_finished.remove(sched_task.id)
+        except KeyError:
+            print(f"Already finished: {sched_task}")
+            assert sched_task.status == task_mod.Status.finished
+            return
+        sched_task.status = task_mod.Status.finished
+        self.n_finished_tasks += 1
+        for dep_task in sched_task.output_tasks:
+            if dep_task.status >= task_mod.Status.ready:
+                print(f"Cyclic dependency: {dep_task} on {sched_task}.")
+                assert False
+            # TODO: more efficient ready_queue update
+            self.ready_queue_push(dep_task)
 
     def update(self, tasks):
         """
         Update resources, collect finished tasks, submit new ready tasks.
         Should be called approximately every 'call_period' seconds.
         """
-        self.optimize()  # currently performs full CPM algorithm
+        for t in tasks:
+            #self.estimate_task_eval_time(t)
+            self.ready_queue_push(t)
+
+        #self..append(tasks)
+
+        #self.optimize()  # currently performs full CPM algorithm
 
         finished = self._collect_finished()
+
+        print(f"{self.n_scheduled_tasks} > {len(self._all_ready_set)} ( >  RQ: {len(self._ready_queue)}) > {self.n_assigned_tasks} > {self.n_finished_tasks}")
+        completed = len(self._ready_queue) == 0
         while self._ready_queue:
             task = heapq.heappop(self._ready_queue)
-            if task.id in self.tasks:   # deal with duplicate entrieas in the queue
-                if not self.is_finished(task):
-                    assert task.is_ready(self.cache)
-                    # TODO: remove _task_map and use just task hashes for task referencing
-                    # automaticaly eliminating duplicities in the evaluation DAG
-                    # However should be accompanied by the checking the database in order to allow memoizing only
-                    # short term history of tasks.
-                    key = task.result_hash
-                    self.assign_task(task)
+ #           if task.id in self.tasks:   # deal with duplicate entrieas in the queue
+            assert not self.is_finished(task), task
+            #assert task.status == Status.ready
+            self.assign_task(task)
 
-                del self.tasks[task.id]
-        return finished
+            #del self.tasks[task.id]
+        completed = completed and self.n_finished_tasks == self.n_assigned_tasks
+        print([self.task(h) for h in self._scheduled_not_finished])
+        return len(self._scheduled_not_finished) == 0
 
     def assign_task(self, task):
+        self.n_assigned_tasks += 1
+        assert not isinstance(task, task_mod.Composed)
+        # Deal directly with Value and Pass actions, possibly even in early stages of scheduling.
 
-        self.log.task_submit(task, resource)
-        self.resources[task.resource_id].submit(task.task)
+        kind = task.task.action.action_kind
+        kind_list = self._resource_map[kind]
+        assert kind_list, 'There are no resource capable of run "{}".'.format(kind)
+        task.resource_id = kind_list[0]
+        resource = self.resources[task.resource_id]
+        self.log.task_assign(task, resource)
+        task.status = task_mod.Status.submitted
+        resource.submit(task.task)
 
     def task(self, task_hash):
         return self._task_map[task_hash]
@@ -215,6 +249,13 @@ class Scheduler:
         """
         Create task from the given action and its input tasks.
         """
+        try:
+            task = self.task(task_base.result_hash)
+            print("Duplicit: ", task, task_base)
+            return task
+        except KeyError:
+            pass
+
         task_type = task_base.action.task_type
         if task_type == base.TaskType.Atomic:
             sched_task = task_mod.Atomic(parent, child_name, task_base, self)
@@ -222,7 +263,10 @@ class Scheduler:
             sched_task = task_mod.Composed(parent, child_name, task_base, self)
         else:
             assert False
+        self.log.task_schedule(sched_task)
         self._task_map[sched_task.id] = sched_task
+        self.n_scheduled_tasks += 1
+        self._scheduled_not_finished.add(sched_task.id)
         return sched_task
 
 
@@ -357,10 +401,6 @@ class Evaluation:
         # Expansion iteration.
 
 
-    def tasks_update(self, tasks):
-        for t in tasks:
-            self.estimate_task_eval_time(t)
-        self.scheduler.append(tasks)
 
     def estimate_task_eval_time(self, task):
         """
@@ -422,17 +462,12 @@ class Evaluation:
         Execute the workflow.
         assigned_tasks_limit -  maximum number of tasks processed by the Scheduler
                                 TODO: should be part of the Scheduler config
-        workspace -
-
-        :return:
+        TODO: Reinit scheduler and own structures to allow reuse of the Evaluation object.
         """
-        #TODO: Reinit scheduler and own structures to allow reuse of the Evaluation object.
         task_base = task_mod._TaskBase(analysis, [], ([],{}))
         self.final_task = self.scheduler.create_task(None, '__root__', task_base)
         self.enqueue(self.final_task)
         # init scheduler
-        self.tasks_update([self.final_task])
-
 
         with tools.change_cwd(self.workspace):
             # print("CWD: ", os.getcwd())
@@ -440,14 +475,13 @@ class Evaluation:
             if invalid_connections:
                 raise Exception(invalid_connections)
             self.expansion_iter = 0
-            while not self.force_finish:
+            while True:
                 schedule = self.expand_tasks()  # returns list of expanded atomic tasks to schedule
                 if self.plot_expansion:
                     self._plot_task_graph(self.expansion_iter)
-                self.tasks_update(schedule)     # pass the list to the scheduler, update its hash -> task dictionary
-                self.scheduler.update(schedule)
-                if self.scheduler.n_assigned_tasks == 0:
-                    self.force_finish = True
+                completed = self.scheduler.update(schedule)
+                if completed:
+                    break
                 self.expansion_iter += 1
         return TaskResult(self.final_task, self.cache)
 
@@ -472,43 +506,42 @@ class Evaluation:
 
         while self.queue and not self.force_finish and self.scheduler.can_expand():
             composed_id, time, composed_task = heapq.heappop(self.queue)
+            if composed_task.status == task_mod.Status.expanded:
+                # Could happen, for composed tasks dependent only on constants.
+                continue
             raw_task_dict = composed_task.expand(self.cache)
             if raw_task_dict is None:
                 # Can not expand yet, return back into queue
                 postpone_expand.append(composed_task)
             else:
                 assert len(raw_task_dict) > 0
+                self.log.task_expand(composed_task, raw_task_dict)
                 task_dict = {name: self.scheduler.create_task(composed_task, name, task)
                              for name, task in raw_task_dict.items()}
 
+
                 composed_task.childs = task_dict  # {task.child_id: _TaskBase}
                 result_task = composed_task.childs['__result__']
-                assert len(result_task.outputs) == 0
-                result_task.outputs.append(self)
-                composed_task.task.id_args_pair = ([0], {})
-                composed_task.task.input_hashes = [result_task.result_hash]
-                # After expansion the composed task is just a dummy task dependent on the previoous result.
-                # This works with Workflow, see how it will work with other composed actions:
-                # if, reduce (for, while)
 
-                self.log.task_expand(composed_task, task_dict)
-                # print("Expanded: ", task_dict)
+                # assert len(result_task.output_tasks) == 0
+                # result could have existing outputs if it is duplicate
+                # that could happen for Value and constant value actions
+
+                # TODO: move composed shortcutting to appropriate scheduler method
+                composed_task.shortcut(result_task=result_task)
+                for t in result_task.output_tasks:
+                    self.scheduler.ready_queue_push(t)
+                self.scheduler.finish_task(composed_task)
+                composed_task.status = task_mod.Status.expanded
+
                 for task in task_dict.values():
                     if isinstance(task, task_mod.Composed):
                         self.enqueue(task)
                     schedule.append(task)
-                #schedule.append(composed_task)
-                self.tasks_update([composed_task])
-                # ?? direct scheduling of resulting composed task stub, can be avoided ?
-                # While runs in an infinite loop
 
         for task in postpone_expand:
             self.enqueue(task)
         return schedule
-
-    # def extract_input(self):
-    #     input_data = List(*[i._result for i in self._inputs])
-
 
 
     def make_graphviz_digraph(self):
