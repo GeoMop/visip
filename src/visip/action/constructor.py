@@ -26,7 +26,7 @@ class Value(ActionBase):
         # TODO: any way we should store action values to a separate storage private to the scheduler
         return data.hash(self.value, previous=salt_hash)
 
-    def _evaluate(self):
+    def evaluate(self):
         return self.value
 
     def call_format(self, representer, action_name, arg_names, arg_values):
@@ -44,7 +44,8 @@ class Pass(ActionBase):
         self.action_kind = base.ActionKind.Generic
         super().__init__('Pass', signature)
 
-    def _evaluate(self, input):
+    @classmethod
+    def _evaluate(cls, input):
         return input
 
 
@@ -75,6 +76,7 @@ class A_list(_ListBase):
     def call_format(self, representer, action_name, arg_names, arg_values):
         return representer.list("[", "]", [(None, arg) for arg in arg_names])
 
+    @classmethod
     def _evaluate(self, *inputs):
         return list(inputs)
 
@@ -90,7 +92,8 @@ class A_tuple(_ListBase):
     def call_format(self, representer, action_name, arg_names, arg_values):
         return representer.list("(", ")", [(None, arg) for arg in arg_names])
 
-    def _evaluate(self, *inputs):
+    @classmethod
+    def _evaluate(cls, *inputs):
         return tuple(inputs)
 
 
@@ -113,6 +116,8 @@ class A_dict(ActionBase):
 
         return ActionBase.call_format(self, representer, action_name, arg_names, arg_values)
 
+
+    @classmethod
     def _evaluate(self, *inputs):
         return {key: val for key, val in inputs}
         #item_pairs = ( (key, val) for key, val in inputs)

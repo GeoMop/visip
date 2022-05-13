@@ -42,7 +42,8 @@ class _Result(_ListBase):
         # The "side effects" of the workflow.
         # TODO: Do we realy need this? We should rather introduce an action Head(*args): return args[0], that way one can do desired efect explicitly
 
-    def _evaluate(self, *args, **kwargs):
+    @classmethod
+    def _evaluate(cls, *args):
         return args[0]
 
     def call_format(self, representer, action_name, arg_names, arg_values):
