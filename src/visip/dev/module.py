@@ -1,14 +1,13 @@
-import importlib.util
 from typing import *
 import os
 import sys
-# TODO: use importlib instead
+import importlib.util
 import traceback
-# from typing import Callable
 from types import ModuleType
 from collections import deque
 from attrs import define
 
+from . import tools
 from ..action import constructor
 # from ..code import wrap
 from ..code.dummy import DummyAction, DummyWorkflow
@@ -160,16 +159,13 @@ class Module:
                 for mod_name, def_ in m.new_definitions.items():
                     type_obj = def_.get_type()
                     if type_obj is not None:
-                        key = (type_obj.__module__, type_obj.__name__)
+                        key = tools.mod_name(type_obj)
                         if key in _types_map:
                             assert _types_map[key] is type_obj
                         else:
                             _types_map[key] = type_obj
         return _types_map
 
-    @classmethod
-    def mod_name(cls, obj):
-        return (getattr(obj, "__module__", None), getattr(obj, "__name__", None))
 
     @staticmethod
     def is_dunder(name):
@@ -313,7 +309,7 @@ class Module:
     #     return
 
     def object_name(self, obj):
-        return self._object_names.get(self.mod_name(obj), None)
+        return self._object_names.get(tools.mod_name(obj), None)
 
     def is_visip_module(self):
         return len(self.definitions) > 0
@@ -342,7 +338,7 @@ class Module:
         for name, obj in self.py_module.__dict__.items():
             if self.is_dunder(name):
                 continue
-            obj_module, obj_name = self.mod_name(obj)
+            obj_module, obj_name = tools.mod_name(obj)
             if type(obj) is ModuleType:
                 if obj_name == "dill":
                     continue
@@ -357,13 +353,13 @@ class Module:
                 continue
             if self.is_visip_def(obj):
                 visip_obj = obj.wrapped()
-                obj_module, obj_name = self.mod_name(visip_obj)
+                obj_module, obj_name = tools.mod_name(visip_obj)
                 if obj_module != self.py_module.__name__:
                     #assert False, "from .. import ..  : not implemented yet for VISIP objects "
                     pass
 
                 #print("DBG wrap: ", obj)
-                mod_name = self.mod_name(visip_obj)
+                mod_name = tools.mod_name(visip_obj)
                 #self.add_module_by_name(mod_name[0])
 
                 self.insert_definition(visip_obj)
@@ -428,7 +424,7 @@ class Module:
         """
         module_queue = deque()  # queue of (module, alias_module_name)
         name, obj = alias, mod_obj
-        obj_mod_name = self.mod_name(obj)
+        obj_mod_name = tools.mod_name(obj)
         if obj_mod_name in self._object_names:
             return
         alias_name = f"{name}".lstrip('.')
@@ -450,13 +446,13 @@ class Module:
                 continue
 
             for name, obj in mod_obj.__dict__.items():
-                obj_mod_name = self.mod_name(obj)
+                obj_mod_name = tools.mod_name(obj)
                 if name.startswith('__'):
                     continue
 
                 alias_name = f"{mod_alias}.{name}".lstrip('.')
                 if isinstance(obj, (DummyAction, DummyWorkflow)):
-                    obj_mod_name = self.mod_name(obj._action_value)
+                    obj_mod_name = tools.mod_name(obj._action_value)
                 elif type(obj) is ModuleType:
                     module_queue.append((obj, alias_name))
                 elif obj_mod_name[0] == 'typing':
@@ -494,7 +490,7 @@ class Module:
     def insert_imported_module(self, mod_obj: 'Module', alias: str):
         mod_obj = Module.add_module(mod_obj.py_module)
         mod_obj.extract_definitions()
-        self.new_definitions[self.mod_name(mod_obj)] = _DefImport(alias, mod_obj)
+        self.new_definitions[tools.mod_name(mod_obj)] = _DefImport(alias, mod_obj)
         # self.imported_modules.append(mod_obj)
         # if alias == "":
         #     alias = getattr(mod_obj, "__name__", None)

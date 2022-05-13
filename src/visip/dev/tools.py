@@ -90,3 +90,17 @@ def compose_arguments(id_args_pair: ArgsPair[int],
 
 
 ##########################################################
+
+
+def mod_name(obj):
+    """
+    Return (module, name) of an object.
+    - prefere __visip_module__ and __visip_name__
+    """
+    mod = getattr(obj, "__visip_module__", None)
+    if mod is None:
+        mod = getattr(obj, "__module__", None)
+    name = getattr(obj, "__visip_name__", None)
+    if name is None:
+        name = getattr(obj, "__name__", None)
+    return mod, name

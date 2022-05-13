@@ -5,15 +5,64 @@ from visip.dev import exceptions
 import typing
 import typing_inspect
 import builtins
+import dill
+import pickle
 
-
-class Aclass(DataClassBase):
+class _Aclass(DataClassBase):
     a: int = 0
     b: Str
 
 
 def create_class():
-    return Aclass
+    return _Aclass
+
+# Enum
+class _Aenum(enum.IntEnum):
+    a = 1
+    b = 2
+
+def create_enum():
+    return _Aenum
+
+
+def try_pick(x):
+    print("pickle: ", str(x))
+    p = pickle.dumps(x)
+    y = pickle.loads(p)
+    assert x == y
+
+    print("dill: ", str(x))
+    p = dill.dumps(x)
+    y = dill.loads(p)
+    assert x == y
+
+def test_serialization():
+    Tclass = from_typing(create_class())
+    Tenum = from_typing(create_enum())
+
+    params = dict(a=Int, b=EmptyType)
+    replace = lambda var: TypeVar(origin_type=EmptyType, name=var)
+    signature_mock = [replace(k) if v is EmptyType else v for k,v in params.items()]
+
+    #TV = typing.TypeVar(name="typing")
+    types = [
+        #TV,
+        Union(Int, Bool, Float, Str, Bytes, EmptyType, Any, NoneType),
+        Tclass,
+        Tenum,
+        TypeVar(name = "test"),
+        #TypeVar(TV),
+        List(Union(Bool, Tclass)),
+        Dict(Int, Str),
+        Tuple(Int, Str),
+        signature_mock,
+        #typing.List[int],
+        #typing.Union[int, str]
+    ]
+
+    for t in types:
+        try_pick(t)
+
 
 def test_singleton():
     class A(metaclass=Singleton):
@@ -75,10 +124,7 @@ def test_types():
 
 def test_type_of_value():
 
-    # Enum
-    class A(enum.IntEnum):
-        a = 1
-
+    A = create_enum()
     class B(DataClassBase):
         pass
 
@@ -163,8 +209,8 @@ def test_from_typing():
     assert issubclass(a_class, DataClassBase)
     nt = from_typing(a_class)
     assert isinstance(nt, Class)
-    assert nt.__module__ == a_class.__module__
-    assert nt.__name__ == a_class.__name__
+    assert nt.__visip_module__ == a_class.__module__
+    assert nt.__visip_name__ == a_class.__name__
 
     # Enum
     class A(enum.IntEnum):
@@ -172,8 +218,8 @@ def test_from_typing():
 
     nt = from_typing(A)
     assert isinstance(nt, Enum)
-    assert nt.__module__ == A.__module__
-    assert nt.__name__ == A.__name__
+    assert nt.__visip_module__ == A.__module__
+    assert nt.__visip_name__ == A.__name__
 
     # Any
     assert from_typing(typing.Any) is Any
@@ -770,3 +816,4 @@ def test_expand_var_map():
     assert eq(vm2[t], Int)
     assert eq(vm2[u], List(List(Int)))
     assert eq(vm2[v], List(Int))
+

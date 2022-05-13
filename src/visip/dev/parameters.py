@@ -173,7 +173,7 @@ class Parameters:
         for param in self.parameters:
             in_set.update(dtype.extract_type_var(param.type))
         out_set = dtype.extract_type_var(self.return_type)
-        assert out_set.issubset(in_set), f"Output TypeVars {out_set.difference(in_set)} are missing on input."
+        assert out_set.issubset(in_set), f"Output TypeVars {out_set.difference(in_set)} are missing on input: {in_set}."
 
     def process_empty(self, func):
         """
