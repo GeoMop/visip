@@ -1,8 +1,3 @@
-import multiprocessing
-import dill
-import queue
-import time
-import collections
 from visip.dev.module import Module
 from visip.dev import action_workflow
 from abc import ABC, abstractmethod
@@ -12,8 +7,7 @@ import attrs
 from visip.action import operator_functions
 from visip.eval.cache import ResultCache
 from visip.dev.task import _TaskBase
-from visip.dev import base
-from multiprocessing import Process, Pipe
+from ..dev import base, tools
 from visip.eval.process_worker import WorkerProxy
 
 class ResourceBase(ABC):
@@ -214,7 +208,7 @@ class Multiprocess:
             data_inputs = [self.cache.value(ih) for ih in task.input_hashes]
             assert not any([i is self.cache.NoValue for i in data_inputs])
             args, kwargs = task.inputs_to_args(data_inputs)
-            mod, name = Module.mod_name(task.action)
+            mod, name = tools.mod_name(task.action)
 
             #action = self._module.get_module(mod).get_action(name)
             # TODO: check action serialization before submitting
