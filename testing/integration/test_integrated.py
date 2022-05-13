@@ -5,10 +5,12 @@ from multiprocessing import Pool
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
-@pytest.mark.skip
+#@pytest.mark.skip
 @pytest.mark.parametrize("env", [
     "local.yaml",
     "multiprocess.yaml"])
+#@pytest.mark.parametrize("env", [
+#    "multiprocess.yaml"])
 @pytest.mark.parametrize("case", [
     "simple.py"])
 def test_visip_command(env, case):
@@ -69,3 +71,6 @@ def test_multiprocess():
     print()
     print(resource.finished)
     pool.close()
+
+if __name__ == "__main__":
+    test_visip_command("multiprocess.yaml", "simple.py")

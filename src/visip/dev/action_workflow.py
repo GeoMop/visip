@@ -184,7 +184,7 @@ class _Workflow(meta.MetaAction):
         func_signature = _extract_signature(func, omit_self=True)
         # except exceptions.ExcTypeBase as e:
         #     raise exceptions.ExcTypeBase(f"Wrong signature of workflow:  {func.__module__}.{func.__name__}") from e
-        func_signature.process_empty(lambda var: dtype.TypeVar(origin_type=dtype.EmptyType, name="__Slot__"))
+        func_signature.process_empty(lambda var: dtype.TypeVar(origin_type=dtype.EmptyType, name=var))
         self._parameters = func_signature
 
         self._status = self.Status.no_result

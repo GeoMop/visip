@@ -10,23 +10,21 @@ Evaluation of a workflow.
     relay on equality of the data if the hashes are equal.
 4. Tasks are assigned to the resources by scheduler,
 """
-import queue
 import sys
 import os
-from typing import Optional, List, Dict, Tuple, Any, Union
+from typing import *
 import logging
 import heapq
 import time
 from .environment import Environment
 
-from . import data, task as task_mod, base, dfs, action_instance as instance, dtype
+from . import task as task_mod, base, dfs, action_instance as instance, dtype, resource
 from .task_result import TaskResult
 from .action_workflow import _Workflow
 from ..eval.cache import ResultCache
 from ..code.unwrap import into_action
 from ..code.dummy import Dummy, DummyAction, DummyWorkflow
-from . import tools, module, resource
-from ..action.constructor import Value
+from . import tools, module
 
 logger = logging.getLogger(__name__)
 def setup_logger(logger):
@@ -141,10 +139,14 @@ class Scheduler:
                 kind_list = self._resource_map.setdefault(kind, [])
                 kind_list.append(res)
 
-    def __del__(self):
+    def close(self):
         print("Closing Scheduler resources.")
         for r in self.resources:
             r.close()
+
+    def __del__(self):
+        self.close()
+
 
     def can_expand(self):
         return self.n_assigned_tasks < self.n_tasks_limit
@@ -397,7 +399,7 @@ class Evaluation:
         self.cache = ResultCache()
 
         if scheduler is None:
-            scheduler = Scheduler([ resource.Resource(self.cache) ], self.cache)
+            scheduler = Scheduler([resource.Resource(self.cache)], self.cache)
         self.scheduler = scheduler
         self.scheduler.log = self.log
         self.workspace = workspace
@@ -414,6 +416,17 @@ class Evaluation:
 
         self.force_finish = False
         # Used to force end of evaluation after an error.
+        self.error_tasks = []
+        # List of tasks finished with error.
+        self.expansion_iter = 0
+        # Expansion iteration.
+
+    def reinit(self):
+        self.scheduler.reinit()
+        self.final_task = None
+        self.composed_id = 0
+        self.queue = []
+        self.force_finish = False
         self.error_tasks = []
         # List of tasks finished with error.
         self.expansion_iter = 0
@@ -499,12 +512,13 @@ class Evaluation:
                 if self.plot_expansion:
                     self._plot_task_graph(self.expansion_iter)
                 completed = self.scheduler.update(schedule)
-                if completed:
-                #if completed or self.expansion_iter > 100:
+                #if completed:
+                if completed or self.expansion_iter > 100:
                     break
                 self.expansion_iter += 1
-        return TaskResult(self.final_task, self.cache)
-
+        result = TaskResult(self.final_task, self.cache)
+        self.scheduler.close()
+        return result
 
 
 
@@ -555,7 +569,6 @@ class Evaluation:
 
     def make_graphviz_digraph(self):
         from . dag_view import DAGView
-        from graphviz import Digraph
         g = DAGView("Task DAG")
         #g.attr('graph', rankdir="BT")
 
@@ -671,7 +684,7 @@ def run_env(script_path:str, env_cfg: dict=None):
         assert env.container is None    # not supported yet
         cache = ResultCache()
 
-        resources_lists = [resource.create(r, cache) for r in env.resources]
+        resources_lists = [resource.create(r, cache, script_path) for r in env.resources]
         resources = [resource.Resource(cache)] # always have the local resource
         for rl in resources_lists:
             resources.extend([r for r in rl if r is not None])

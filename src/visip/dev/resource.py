@@ -3,33 +3,18 @@ import dill
 import queue
 import time
 import collections
+from visip.dev.module import Module
+from visip.dev import action_workflow
 from abc import ABC, abstractmethod
-
+from typing import *
 import attrs
 
-from ..eval.cache import ResultCache
-from .task import _TaskBase
-from . import base
+from visip.action import operator_functions
+from visip.eval.cache import ResultCache
+from visip.dev.task import _TaskBase
+from visip.dev import base
 from multiprocessing import Process, Pipe
-
-class Time:
-    """
-    See: https://peps.python.org/pep-0418
-    Starting with use of monotonic, try high resolution timers if neccessry.
-    """
-
-    def __init__(self, sync_time):
-        self._own_sync_time = self.time()
-        self._global_sync_time = sync_time
-        self._time_correction = self._global_sync_time - self._own_sync_time
-        self.clock_res = time.get_clock_info("monotonic").resolution
-
-    def time(self):
-        return time.monotonic()
-
-    def sync_time(self):
-        return self.time_correction + self.time()
-
+from visip.eval.process_worker import WorkerProxy
 
 class ResourceBase(ABC):
     """
@@ -125,13 +110,45 @@ class Resource:
             # print(task.action)
             # print(task.inputs)
             # print(task_hash, res_value)
-            self.cache.insert(task.result_hash, res_value)
+            self.cache.insert(task.result_hash, res_value, (0,0))
 
         self._finished.append(task)
 
     def close(self):
         pass
 
+@attrs.define
+class Payload:
+    module: str
+    name: str
+    args: List[Any]
+    kwargs: Dict[str, Any]
+
+class _ActionWorker:
+    """
+    Worker with action resolution from the main maodule.
+    """
+    def __init__(self, main_module_path:str):
+        #self.module = Module.load_module(main_module_path)
+        pass
+    def eval(self, payload: Payload):
+        return 123
+        print("eval ", payload)
+        evaluate = self.resolve_function(payload.module, payload.name)
+        value = evaluate(*(payload.args), **(payload.kwargs))
+        print("    .. don: ", value)
+        return value
+
+
+    def resolve_function(self, mod, name):
+        if (mod,name) == ('visip.dev.action_workflow', 'result'):
+            return action_workflow._Result._evaluate
+        if mod == 'visip.action.operator':
+            return operator_functions.__dict__[name]
+
+        action = Module.get_module(mod).get_action(name)
+        assert action is not None, (mod, name)
+        return action
 
 
 class Multiprocess:
@@ -149,93 +166,75 @@ class Multiprocess:
         np: int = attrs.field(converter=int, default=1)
 
 
-    def __init__(self, config: dict, cache:ResultCache):
+    def __init__(self, config: dict, cache:ResultCache, main_module_path):
         self._cfg = self.Config(**config)
         self.cache = cache
-        self.pool = multiprocessing.get_context("spawn").Pool(processes=self._cfg.np)
-        self.finished = collections.deque()
+        self.process = WorkerProxy(_ActionWorker, setup_args=(main_module_path,))
         self.action_kind_list = [base.ActionKind.Regular, base.ActionKind.Generic]
 
-        self.n_assigned = 0
         self.time_assigned = 0
-        self.n_finished = 0
         self.time_completed = 0
+        self.finished = []
+
+        self._module = Module.load_module(main_module_path)
+
+    def __del__(self):
+        self.close()
+
+    @property
+    def n_assigned(self):
+        return self.process.n_assigned
+
+    @property
+    def n_finished(self):
+        return self.process.n_finished
 
     def estimate_time(self, task):
         return self.n_assigned - self.n_finished
 
     def get_finished(self):
-        n = len(self.finished)
-        out = []
-        for i in range(n):
-            out.append(self.finished.popleft())
-        return out
+        all_finished = self.finished
+        self.finished = []
 
-    def add_finished(self, result_blob, err, task):
-        if result_blob is None:
-            result = None
-        else:
-            result = dill.loads(result_blob)
-        task.error = err
-        self.cache.insert(task.result_hash, result)
-        self.finished.append(task)
-        self.n_finished += 1
-
-    # class action_eval_wrapper:
-    #     def __init__(self, task):
-    #         self.task = task
-    #     def __call__(self, *args, **kwargs):
-    #         res = self.task.evaluate_fn(*args, **kwargs)
-    #         return (res, self.task)
-    #
-    #
-
-    @staticmethod
-    def do_work(dill_blob):
-        fn, args, kwargs = dill.loads(dill_blob)
-        return dill.dumps(fn(*args, **kwargs))
+        while True:
+            r = self.process.get()
+            if r is None:
+                return all_finished
+            # print("GET ", r)
+            if r.error is None:
+                self.cache.insert(r.request.result_hash, r.value, (r.start_time, r.end_time))
+                all_finished.append(r.request)
+            else:
+                raise r.error
 
     def submit(self, task: _TaskBase):
-        print("multiproc submit")
+        #print("multiproc submit")
         res_value = self.cache.value(task.result_hash)
         if res_value is self.cache.NoValue:
-            #assert task.is_ready()
             data_inputs = [self.cache.value(ih) for ih in task.input_hashes]
-            #if any([i is self.cache.NoValue for i in data_inputs]):
-            #    print(task.action, data_inputs)
             assert not any([i is self.cache.NoValue for i in data_inputs])
             args, kwargs = task.inputs_to_args(data_inputs)
+            mod, name = Module.mod_name(task.action)
 
-            def finished(res):
-                print("Finished.")
-                self.add_finished(res, None, task)
+            #action = self._module.get_module(mod).get_action(name)
+            # TODO: check action serialization before submitting
 
-            def error(err):
-                print("Error: ", err)
-                self.add_finished(None, err, task)
+            payload = Payload(mod, name, args, kwargs)
 
-
-            self.n_assigned += 1
-            #self.pool.apply_async(task.evaluate_fn, args, kwargs, callback=finished)
-            print("apply_async: ", self.do_work, args, kwargs)
-            dill_blob = dill.dumps( (task.action.evaluate, args, kwargs), byref=True )
-            self.pool.apply_async(self.do_work, (dill_blob,), {}, callback=finished, error_callback=error)
+            # print("PUT:", payload)
+            self.process.put(payload, ref=task)
         else:
             self.finished.put(task)
 
     def close(self):
-        if self.pool is not None:
-            self.pool.close()
-            self.pool = None
-    # def process_task(task):
-    #     self.cache.insert(task.result_hash, res_value)
-
+        if self.process is not None:
+            self.process.close()
 
 _resource_classes = [
     Multiprocess
 ]
 _resources_dict = {r.__name__: r for r in _resource_classes}
-def create(conf: dict, cache: ResultCache):
+def create(conf: dict, cache: ResultCache, main_module_path):
     """
     Create particular resource instance from a dict.
     """
@@ -246,4 +245,4 @@ def create(conf: dict, cache: ResultCache):
     if res_class is None:
         raise ValueError(f"Wrong resource type: {resource_type}. Possible values: {_resources_dict.keys()}.")
     n_instances = conf.get('multiplicity', 1)
-    return [res_class(conf, cache) for i in range(n_instances)]
+    return [res_class(conf, cache, main_module_path) for i in range(n_instances)]

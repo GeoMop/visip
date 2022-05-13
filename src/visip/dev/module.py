@@ -15,9 +15,8 @@ from ..code.representer import Representer
 from . import base, action_workflow as wf
 from .action_instance import ActionCall
 from . import dtype
+from .exceptions import InterpreterError
 
-
-class InterpreterError(Exception): pass
 
 
 class sys_path_append:
