@@ -18,7 +18,8 @@ import heapq
 import time
 from .environment import Environment
 
-from . import task as task_mod, base, dfs, action_instance as instance, dtype, resource
+from . import task as task_mod, base, dfs, action_instance as instance, dtype
+from ..eval import resource
 from .task_result import TaskResult
 from .action_workflow import _Workflow
 from ..eval.cache import ResultCache
