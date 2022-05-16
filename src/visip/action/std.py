@@ -45,6 +45,25 @@ class ExecResult(dtype.DataClassBase):
     stderr: dtype.Str
 
 
+collection_type = dtype.Union(
+  dtype.Dict(dtype.Any, dtype.Any),
+  dtype.List(dtype.Any)
+  )
+# collection_type = dtype.Union(
+#   dtype.Dict(dtype.TypeVar(), dtype.TypeVar()),
+#   dtype.List(dtype.TypeVar())
+#   )
+# Error: More then one argument with TypeVar in Union.
+@decorators.action_def
+def Len(collection: collection_type) -> dtype.Int:
+    return len(collection)
+
+T = dtype.TypeVar()
+@decorators.action_def
+def Append(collection: dtype.List(T), item:T) -> dtype.List(T):
+    collection.append(item)
+    return collection
+
 @decorators.action_def
 def file_in(path: dtype.Str, workspace: Folder = "") -> FileIn:
     # we assume to be in the root of the VISIP workspace

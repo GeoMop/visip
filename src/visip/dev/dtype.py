@@ -432,6 +432,15 @@ class Const(DTypeGeneric):
         assert not isinstance(self.args[0], Const)
 
 
+# class Callable(DTypeGeneric):
+#     """
+#     typing defines also ParamSpec and Concatenate, but it seems to be result of bad previous design.
+#     Seems that ParamSpec bahaves like pair (Args, Kwargs), similarly Concatenate can just well be replaced by Tuple of types.
+#     TODO: Read documentation for the Callable and related PEPs.
+#     """
+#     def __init__(self, args, kwargs, return_type):
+#         pass
+
 class TypeInspector:
     @staticmethod
     def is_constant(type):

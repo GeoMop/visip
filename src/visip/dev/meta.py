@@ -220,7 +220,7 @@ class _Lazy(MetaAction):
         #ReturnType = dtype.TypeVar(origin_type=None, name='ReturnType')
         ReturnType = TypeVar('ReturnType')
 
-        params = [ActionParameter("action", Callable[..., ReturnType]),
+        params = [ActionParameter("action", dtype.Any),         #Callable[..., ReturnType]),
                   ActionParameter("args", dtype.Any, kind=ActionParameter.VAR_POSITIONAL),
                   ActionParameter("kwargs", dtype.Any, kind=ActionParameter.VAR_KEYWORD),
                   ]
@@ -293,7 +293,7 @@ class DynamicCall(MetaAction):
         super().__init__("DynamicCall")
 
         ReturnType = TypeVar('ReturnType')
-        params = [ActionParameter(name="function", p_type=Callable[..., ReturnType]),
+        params = [ActionParameter(name="function", p_type=dtype.Any),   #Callable[..., ReturnType]),
                   ActionParameter(name="args", p_type=dtype.Any, kind=ActionParameter.VAR_POSITIONAL),
                   ActionParameter(name="kwargs", p_type=dtype.Any, kind=ActionParameter.VAR_KEYWORD)]
         self._parameters = Parameters(params, ReturnType)
@@ -329,9 +329,9 @@ class _If(MetaAction):
         params.append(
             ActionParameter(name="condition", p_type=dtype.Bool))
         params.append(
-            ActionParameter(name="true_body", p_type=Callable[..., ReturnType]))
+            ActionParameter(name="true_body", p_type=dtype.Any))    #Callable[..., ReturnType]))
         params.append(
-            ActionParameter(name="false_body", p_type=Callable[..., ReturnType]))
+            ActionParameter(name="false_body", p_type=dtype.Any))   #Callable[..., ReturnType]))
         self._parameters = Parameters(params, ReturnType)
 
     def expand(self, task, task_creator, cache):
