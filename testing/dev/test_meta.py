@@ -196,32 +196,17 @@ def test_nested_wf():
 #
 
 
-
-
-@wf.action_def
-def _fib_cond(i: int) -> bool:
-    return i > 0
-
-@wf.action_def
-def _fib_add(a: int, b: int) -> int:
-    return a + b
-
-@wf.action_def
-def _fib_dec(i: int) -> int:
-    return i - 1
-
-
 @wf.workflow
 def _fib_true(prev):
     i, a, b = prev
-    return (_fib_dec(i), b, _fib_add(a, b))
+    return (i - 1, b, a + b)
 
 @wf.workflow
 def _fib_body(prev):
     i, a, b = prev
     false_body = wf.lazy(wf.Pass, None)
     true_body = wf.lazy(_fib_true, prev)
-    return wf.If(_fib_cond(i), true_body, false_body)
+    return wf.If(i > 0, true_body, false_body)
 
 @wf.workflow
 def fibonacci(n):
@@ -235,6 +220,16 @@ def test_while():
     assert evaluation.run(fibonacci, 2) == 2
     assert evaluation.run(fibonacci, 3) == 3
     assert evaluation.run(fibonacci, 4) == 5
+
+#
+#
+# def test_while_cond():
+#     assert evaluation.run(fibonacci, 0) == 1
+#     assert evaluation.run(fibonacci, 1) == 1
+#     assert evaluation.run(fibonacci, 2) == 2
+#     assert evaluation.run(fibonacci, 3) == 3
+#     assert evaluation.run(fibonacci, 4) == 5
+
 
 # @wf.action_def
 # def condition(lst:wf.List[float], num:float, end:float) -> bool:
