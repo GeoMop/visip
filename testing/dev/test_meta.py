@@ -221,14 +221,29 @@ def test_while():
     assert evaluation.run(fibonacci, 3) == 3
     assert evaluation.run(fibonacci, 4) == 5
 
-#
-#
-# def test_while_cond():
-#     assert evaluation.run(fibonacci, 0) == 1
-#     assert evaluation.run(fibonacci, 1) == 1
-#     assert evaluation.run(fibonacci, 2) == 2
-#     assert evaluation.run(fibonacci, 3) == 3
-#     assert evaluation.run(fibonacci, 4) == 5
+
+
+@wf.workflow
+def _fib_cond(prev):
+    i, a, b = prev
+    return i > 0
+
+@wf.workflow
+def _fib_body_cond(prev):
+    i, a, b = prev
+    return [i - 1, b, a + b]
+
+@wf.workflow
+def fibonacci_cond(n):
+    fib = wf.WhileCond([n, 1, 1], _fib_cond, _fib_body_cond)
+    return fib[1]
+
+def test_while_cond():
+    assert evaluation.run(fibonacci_cond, 0) == 1
+    assert evaluation.run(fibonacci_cond, 1) == 1
+    assert evaluation.run(fibonacci_cond, 2) == 2
+    assert evaluation.run(fibonacci_cond, 3) == 3
+    assert evaluation.run(fibonacci_cond, 4) == 5
 
 
 # @wf.action_def
