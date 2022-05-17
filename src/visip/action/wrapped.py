@@ -9,6 +9,7 @@ from . import constructor
 from ..code.decorators import public_action, action_def, workflow
 from ..dev import meta
 from ..dev import dtype
+from .std import Append, Len
 
 dict = public_action(constructor.A_dict())
 list = public_action(constructor.A_list())
@@ -82,33 +83,36 @@ def WhileCond(init, condition, iterate):
     return If(condition(init), continue_body, init)
 
 
-@action_def
-def _append(a_list, fn, item):
-    return a_list.append(fn(item))
+
 
 @workflow
-def _Recursion(_recursion, items, fn, last, a):
-    return _recursion(_append(items, fn(last)), a, fn)
+def _GenBody(results, last, condition, iterate, map_fn):
+    new_results = Append(results, map_fn(last))
+    return _Generate(new_results, iterate(last), condition, iterate, map_fn)
 
 @workflow
-def _GenBody(results, condition, iterate):
-    last = results[-1]
-    continue_body = lazy(_Recursion, _GenBody, results, iterate, last, condition, iterate)
-    stop_body = lazy(results)
-    return If(condition(results[-1]), continue_body, stop_body)
+def _Generate(results, last, condition, iterate, map_fn):
+    body = lazy(_GenBody, results, last, condition, iterate, map_fn)
+    return If(condition(last), body, results)
 
 @workflow
 #def Generate(init: T_Generate, condition: wf.Fn(wf.Bool, (T_Generate,), {}), iterate: wf.Fn(T_Generate, (T_Generate,))):
-def Generate(init, condition, iterate):
+def Generate(init, condition, iterate, map_fn):
     """
     Similar to While but return a list of all iterations.
     """
-    true_body = lazy(_GenBody, [init], condition, iterate)
-    return If(condition(init), true_body, [])
+    return _Generate([], init, condition, iterate, map_fn)
+
+
+
+@workflow
+def _MapBody(out_items, fn, items):
+    last = items[Len(out_items)]
+    return _map(Append(out_items, fn(last)), items, fn)
 
 @workflow
 def _map(out_list, items, fn):
-    next = lazy(_Recursion, _map, out_list, fn, items[Len(out_list)], items)
+    next = lazy(_MapBody, out_list, fn, items)
     return If(Len(out_list) < Len(items), next, out_list)
 
 #TMapIn = TypeVar()

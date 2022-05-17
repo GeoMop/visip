@@ -214,7 +214,7 @@ def fibonacci(n):
     return fib[1]
 
 #@pytest.mark.skip
-def test_while():
+def test_While():
     assert evaluation.run(fibonacci, 0) == 1
     assert evaluation.run(fibonacci, 1) == 1
     assert evaluation.run(fibonacci, 2) == 2
@@ -238,13 +238,42 @@ def fibonacci_cond(n):
     fib = wf.WhileCond([n, 1, 1], _fib_cond, _fib_body_cond)
     return fib[1]
 
-def test_while_cond():
+def test_WhileCond():
     assert evaluation.run(fibonacci_cond, 0) == 1
     assert evaluation.run(fibonacci_cond, 1) == 1
     assert evaluation.run(fibonacci_cond, 2) == 2
     assert evaluation.run(fibonacci_cond, 3) == 3
     assert evaluation.run(fibonacci_cond, 4) == 5
 
+
+@wf.workflow
+def _fib_extract(fib_data):
+    i, a, b = fib_data
+    return a
+
+@wf.workflow
+def _fib_cond1(prev):
+    i, a, b = prev
+    return i >= 0
+
+@wf.workflow
+def fibonacci_gen(n):
+    return wf.Generate([n, 1, 1], _fib_cond1, _fib_body_cond, _fib_extract)
+
+
+def test_Generate():
+  assert evaluation.run(fibonacci_gen, 0) == [1]
+  assert evaluation.run(fibonacci_gen, 1) == [1, 1]
+  assert evaluation.run(fibonacci_gen, 2) == [1, 1, 2]
+  assert evaluation.run(fibonacci_gen, 3) == [1, 1, 2, 3]
+  assert evaluation.run(fibonacci_gen, 4) == [1, 1, 2, 3, 5]
+
+@wf.workflow
+def square(x):
+    return x * x
+
+def test_Map():
+  assert evaluation.run(wf.Map, square, [0, 1, 2, 3]) == [0, 1, 4, 9]
 
 # @wf.action_def
 # def condition(lst:wf.List[float], num:float, end:float) -> bool:

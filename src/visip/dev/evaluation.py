@@ -72,6 +72,9 @@ class EvalLogger:
         hashes = [task.short_hash(h) for h in task.task.input_hashes]
         self._logger.info(f"        Inputs: {hashes}\n")
 
+    def task_finish(self, task: task_mod.TaskSchedule, result_cache):
+        result = result_cache.value(task.result_hash)
+        self._logger.info(f"Finish: {task} = {result}")
 
 
 class Scheduler:
@@ -88,7 +91,7 @@ class Scheduler:
     - assign to the lowest latency resource
     - then assign tasks with lower priority (have a slack), use the slack possibly to use larger latency resources
     """
-    def __init__(self, resources: resource.ResourceBase, cache:ResultCache, n_tasks_limit:int = 1024):
+    def __init__(self, resources: resource.ResourceBase, cache:ResultCache, log:EvalLogger, n_tasks_limit:int = 1024):
         """
         :param tasks_dag: Tasks to be evaluated.
         """
@@ -97,6 +100,8 @@ class Scheduler:
         # Dict of available resources
         self.cache = cache
         # Result cache instance
+        self.log = log
+        # Evaluation logger.
         self.n_tasks_limit = n_tasks_limit
         # When number of assigned (and unprocessed) tasks is over the limit we do not accept
         # further DAG expansion.
@@ -229,8 +234,8 @@ class Scheduler:
                 self.finish_task(task)
 
     def finish_task(self, task):
-        print("Finish: ", task)
         sched_task = self._task_map[task.result_hash] # !!!! ???? pop
+        self.log.task_finish(sched_task, self.cache)
         try:
             self._scheduled_not_finished.remove(sched_task.id)
         except KeyError:
@@ -400,9 +405,8 @@ class Evaluation:
         self.cache = ResultCache()
 
         if scheduler is None:
-            scheduler = Scheduler([resource.Resource(self.cache)], self.cache)
+            scheduler = Scheduler([resource.Resource(self.cache)], self.cache, self.log)
         self.scheduler = scheduler
-        self.scheduler.log = self.log
         self.workspace = workspace
         self.plot_expansion = plot_expansion
         #self.plot_expansion = True

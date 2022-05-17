@@ -61,8 +61,9 @@ def Len(collection: collection_type) -> dtype.Int:
 T = dtype.TypeVar()
 @decorators.action_def
 def Append(collection: dtype.List(T), item:T) -> dtype.List(T):
-    collection.append(item)
-    return collection
+    new = collection.copy()
+    new.append(item)
+    return new
 
 @decorators.action_def
 def file_in(path: dtype.Str, workspace: Folder = "") -> FileIn:
