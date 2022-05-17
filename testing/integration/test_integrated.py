@@ -8,11 +8,14 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 #@pytest.mark.skip
 @pytest.mark.parametrize("env", [
     "local.yaml",
-    "multiprocess.yaml"])
+    "multiprocess.yaml"
+])
 #@pytest.mark.parametrize("env", [
 #    "multiprocess.yaml"])
 @pytest.mark.parametrize("case", [
-    "simple.py"])
+    "simple.py",
+#    "mlmc_mock.py"
+])
 def test_visip_command(env, case):
     visip_cmd = os.path.join(script_dir, "../../bin/visip")
     env_path = os.path.join(script_dir, "env", env)

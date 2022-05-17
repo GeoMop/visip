@@ -693,7 +693,8 @@ def run_env(script_path:str, env_cfg: dict=None):
         resources = [resource.Resource(cache)] # always have the local resource
         for rl in resources_lists:
             resources.extend([r for r in rl if r is not None])
-        scheduler = Scheduler(resources, cache)
+        log = EvalLogger()
+        scheduler = Scheduler(resources, cache, log)
         eval = Evaluation(scheduler, env.workspace)
 
         mod = module.Module.load_module(script_path)
