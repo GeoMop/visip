@@ -10,12 +10,12 @@ Evaluation of a workflow.
     relay on equality of the data if the hashes are equal.
 4. Tasks are assigned to the resources by scheduler,
 """
+import sys
 import os
 from typing import Optional, List, Dict, Tuple, Any, Union
-import attr
+import logging
 import heapq
 import time
-import itertools
 
 from . import data, task as task_mod, base, dfs, action_instance as instance, dtype
 from .task_result import TaskResult
@@ -105,15 +105,51 @@ class Resource:
         self._finished.append(task)
 
 
+class EvalLogger:
+    def __init__(self):
+        logger = logging.getLogger('eval_logger')
+
+        logger.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
+
+        stdout_handler = logging.StreamHandler(sys.stdout)
+        stdout_handler.setLevel(logging.DEBUG)
+        stdout_handler.setFormatter(formatter)
+
+        file_handler = logging.FileHandler('evaluation.log')
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(formatter)
+
+        logger.addHandler(file_handler)
+        logger.addHandler(stdout_handler)
+        self._logger = logger
+
+    def task_submit(self, task: task_mod.TaskSchedule, value):
+        self._logger.info(f"Finished: {task.action.name}#{task.short_hash(task.id)} := {value}")
+        hashes = [task.short_hash(h) for h in task.task.input_hashes]
+        self._logger.info(f"        Inputs: {hashes}\n")
 
 
+    def task_expand(self, composed: task_mod.Composed, new_tasks: Dict[str, task_mod.TaskSchedule]):
+        """
+        :param composed:
+        :param new_tasks: action_call name -> TackSchedule
+        :return:
+        """
 
+        if new_tasks is not None:
+            self._logger.info(f"Expand: {composed}, {composed.short_hash(composed.id)}")
+            for t in new_tasks.values():
+                self._logger.info(f"    {t.action}#{t.short_hash(t.id)}  <- {[t.short_hash(h) for h in t.task.input_hashes]}")
+        # else:
+        #     self._logger.info(f"    Can not expand yet.")
 
 class Scheduler:
     def __init__(self, resources:Resource, cache:ResultCache, n_tasks_limit:int = 1024):
         """
         :param tasks_dag: Tasks to be evaluated.
         """
+
         self.resources = resources
         # Dict of available resources
         self.cache = cache
@@ -175,6 +211,11 @@ class Scheduler:
         if task.is_ready(self.cache):
             heapq.heappush(self._ready_queue, task)
 
+    def log_submit(self, task):
+        pass
+
+    def log_expand(self, task):
+        pass
 
 
     def _collect_finished(self):
@@ -218,6 +259,8 @@ class Scheduler:
                     else:
                         self._task_map[key] = [task]
                         self.resources[task.resource_id].submit(task.task)
+                        value = self.cache.value(task.id)
+                        self.log.task_submit(task, value)
                 del self.tasks[task.id]
         return finished
 
@@ -321,6 +364,8 @@ class Evaluation:
 
         :param analysis: an action without inputs
         """
+        self.log = EvalLogger()
+
         if cache is None:
             cache = ResultCache()
         self.cache = cache
@@ -328,6 +373,7 @@ class Evaluation:
         if scheduler is None:
             scheduler = Scheduler([ Resource(self.cache) ], self.cache)
         self.scheduler = scheduler
+        self.scheduler.log = self.log
         self.workspace = workspace
         self.plot_expansion = plot_expansion
         #self.plot_expansion = True
@@ -344,7 +390,7 @@ class Evaluation:
         # Used to force end of evaluation after an error.
         self.error_tasks = []
         # List of tasks finished with error.
-        self.exptansion_iter = 0
+        self.expansion_iter = 0
         # Expansion iteration.
 
 
@@ -436,11 +482,11 @@ class Evaluation:
                 raise Exception(invalid_connections)
             self.expansion_iter = 0
             while not self.force_finish:
-                schedule = self.expand_tasks()
+                schedule = self.expand_tasks()  # returns list of expanded atomic tasks to schedule
                 if self.plot_expansion:
                     self._plot_task_graph(self.expansion_iter)
-                self.tasks_update(schedule)
-                self.scheduler.optimize()
+                self.tasks_update(schedule)     # pass the list to the scheduler, update its hash -> task dictionary
+                self.scheduler.optimize()       # currently performs full CPM algorithm
                 self.scheduler.update()
                 if self.scheduler.n_assigned_tasks == 0:
                     self.force_finish = True
@@ -474,12 +520,13 @@ class Evaluation:
                 # Can not expand yet, return back into queue
                 postpone_expand.append(composed_task)
             else:
+                self.log.task_expand(composed_task, task_dict)
                 # print("Expanded: ", task_dict)
                 for task in task_dict.values():
                     if isinstance(task, task_mod.Composed):
                         self.enqueue(task)
                     schedule.append(task)
-                self.tasks_update([composed_task])
+                self.tasks_update([composed_task])  # ?? direct scheduling of resulting composed task stub, can be avoided ?
         for task in postpone_expand:
             self.enqueue(task)
         return schedule
@@ -490,9 +537,10 @@ class Evaluation:
 
 
     def make_graphviz_digraph(self):
+        from . dag_view import DAGView
         from graphviz import Digraph
-        g = Digraph("Task DAG")
-        g.attr('graph', rankdir="BT")
+        g = DAGView("Task DAG")
+        #g.attr('graph', rankdir="BT")
 
         def predecessors(task: task_mod.TaskSchedule):
             for in_task in task.inputs:
@@ -500,6 +548,7 @@ class Evaluation:
             return task.inputs
 
         def previsit(task: task_mod.TaskSchedule):
+
             if self.scheduler.is_finished(task):
                 color = 'green'
             elif task.is_ready(self.cache):
@@ -522,14 +571,52 @@ class Evaluation:
     def _plot_task_graph(self, iter):
         filename = "{}_{:02d}".format(self.final_task.action.name, iter)
         print("\nPlotting expansion iter: ", iter)
-        g = self.make_graphviz_digraph()
-        output_path = g.render(filename=filename, format='pdf', cleanup=True, view=True)
-        print("Out: ", os.path.abspath(output_path))
+        #g = self.make_graphviz_digraph()
+        #output_path = g.render(filename=filename, format='pdf', cleanup=True, view=True)
+        g = self.make_dagviz()
+        g.show_qt()
+        #print("Out: ", os.path.abspath(output_path))
+
+    def make_dagviz(self):
+        from . dag_view import DAGView
+        g = DAGView("Task DAG")
+
+        def predecessors(task: task_mod.TaskSchedule):
+            inputs = []
+            for in_hash in task.task.input_hashes:
+                try:
+                    in_task = self.scheduler.tasks[in_hash]
+                    g.add_edge(task.id.hex()[:6], in_task.id.hex()[:6])
+                    inputs.append(in_task)
+                except KeyError:
+                    pass
+            return inputs
+
+        def previsit(task: task_mod.TaskSchedule):
+
+            if self.scheduler.is_finished(task):
+                color = 'green'
+            elif task.is_ready(self.cache):
+                color = 'orange'
+            else:
+                color = 'gray'
+            if isinstance(task, task_mod.Composed):
+                style = 'rounded'
+            else:
+                style = 'solid'
+            hex_str = task.id.hex()[:4]
+            node_label = f"{task.action.name}:#{hex_str}"   # 4 hex digits, hex returns 0x7d29d9f
+            g.add_task_node(task.id.hex()[:6], node_label, color, style)
+
+        dfs.DFS(neighbours=predecessors,
+                previsit=previsit).run([self.final_task])
+        return g
 
 
     def plot_task_graph(self):
         try:
-            self._plot_task_graph()
+            #self._plot_task_graph()
+            self._plot_dag_qt()
         except Exception as e:
             print(e)
 
@@ -548,4 +635,13 @@ def run(action: Union[dtype._ActionBase, DummyAction],
     return Evaluation().run(action, *args, **kwargs).result
 
 
+def run_plot(action: Union[dtype._ActionBase, DummyAction],
+        *args: DataOrDummy,
+        **kwargs: DataOrDummy) -> dtype.DType:
+    """
+    Use default evaluation setup (local resource only) to evaluate the
+    'action' with given arguments 'args' and 'kwargs',
+     return just the resulting value not the evaluation structure (TaskResult).
+    """
+    return Evaluation(plot_expansion=True).run(action, *args, **kwargs).result
 

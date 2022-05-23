@@ -65,7 +65,7 @@ class ActionParameter:
 
     def hash(self):
         p_hash = data.hash(self.name)
-        p_hash = data.hash(str(self.type), previous=p_hash)
+        p_hash = data.hash(self.type, previous=p_hash)
         p_hash = data.hash(self.default, previous=p_hash)
         p_hash = data.hash(self.kind, previous=p_hash)
         return p_hash

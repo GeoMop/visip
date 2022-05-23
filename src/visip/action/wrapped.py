@@ -6,13 +6,14 @@ Problematic are actions generated from special constructs by the 'code' package:
 - actions that are already wrapped are just imported
 """
 from . import constructor
-from ..code.decorators import public_action
+from ..code.decorators import public_action, action_def, workflow
 from ..dev import meta
 from ..dev import dtype
 
 dict = public_action(constructor.A_dict())
 list = public_action(constructor.A_list())
 tuple = public_action(constructor.A_tuple())
+Pass = public_action(constructor.Pass())
 
 If = public_action(meta._If())
 """
@@ -59,3 +60,20 @@ empty = dtype.empty
 """
 Specific value used to mark unbound positional parameters in the 'lazy' meta action. 
 """
+abs = action_def(abs)
+round = action_def(round)
+pow = action_def(pow)
+divmod = action_def(divmod)
+
+@action_def
+def _is_none(x: dtype.Any) -> dtype.Bool:
+    return x is None
+
+
+
+@workflow
+def While(body, previous):
+    next = body(previous)
+    true_body = lazy(While, body, next)
+    false_body = lazy(Pass, previous)
+    return If(_is_none(next), false_body, true_body)

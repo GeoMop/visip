@@ -51,8 +51,16 @@ class ActionArgument:
     # binding correctenss status
     type_exception: ExcTypeBase = None
     # exception or other kind of error specification
+    call_type: Optional[dtype.DType] = None
+    # parameter.type with unique typevar instances.
     actual_type: Optional[dtype.DType] = None
-
+    # Type after workflow check and possible typevar substitutions.
+    # @property
+    # def value(self):
+    #     if self._value is None:
+    #         return dtype.empty
+    #     else:
+    #         return self._value
 
 class ActionCall:
     @staticmethod
@@ -153,7 +161,9 @@ class ActionCall:
 
         self._type_var_map = {}
         """Map from TypeVars used in action definition to TypeVars used in Workflow type check."""
-        self.actual_output_type, self._type_var_map = dtype.substitute_type_vars(self.output_type, self._type_var_map, create_new=True)
+        self.call_output_type, self._type_var_map = dtype.substitute_type_vars(self.output_type, self._type_var_map, create_new=True)
+        """Call output type substituted unique TypeVars."""
+        self.actual_output_type = None
         """Actual output type after substitution of TypeVars with concrete type in Workflow type check."""
 
         self._arguments : List[ActionArgument] = []
@@ -262,9 +272,9 @@ class ActionCall:
             else:
                 status = ActionInputStatus.error_type
 
-        actual_type, self._type_var_map = dtype.substitute_type_vars(param.type, self._type_var_map, create_new=True)
+        call_type, self._type_var_map = dtype.substitute_type_vars(param.type, self._type_var_map, create_new=True)
 
-        return ActionArgument(self, i_arg, key, value, param, is_default, status, None, actual_type)
+        return ActionArgument(self, i_arg, key, value, param, is_default, status, None, call_type)
 
     @staticmethod
     def _arg_split(bound_args):
@@ -449,7 +459,8 @@ class ActionCall:
         Return a representation of the action instance.
         This is generic representation code that calls the constructor.
         """
-        arg_names = [arg.value.get_code_instance_name() for arg in self.arguments]
+        name_for_val = lambda v : "__empty__" if v is None else v.get_code_instance_name()
+        arg_names = [name_for_val(arg.value) for arg in self.arguments]
         arg_values = [arg.value for arg in self.arguments]
 
         full_action_name = representer.make_rel_name(self.action.__module__, self.action.__name__)

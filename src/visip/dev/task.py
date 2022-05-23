@@ -50,6 +50,9 @@ class _TaskBase:
 
         self._result_hash = self._lazy_hash()
 
+    def short_hash(self, h:bytes) -> str:
+        return h.hex()[:4]
+
     def action_hash(self):
         return self.action.action_hash()
 
@@ -68,6 +71,9 @@ class _TaskBase:
 
 
 class TaskSchedule:
+    """
+    Task used by Scheduler.
+    """
     def __init__(self, parent: 'Composed', task_binding: TaskBinding):
 
         input_hashes = [input.result_hash for input in task_binding.inputs]
@@ -123,6 +129,9 @@ class TaskSchedule:
     def priority(self):
         return 1
 
+    def short_hash(self, h):
+        return self.task.short_hash(h)
+
     def get_path(self):
         path = []
         t = self
@@ -135,7 +144,7 @@ class TaskSchedule:
         return self.priority < other.priority
 
     @staticmethod
-    def _create_task(parent_task, task_binding):
+    def _create_task(parent_task, task_binding) -> 'TaskSchedule':
         """
         Create task from the given action and its input tasks.
         """
@@ -198,6 +207,9 @@ class Composed(Atomic):
         self.childs: Dict[Union[int, str], Atomic] = {}
         # map child_id to the child task, filled during expand.
 
+    def __repr__(self):
+        return f"{self.action}"
+
     def is_ready(self, cache):
         """
         Block submission of unexpanded tasks.
@@ -226,12 +238,12 @@ class Composed(Atomic):
         return self.childs is not None
 
 
-    def create_child_task(self, task_binding: TaskBinding):
+    def create_child_task(self, task_binding: TaskBinding) -> TaskSchedule:
         args, kwargs = task_binding.id_args_pair
         assert len(args) + len(kwargs) == len(task_binding.inputs)
         return TaskSchedule._create_task(self, task_binding)
 
-    def expand(self, cache):
+    def expand(self, cache) -> Dict[str, TaskSchedule]:
         """
         Composed task expansion.
 
@@ -243,6 +255,15 @@ class Composed(Atomic):
             None if the expansion can not be performed, yet.
             Dictionary of child tasks (action_instance_name -> task)
             Empty dict is valid result, used to indicate end of a loop e.g. in the case of ForEach and While actions.
+        TODO: tail expansion:
+        - no (artificial) task dependent on the body of expansion
+        - remove auxiliary Pass tasks from the DAG, can possibly be done with two side hash links
+        - task.outputs used in expand() and _collect_finished()
+        - composed inputs are hashes, expansion must replace slots (in their outputs)
+        - or we can have dedicated PassTask (for slots etc.) this can be removed on any  DAG search
+        - tasks dependent on the result - got through composed.outputs (must be pair task, input), must replace particular input hash
+        - tasks dependent on the composed have invalid hash
+
         """
         assert self.action.task_type is base.TaskType.Composed
         assert hasattr(self.action, 'expand')
@@ -258,6 +279,7 @@ class Composed(Atomic):
             result_task.outputs.append(self)
             self.task.id_args_pair = ([0],{})
             #B: self._inputs = [result_task]
+            #print(f"Expanding {self}#{self.short_hash(self.id)} depends on {result_task}#{self.short_hash(result_task.result_hash)}")
             self.task.input_hashes = [result_task.result_hash]
             # After expansion the composed task is just a dummy task dependent on the previoous result.
             # This works with Workflow, see how it will work with other composed actions:

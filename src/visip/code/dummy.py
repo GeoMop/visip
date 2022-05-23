@@ -1,5 +1,8 @@
+import inspect
+import dis
 from typing import *
 from ..dev.dtype import _DummyClassBase
+from . import operator_functions as of
 
 class DummyAction(_DummyClassBase):
     """
@@ -148,19 +151,128 @@ class Dummy:
         """
         return Dummy(self._af, self._af.create_dynamic_call(self._value, *args, **kwargs))
 
+    def _expecting(self, offset=0):
+        """Return how many values the caller is expecting"""
+        f = inspect.currentframe().f_back.f_back
+        i = f.f_lasti + offset
+        bytecode = f.f_code.co_code
+        instruction = bytecode[i]
+        if instruction == dis.opmap['UNPACK_SEQUENCE']:
+            return bytecode[i + 1]
+        elif instruction == dis.opmap['POP_TOP']:
+            return 0
+        else:
+            return 1
+    def __iter__(self):
+        """
+        Unpack Dummy as a tuple.
+        :return:
+        """
+        # offset = 3 bytecodes from the call op to the unpack op
+        for i in range(self._expecting(offset=0)):
+            yield Dummy(self._af, self._af.GetItem(self._value, i))
+
+    def binary_op(self, op,  x, y):
+        return Dummy(self._af, self._af.create_operator(op, x, y))
+
+    def unary_op(self, op,  x):
+        return Dummy(self._af, self._af.create_operator(op, x))
+
+    # Arithmetic operators
+
+    def __add__(self, other):
+        return self.binary_op(of.add, self._value, other)
+
+    def __radd__(self, other):
+        return self.binary_op(of.add, other, self._value)
+
+
+    def __sub__(self, other):
+        return self.binary_op(of.sub, self._value, other)
+
+    def __rsub__(self, other):
+        return self.binary_op(of.sub, other, self._value)
+
+    def __mul__(self, other):
+        return self.binary_op(of.mul, self._value, other)
+
+    def __rmul__(self, other):
+        return self.binary_op(of.mul, other, self._value)
+
+
+    def __truediv__(self, other):
+        return self.binary_op(of.truediv, self._value, other)
+
+    def __rtruediv__(self, other):
+        return self.binary_op(of.truediv, other, self._value, )
+
+    def __floordiv__(self, other):
+        return self.binary_op(of.floordiv, self._value, other)
+
+    def __rfloordiv__(self, other):
+        return self.binary_op(of.floordiv, self._value, other)
+
+    def __mod__(self, other):
+        return self.binary_op(of.mod, self._value, other)
+
+    def __rmod__(self, other):
+        return self.binary_op(of.mod, other, self._value)
+
+
+    def __pow__(self, other):
+        return self.binary_op(of.pow, self._value, other)
+
+    def __rpow__(self, other):
+        return self.binary_op(of.pow, other, self._value)
+
+    # Comparison operators
+
+    def __lt__(self, other):
+        return self.binary_op(of.lt, self._value, other)
+
+    def __le__(self, other):
+        return self.binary_op(of.le, self._value, other)
+
+    def __gt__(self, other):
+        return self.binary_op(of.gt, self._value, other)
+
+    def __ge__(self, other):
+        return self.binary_op(of.ge, self._value, other)
+
+    def __eq__(self, other):
+        return self.binary_op(of.eq, self._value, other)
+
+    def __ne__(self, other):
+        return self.binary_op(of.ne, self._value, other)
+
+    # Unary operators
+    def __pos__(self):
+        return self.unary_op(of.pos, self._value)
+
+    def __neg__(self):
+        return self.unary_op(of.neg, self._value)
+
+
+
+    """    
+    __int__
+    __float__
+    __complex__
+    __oct__
+    __hex__
+    __index__
+    __floordiv__ 
+    
+    """
+
+
+
 
     # Binary
     # Operators
     #
-    # Operator
-    # Method
-    # +                       object.__add__(self, other)
-    # -                        object.__sub__(self, other)
-    # *object.__mul__(self, other)
     # // object.__floordiv__(self, other)
     # / object.__div__(self, other)
-    # % object.__mod__(self, other)
-    # ** object.__pow__(self, other[, modulo])
     # << object.__lshift__(self, other)
     # >> object.__rshift__(self, other)
     # & object.__and__(self, other)

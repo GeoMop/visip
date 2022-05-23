@@ -41,10 +41,10 @@ def test_evaluation(src_file):
 
     # second level workflow
     assert test_wf_task._task.action == wf_test_class
-    assert test_wf_task.child('a').result.x == 0
-    assert test_wf_task.child('a').result.y == 1
-    assert test_wf_task.child('b').result.x == 2
-    assert test_wf_task.child('b').result.y == 3
+    assert test_wf_task.result.x == 0
+    assert test_wf_task.result.y == 3
+    assert test_wf_task.child('a_x').result == 0
+    assert test_wf_task.child('b_y').result == 3
 
 global_n_calls = 0
 

@@ -44,3 +44,6 @@ class ExcGenericArgs(Exception):
 
 class ExcNotDType(Exception):
     pass
+
+class ExcVariableOverwrite(Exception):
+    pass

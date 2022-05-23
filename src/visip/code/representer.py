@@ -38,8 +38,8 @@ class Representer:
     def value_code(self, value):
         if value is dtype.empty:
             return value
-        elif hasattr(value, '__code__'):
-            expr = value.__code__(self)
+        elif hasattr(value, '__visip_code__'):
+            expr = value.__visip_code__(self)
         elif type(value) is str:
             expr = "'{}'".format(value)
         else:

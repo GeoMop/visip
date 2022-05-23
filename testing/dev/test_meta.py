@@ -29,7 +29,7 @@ def tst_adder() -> float:
 
 
 
-#@pytest.mark.skip
+@pytest.mark.skip
 def test_action_returning_action():
     result = evaluation.run(tst_adder)
     assert result == 3
@@ -68,7 +68,7 @@ def foo(x: int) -> int:
 def wf_condition(cond: int) -> int:
     return wf.If(cond, foo(100), 100)
 
-
+@pytest.mark.skip
 def test_if_action():
     result = evaluation.run(wf_condition, True)
     assert result == 101
@@ -93,6 +93,7 @@ def lazy_wf():
     a = a1(4)
     return (a, b)
 
+@pytest.mark.skip
 def test_lazy():
     #result = evaluation.run(lazy_wf, [], plot_expansion=True)
     result = evaluation.run(lazy_wf)
@@ -125,32 +126,34 @@ def mult(a, b):
 def sub(a, b):
     return a - b
 
-# @wf.workflow
-# def true_fac(i:int):
-#     return 1
-
 @wf.action_def
-def make_fac(i: int) -> wf.Any:
+def make_fac1(i: int) -> wf.Any:
     """
     Example of an action producing action.
     :param left_operand:
     :return:
     """
     def add() -> int:
-        return fac(i)
-    return wf.action_def(add)
+        return mult(i, fac1(sub(i, 1)))
+    return wf.workflow(add)
 
 @wf.workflow
-def fac(i:int):
-    i_1 = sub(i, 1)
+def fac1(i:int):
     zero = equal(i, 0)
-    fac_action = make_fac(i_1)
-    fac_1 = wf.If(zero, 1, fac_action)
-    return mult(i, fac_1)
+    fac_action = make_fac1(i)
+    return wf.If(zero, 1, fac_action)
 
-@pytest.mark.skip
+#@pytest.mark.skip
 def test_recursion():
-    result = evaluation.run(fac, 4)
+    result = evaluation.run(fac1, 0)
+    assert result == 1
+    result = evaluation.run(fac1, 1)
+    assert result == 1
+    result = evaluation.run(fac1, 2)
+    assert result == 2
+    result = evaluation.run(fac1, 3)
+    assert result == 6
+    result = evaluation.run(fac1, 4)
     assert result == 24
 
 # TODO:
@@ -177,6 +180,48 @@ def test_nested_wf():
     result = evaluation.run(outer_wf, 4)
     assert result == 4
 
+#########################################################
+#
+
+
+
+
+@wf.action_def
+def _fib_cond(i: int) -> bool:
+    return i > 0
+
+@wf.action_def
+def _fib_add(a: int, b: int) -> int:
+    return a + b
+
+@wf.action_def
+def _fib_dec(i: int) -> int:
+    return i - 1
+
+
+@wf.workflow
+def _fib_true(prev):
+    i, a, b = prev
+    return (_fib_dec(i), b, _fib_add(a, b))
+
+@wf.workflow
+def _fib_body(prev):
+    i, a, b = prev
+    false_body = wf.lazy(wf.Pass, None)
+    true_body = wf.lazy(_fib_true, prev)
+    return wf.If(_fib_cond(i), true_body, false_body)
+
+@wf.workflow
+def fibonacci(n):
+    fib = wf.While(_fib_body, (n, 1, 1))
+    return fib[1]
+
+def test_while():
+    assert evaluation.run(fibonacci, 0) == 1
+    assert evaluation.run(fibonacci, 1) == 1
+    assert evaluation.run(fibonacci, 2) == 2
+    assert evaluation.run(fibonacci, 3) == 3
+    assert evaluation.run(fibonacci, 4) == 5
 
 # @wf.action_def
 # def condition(lst:wf.List[float], num:float, end:float) -> bool:

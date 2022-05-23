@@ -3,7 +3,7 @@ from ..dev import dtype
 from ..dev.action_workflow import _Workflow
 from typing import *
 from ..code.unwrap import into_action
-from .constructor import Value, A_list, A_dict, A_tuple, ClassActionBase
+from .constructor import Value, A_list, A_dict, A_tuple, _Operator
 from .converter import GetAttribute, GetItem
 from ..dev.meta import DynamicCall
 from .slots import actioncalls_from_function
@@ -71,6 +71,11 @@ class ActionFactory:
 
     def create_workflow_from_source(self, func):
         return _Workflow.from_source(func)
+
+    _operator_actions = {}
+    def create_operator(self, op_fn, *args):
+        op_action = self._operator_actions.setdefault(id(op_fn), _Operator(op_fn))
+        return self.create(op_action, *args)
 
     def actioncalls_from_function(self, func, params):
         return actioncalls_from_function(self, func, params)
