@@ -66,6 +66,11 @@ round = action_def(round)
 pow = action_def(pow)
 divmod = action_def(divmod)
 
+import math
+ceil = action_def(math.ceil)
+floor = action_def(math.floor)
+
+
 @workflow
 def While(body, previous):
     next = body(previous)
