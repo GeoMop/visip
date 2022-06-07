@@ -2,7 +2,8 @@ import inspect
 import dis
 from typing import *
 from ..dev.dtype import _DummyClassBase
-from . import operator_functions as of
+from ..action import operator_functions as of
+
 
 class DummyAction(_DummyClassBase):
     """

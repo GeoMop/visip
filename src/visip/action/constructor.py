@@ -5,8 +5,6 @@ from ..dev import dtype
 from ..dev.parameters import Parameters, ActionParameter
 from ..dev import data
 from ..dev import base
-from ..dev.extract_signature import _extract_signature
-from ..code.operator_functions import op_properties
 
 class Value(ActionBase):
     def __init__(self, value):
@@ -28,7 +26,7 @@ class Value(ActionBase):
         # TODO: any way we should store action values to a separate storage private to the scheduler
         return data.hash(self.value, previous=salt_hash)
 
-    def _evaluate(self):
+    def evaluate(self):
         return self.value
 
     def call_format(self, representer, action_name, arg_names, arg_values):
@@ -46,7 +44,8 @@ class Pass(ActionBase):
         self.action_kind = base.ActionKind.Generic
         super().__init__('Pass', signature)
 
-    def _evaluate(self, input):
+    @classmethod
+    def _evaluate(cls, input):
         return input
 
 
@@ -77,6 +76,7 @@ class A_list(_ListBase):
     def call_format(self, representer, action_name, arg_names, arg_values):
         return representer.list("[", "]", [(None, arg) for arg in arg_names])
 
+    @classmethod
     def _evaluate(self, *inputs):
         return list(inputs)
 
@@ -92,7 +92,8 @@ class A_tuple(_ListBase):
     def call_format(self, representer, action_name, arg_names, arg_values):
         return representer.list("(", ")", [(None, arg) for arg in arg_names])
 
-    def _evaluate(self, *inputs):
+    @classmethod
+    def _evaluate(cls, *inputs):
         return tuple(inputs)
 
 
@@ -115,6 +116,8 @@ class A_dict(ActionBase):
 
         return ActionBase.call_format(self, representer, action_name, arg_names, arg_values)
 
+
+    @classmethod
     def _evaluate(self, *inputs):
         return {key: val for key, val in inputs}
         #item_pairs = ( (key, val) for key, val in inputs)
@@ -175,7 +178,7 @@ class EnumActionBase(ActionBase):
     def __init__(self, enum_class):
         assert isinstance(enum_class, enum.EnumMeta), str(enum_class)
         enum_class.__visip_code__ = self.code_of_item
-        signature = Parameters([ActionParameter("enum_item", dtype.Int)], return_type=dtype.Enum(enum_class))
+        signature = Parameters([ActionParameter("enum_item", dtype.Int)], return_type=dtype.Enum.wrap(enum_class))
         super().__init__(enum_class.__name__, signature)
         self._enum_class = enum_class
         # Attr.s dataclass
@@ -212,40 +215,4 @@ class EnumActionBase(ActionBase):
 
         return "\n".join(lines)
 
-
-class _Operator(ActionBase):
-    def __init__(self, op_fn):
-        signature = _extract_signature(op_fn)
-        name = op_fn.__name__
-        self.op_repr, self.precedence = op_properties[name]
-        self._evaluate = op_fn
-        super().__init__(name, signature)
-
-    def higher_precedence(self, other: ActionBase):
-        return isinstance(other, _Operator) and self.precedence > other.precedence
-
-
-
-    def call_format(self, representer, full_name, arg_names, arg_values):
-        def parenthesis(arg_name, value):
-            token = representer.token(arg_name)
-            if self.higher_precedence(value.action):
-                return ('(', token, ')')
-            else:
-                return (token,)
-
-        assert len(self.parameters) == len(arg_names)
-        if len(arg_names) == 1:
-            return representer.format(
-                self.op_repr, " ",
-                *parenthesis(arg_names[0], arg_values[0])
-            )
-        elif len(arg_names) == 2:
-            return representer.format(
-                *parenthesis(arg_names[0], arg_values[0]), " ",
-                self.op_repr, " ",
-                *parenthesis(arg_names[1], arg_values[1])
-            )
-        else:
-            assert False, "Wrong number of operator arguments."
 

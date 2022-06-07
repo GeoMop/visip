@@ -20,15 +20,22 @@ class ResultCache:
         pass
 
     def __init__(self):
-        self.cache: Dict[bytes, Any] = {}
+        self.cache: Dict[bytes, Tuple[Any, Tuple[float, float]]] = {}
+
+
 
         self.types_map = {}
 
     def value(self, hash: bytes) -> Any:
-        return self.cache.get(hash, ResultCache.NoValue)
+        item = self.cache.get(hash, (self.NoValue, self.NoValue))
+        return item[0]
 
-    def insert(self, hash, value):
-        self.cache[hash] = value
+    def time_interval(self, hash: bytes) -> Any:
+        item = self.cache.get(hash, (self.NoValue, self.NoValue))
+        return item[1]
+
+    def insert(self, hash:bytes, value, time_interval):
+        self.cache[hash] = value, time_interval
 
     def is_finished(self, hash_int: int) -> bool:
         return self.value(hash_int) is not ResultCache.NoValue
