@@ -123,10 +123,10 @@ class _ActionWorker:
     Worker with action resolution from the main maodule.
     """
     def __init__(self, main_module_path:str):
-        #self.module = Module.load_module(main_module_path)
+        self.module = Module.load_module(main_module_path)
         pass
+
     def eval(self, payload: Payload):
-        return 123
         print("eval ", payload)
         evaluate = self.resolve_function(payload.module, payload.name)
         value = evaluate(*(payload.args), **(payload.kwargs))

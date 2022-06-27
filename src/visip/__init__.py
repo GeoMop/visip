@@ -17,7 +17,7 @@ from .code.decorators import workflow, analysis, action_def, Class, Enum
 from .action.wrapped import \
     list, dict, tuple, \
     If, lazy, empty, Pass, While, WhileCond, Generate, Map, \
-    abs, round, pow, divmod
+    abs, round, pow, divmod, ceil, floor
 
 from .action.std import \
     Len, Append, \

@@ -9,19 +9,26 @@ Simple analysis:
 - no file and system interaction
 """
 
+@wf.Class
+class Mesh:
+    mesh_step: float
+    n_elements: int
+
 @wf.workflow
 def make_mesh(mesh_step: float):
     toolbox.print("make_mesh:", mesh_step)
-    mesh_size = 1000 / mesh_step
+    mesh_size = wf.round(1000 / mesh_step)
     toolbox.sleep(1e-6 * mesh_size)
-    return mesh_size
+    return Mesh(mesh_step, mesh_size)
 
 @wf.workflow
-def compute(mesh: float, data: float):
-    toolbox.print("compute:", mesh, data)
-    return
+def compute(mesh: Mesh, data: float):
+    toolbox.print("compute:", mesh.n_elements, data)
+    return mesh.n_elements + data
 
-
+@wf.action_def
+def postprocess(mesh: Mesh):
+    return mesh.n_elements / 2
 
 @wf.analysis
 def mock_workflow():
@@ -29,4 +36,5 @@ def mock_workflow():
     mesh = make_mesh(0.1)
     a = compute(mesh, data[0])
     b = compute(mesh, data[3])
-    return [a, b]
+    c = postprocess(mesh)
+    return [a, b, c]
