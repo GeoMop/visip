@@ -16,6 +16,8 @@ from . import base, action_workflow as wf
 from .action_instance import ActionCall
 from . import dtype
 from .exceptions import InterpreterError
+from ..action import operator_functions
+from ..dev import action_workflow
 
 
 
@@ -223,6 +225,17 @@ class Module:
             new_module = importlib.util.module_from_spec(spec)
             visip_exec(source, new_module.__dict__, locals=None, description=module_name)
             return cls.add_module(new_module)
+
+    @staticmethod
+    def resolve_function(mod, name):
+        if (mod,name) == ('visip.dev.action_workflow', 'result'):
+            return action_workflow._Result._evaluate
+        if mod == 'visip.action.operator':
+            return operator_functions.__dict__[name]
+
+        action = Module.get_module(mod).get_action(name)
+        assert action is not None, (mod, name)
+        return action
 
     def __init__(self, py_module: ModuleType, module_path: str) -> None:
         """

@@ -1,10 +1,8 @@
 from visip.dev.module import Module
-from visip.dev import action_workflow
 from abc import ABC, abstractmethod
 from typing import *
 import attrs
 
-from visip.action import operator_functions
 from visip.eval.cache import ResultCache
 from visip.dev.task import _TaskBase
 from ..dev import base, tools
@@ -128,21 +126,10 @@ class _ActionWorker:
 
     def eval(self, payload: Payload):
         print("eval ", payload)
-        evaluate = self.resolve_function(payload.module, payload.name)
+        evaluate = Module.resolve_function(payload.module, payload.name)
         value = evaluate(*(payload.args), **(payload.kwargs))
         print("    .. don: ", value)
         return value
-
-
-    def resolve_function(self, mod, name):
-        if (mod,name) == ('visip.dev.action_workflow', 'result'):
-            return action_workflow._Result._evaluate
-        if mod == 'visip.action.operator':
-            return operator_functions.__dict__[name]
-
-        action = Module.get_module(mod).get_action(name)
-        assert action is not None, (mod, name)
-        return action
 
 
 class Multiprocess:

@@ -217,6 +217,11 @@ class Scheduler:
             # assert isinstance(task.action, Value), task
             return
 
+        if self.cache.is_finished(task.result_hash):
+            task.status = task_mod.Status.finished
+            #assert all([self.task(input_hash).status == task_mod.Status.finished for input_hash in task.task.input_hashes])
+            return
+
         if task.is_ready(self.cache):
             task.status = task_mod.Status.ready
             if task.id in self._all_ready_set:

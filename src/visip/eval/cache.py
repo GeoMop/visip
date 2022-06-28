@@ -1,7 +1,8 @@
 from typing import *
 
 from ..dev import data
-from json_data import jsondata, serialize, deserialize
+#from json_data import jsondata, serialize, deserialize
+from visip.dev.data import serialize, deserialize
 
 import redis
 import json
@@ -54,14 +55,14 @@ class ResultCacheRedis(ResultCache):
         bin_data = self.client.get(str(hash_int))
         if bin_data is not None:
             #value = deserialize(json.loads(bin_data.decode('utf-8')), cls_dict=self.types_map)
-            value = pickle.loads(bin_data)
+            value = deserialize(bin_data)
             return value
         else:
             return ResultCache.NoValue
 
-    def insert(self, hash_int, value):
+    def insert(self, hash_int, value, time_interval):
         #bin_data = json.dumps(serialize(value, module=True), sort_keys=True).encode('utf-8')
-        bin_data = pickle.dumps(value)
+        bin_data = serialize(value)
         self.client.set(str(hash_int), bin_data)
 
     def clear(self):
