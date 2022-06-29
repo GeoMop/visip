@@ -1,7 +1,7 @@
 import os
 import setuptools
 
-__version__ = '0.0.1'
+__version__ = '0.1.0'
 
 
 with open("README.md", "r") as fh:
@@ -57,7 +57,7 @@ setuptools.setup(
                       'typing-inspect',
                       'pyqtgraph'],
     setup_requires=['wheel'],
-    python_requires='>=3.6',
+    python_requires='>=3.8',
     # extras_require={
     #     # eg:
     #     #   'rst': ['docutils>=0.11'],
