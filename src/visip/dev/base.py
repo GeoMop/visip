@@ -95,7 +95,6 @@ class ActionBase(dtype._ActionBase):
     def parameters(self):
         return self._parameters
 
-
     def evaluate(self, *args, **kwargs):
         """
         Common evaluation function for all actions.
@@ -106,6 +105,7 @@ class ActionBase(dtype._ActionBase):
         return self._evaluate(*args, **kwargs)
 
 
+    @classmethod
     def _evaluate(self):
         """
         Pure virtual method.

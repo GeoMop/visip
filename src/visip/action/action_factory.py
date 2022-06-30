@@ -3,7 +3,8 @@ from ..dev import dtype
 from ..dev.action_workflow import _Workflow
 from typing import *
 from ..code.unwrap import into_action
-from .constructor import Value, A_list, A_dict, A_tuple, _Operator
+from .constructor import Value, A_list, A_dict, A_tuple
+from .operator import _Operator
 from .converter import GetAttribute, GetItem
 from ..dev.meta import DynamicCall
 from .slots import actioncalls_from_function

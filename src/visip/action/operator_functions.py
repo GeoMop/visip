@@ -1,4 +1,4 @@
-from ..dev import dtype
+from visip.dev import dtype
 
 
 AT = dtype.NewType(dtype.Union(dtype.Int, dtype.Float), name="TArithmetic")
