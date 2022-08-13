@@ -5,8 +5,26 @@ import visip as wf
 from visip.dev import evaluation
 script_dir = os.path.dirname(os.path.realpath(__file__))
 
+
+
 def eval():
     return evaluation.Evaluation(workspace=script_dir)
+
+
+def test_Len():
+    result = eval().run(wf.Len, [1,2,3])
+    assert result.result == 3
+    result = eval().run(wf.Len, [])
+    assert result.result == 0
+    result = eval().run(wf.Len, {1:1,2:1})
+    assert result.result == 2
+
+def test_Append():
+    x = [1,2,3]
+    result = eval().run(wf.Append, x, 4)
+    assert result.result == [1,2,3,4]
+    result = eval().run(wf.Append, [], 4)
+    assert result.result == [4]
 
 
 @wf.action_def

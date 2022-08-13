@@ -14,6 +14,7 @@ from ..dev.extract_signature import _extract_signature, ActionParameter
 from ..dev.parameters import Parameters
 from ..dev import exceptions
 from .dummy import DummyAction, Dummy, DummyWorkflow
+from json_data import _JSON_DATA_TAG
 
 
 def public_action(action: dtype._ActionBase):
@@ -62,7 +63,12 @@ def _dataclass_from_params(name: str, params: typing.List[ActionParameter], modu
     if module:
         data_class.__module__ = module
 
-    return attr.s(data_class)
+    attr_data_class = attr.s(data_class)
+
+    # mark as json_data class
+    setattr(attr_data_class, _JSON_DATA_TAG, None)
+
+    return attr_data_class
 
 
 def _construct_from_params(name: str, params: typing.List[ActionParameter], module=None):
@@ -117,6 +123,10 @@ def action_def(func):
     Decorator to make an action class from the evaluate function.
     Action name is given by the nama of the function.
     Input types are given by the type hints of the function params.
+    TODO: optional parameters to define:
+    - resource supporced
+    - time scaling function
+    see: https://stackoverflow.com/questions/3931627/how-to-build-a-decorator-with-optional-parameters#comment23456327_3931903
     """
 
     signature = _extract_signature(func)

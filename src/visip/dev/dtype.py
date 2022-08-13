@@ -4,6 +4,7 @@ import inspect
 import builtins
 import enum
 import attrs
+from . import tools
 from . import exceptions
 
 class _DummyClassBase:
@@ -60,7 +61,7 @@ class DType:
 
         This is basic implementation for non generic types, using their module and name attributes.
         """
-        return make_rel_name(self.__module__, self.__name__)
+        return make_rel_name(*tools.mod_name(self))
 
     def _eq_simplify(self):
         """
@@ -90,18 +91,14 @@ class DTypeSingleton(DTypeBase):
     """
     Singleton DTypes.
     """
-    __singleton_types = {}
+    #__singleton_types = {}
     __from_typing = {}
-    @staticmethod
-    def make(name:str, typing_type=None, subtypes:typing.List['DTypeSingleton']=None) -> 'DTypeSingleton':
-        try:
-            return DTypeSingleton.__singleton_types[name]
-        except KeyError:
-            singl_type_cls = type(f"{name}Type", (DTypeSingleton,), {})
-            instance = singl_type_cls(name, typing_type, subtypes)
-            if typing_type is not None:
-                DTypeSingleton.__from_typing[typing_type] = instance
-            return DTypeSingleton.__singleton_types.setdefault(name, instance)
+
+    _instance = None
+    def __new__(cls, *args, **kwargs):
+        if not isinstance(cls._instance, cls):
+            cls._instance = object.__new__(cls, *args, **kwargs)
+        return cls._instance
 
     @staticmethod
     def from_typing(type):
@@ -111,18 +108,16 @@ class DTypeSingleton(DTypeBase):
             print("Warning: ", e)
         return type
 
-    def __init__(self, name, typing_type, subtypes):
-        self.__name__ = name
-        self.typing_type = typing_type
-        if subtypes is None:
-            self.subtypes = {self}
-        else:
-            subtypes.add(self)
-            self.subtypes = subtypes
-        #self.__module__ = 'visip'
+    def __init__(self):
+        name = self.__class__.__name__[:-4]   # strip 'Type'
+        self.__visip_name__ = name
+        DTypeSingleton.__from_typing[self._origin_type] = self
+        if not hasattr(self, 'subtypes'):
+            self.subtypes = set()
+        self.subtypes.add(self)
 
     def __hash__(self):
-        return hash(self.__name__)
+        return hash(self.__visip_name__)
 
     def _equal_(self, other):
         return self is other
@@ -130,27 +125,49 @@ class DTypeSingleton(DTypeBase):
     def is_subtype(self, super_type):
         return self in super_type.subtypes
 
-
-
 class _Empty(_ActionBase):
     pass
 empty = _Empty()
 # Singleton value marking empty arguments of the Lazy action
 
-Bool = DTypeSingleton.make("Bool", bool)
-Int = DTypeSingleton.make("Int", int, subtypes={Bool})
-Float = DTypeSingleton.make("Float", float, subtypes={Bool, Int})
-Str = DTypeSingleton.make("Str", str)
-Bytes = DTypeSingleton.make("Bytes", bytes)
-EmptyType = DTypeSingleton.make("EmptyType", inspect.Signature.empty)
+class BoolType(DTypeSingleton):
+    _origin_type = bool
+Bool = BoolType()
+
+class IntType(DTypeSingleton):
+    _origin_type = int
+    subtypes = {Bool}
+Int = IntType()
+
+class FloatType(DTypeSingleton):
+    _origin_type = float
+    subtypes = {Bool, Int}
+Float = FloatType()
+
+class StrType(DTypeSingleton):
+    _origin_type = str
+Str = StrType()
+
+class BytesType(DTypeSingleton):
+    _origin_type = bytes
+Bytes = BytesType()
+
+class EmptyTypeType(DTypeSingleton):
+    _origin_type = inspect.Signature.empty
+EmptyType = EmptyTypeType()
 """
 Produced by `from_typing` for an empty type annotation,
 must be explicitelly treated by the caller,
 not accepted by other functions.
 """
 
-Any = DTypeSingleton.make("Any", typing.Any)
-NoneType = DTypeSingleton.make("NoneType", builtins.type(None))
+class AnyType(DTypeSingleton):
+    _origin_type = typing.Any
+Any = AnyType()
+
+class NoneTypeType(DTypeSingleton):
+    _origin_type = builtins.type(None)
+NoneType = NoneTypeType()
 
 
 ###################################
@@ -161,33 +178,18 @@ NoneType = DTypeSingleton.make("NoneType", builtins.type(None))
 @attrs.frozen
 class Class(DTypeBase):
     # Wrapper around various VISIP classes, in order to work with types as instances.
-    data_class: DataClassBase
+    data_class: DataClassBase = attrs.field()
+    __visip_module__: str = attrs.field()
+    __visip_name__: str = attrs.field()
 
     @staticmethod
     def wrap(type:DataClassBase):
         visip_class = type.visip_type()
         if visip_class is None or visip_class.data_class is not type:
-            visip_class = Class(type)
+            visip_class = Class(type, type.__module__, type.__name__)
             type.set_visip_type(visip_class)
 
         return visip_class
-
-    # def __init__(self, data_class:DataClassBase):
-    #     self.data_class = data_class
-
-    # def __hash__(self):
-    #     return hash((self.__class__, self.data_class))
-
-    # def __repr__(self):
-    #     return f"dtype.Class:{self.module}.{self.name}"
-
-    @property
-    def __module__(self):
-        return self.data_class.__module__
-
-    @property
-    def __name__(self):
-        return self.data_class.__name__
 
     def _equal_(self, other):
         if isinstance(other, Class) and self.data_class is other.data_class:
@@ -199,27 +201,19 @@ class Class(DTypeBase):
 
 @attrs.frozen
 class Enum(DTypeBase):
-    origin_type: enum.IntEnum
+    origin_type: enum.IntEnum = attrs.field()
+    __visip_module__: str = attrs.field()
+    __visip_name__: str = attrs.field()
 
     @staticmethod
     def wrap(type: enum.IntEnum):
         if hasattr(type, "__visip_type"):
             return type.__visip_type
         else:
-            visip_enum = Enum(type)
+            visip_enum = Enum(type, type.__module__, type.__name__)
             type.__visip_type = visip_enum
             return visip_enum
 
-    # def __init__(self, origin_type):
-    #     self.origin_type = origin_type
-
-    @property
-    def __module__(self):
-        return self.origin_type.__module__
-
-    @property
-    def __name__(self):
-        return self.origin_type.__name__
 
     def _equal_(self, other):
         return isinstance(other, Enum) and self.origin_type is other.origin_type
@@ -229,34 +223,37 @@ class Enum(DTypeBase):
 class TypeVar(DTypeBase):
     """
     TypeVar
+    Separated from typing, supports serialization by explicit creation of an instance unique id.
+    TODO: implement bounds
     """
-    def __init__(self, origin_type=None, name="_TypeVar_"):
-        if origin_type is None or origin_type is EmptyType:
-            origin_type = typing.TypeVar(name)
-        else:
-            assert typing_inspect.is_typevar(origin_type)
-        self.origin_type = origin_type
+    def __init__(self, name=None, origin_type=None):
+        if name is None:
+            name = origin_type.__name__ if typing_inspect.is_typevar(origin_type) else "_TypeVar_"
+        _id = id(self) if origin_type is None else id(origin_type)
+        self._id = hash( (name, _id) )
+        self._origin_type = origin_type
+        self.__visip_name__ = name
+        self.__visip_module__ = __name__
 
     @property
-    def __name__(self):
-        return self.origin_type.__name__
-
-    @property
-    def __module__(self):
-        return self.origin_type.__module__
+    def origin_type(self):
+        # depricated
+        if self._origin_type is None or self._origin_type is EmptyType:
+            t_name = f"_typing_{self.__visip_name__}"
+            self._origin_type = typing.TypeVar(t_name)
+        assert typing_inspect.is_typevar(self._origin_type), self._origin_type
+        return self._origin_type
 
     def __hash__(self):
-        return self.origin_type.__hash__()
+        return self._id
 
     def __repr__(self):
-        return f"TypeVar({self.origin_type})"
+        return f"TypeVar({self.__visip_name__}#{hex(self._id)[:6]}))"
 
     def _equal_(self, other):
         if isinstance(other, TypeVar):
-            return other.origin_type is self.origin_type
+            return self._id == other._id
         return False
-
-
 
     def typevar_set(self):
         return {self}
@@ -435,6 +432,15 @@ class Const(DTypeGeneric):
         assert not isinstance(self.args[0], Const)
 
 
+# class Callable(DTypeGeneric):
+#     """
+#     typing defines also ParamSpec and Concatenate, but it seems to be result of bad previous design.
+#     Seems that ParamSpec bahaves like pair (Args, Kwargs), similarly Concatenate can just well be replaced by Tuple of types.
+#     TODO: Read documentation for the Callable and related PEPs.
+#     """
+#     def __init__(self, args, kwargs, return_type):
+#         pass
+
 class TypeInspector:
     @staticmethod
     def is_constant(type):
@@ -557,7 +563,7 @@ def from_typing(type):
 
     # TypeVar
     if typing_inspect.is_typevar(type):
-        return TypeVar(type)
+        return TypeVar(origin_type=type)
 
     # NewType
     if typing_inspect.is_new_type(type):

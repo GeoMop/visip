@@ -1,7 +1,11 @@
 from typing import *
 import inspect
 import builtins
-from . import dtype
+from . import dtype # empty, DType, Any, extract_type_var, EmptyType
+                    # in order to define Callable, we should:
+                    # 1. split dtype to: basic types (empty, DType, Any, EmptyType)
+                    # 2. complex ttypes: Callable in particular (depends on dtype simple and Parameters renamed to Signature)
+                    # 3. move checking methods to the dtype top modul (depends on two previous)
 from . import data
 from . import exceptions
 
@@ -173,7 +177,7 @@ class Parameters:
         for param in self.parameters:
             in_set.update(dtype.extract_type_var(param.type))
         out_set = dtype.extract_type_var(self.return_type)
-        assert out_set.issubset(in_set), f"Output TypeVars {out_set.difference(in_set)} are missing on input."
+        assert out_set.issubset(in_set), f"Output TypeVars {out_set.difference(in_set)} are missing on input: {in_set}."
 
     def process_empty(self, func):
         """

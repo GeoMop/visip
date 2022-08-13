@@ -9,6 +9,7 @@ pytest-qt
 ruamel.yaml
 tox
 pyqtgraph==0.11.1 # used for property editor
+redis
 
 
 # pip3
