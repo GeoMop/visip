@@ -6,6 +6,7 @@ import time
 import sys
 import traceback
 import threading
+from enum import IntEnum
 from .eval_time import Time
 from ..dev.exceptions import InterpreterError
 from ..dev import dtype
@@ -21,6 +22,45 @@ class Result:
     error: Optional[Exception]
     start_time: float
     end_time: float
+
+
+class MessageType(IntEnum):
+    none = 0
+    request = 1
+    result = 2
+    ping = 3
+    elapsed_time = 4
+
+
+class QueueWrapper:
+    def __init__(self, queue):
+        self.queue = queue
+        self.local_queue = []
+
+    def get(self, type, timeout=None):
+        # check if desired type is in local queue
+        for i in range(len(self.local_queue)):
+            if self.local_queue[i][0] == type:
+                return self.local_queue.pop(i)[1]
+
+        start_time = time.monotonic()
+        while True:
+            elapsed_time = time.monotonic() - start_time
+            if timeout is None:
+                item = self.queue.get()
+            elif elapsed_time < timeout:
+                item = self.queue.get(timeout=timeout - elapsed_time)
+            else:
+                item = self.queue.get_nowait()
+
+            if item[0] == type:
+                return item[1]
+            else:
+                self.local_queue.append(item)
+
+    def get_nowait(self, type):
+        return self.get(type, timeout=0.0)
+
 
 def _close_queue(q):
     q.close()   # indicate no more put items
@@ -40,13 +80,14 @@ class _ProcessWorker:
     """
     def __init__(self, sync_time, queues, worker_cls, *args):
         self.time = Time(sync_time)
-        self._requests, self._results, self._ping = queues
+        self._requests, self._results = queues
+        self._requests_wrapper = QueueWrapper(self._requests)
         print(f"Spawn {worker_cls} {args}")
         try:
             self.worker = worker_cls(*args)
         except Exception as e:
             print(args)
-            self._results.put(Result(-1, None, None, e, 0, 0))
+            self._results.put((MessageType.result, Result(-1, None, None, e, 0, 0)))
             raise e
 
         #self._results.put("TEST")
@@ -65,9 +106,9 @@ class _ProcessWorker:
     def loop(self):
         while True:
             try:
-                payload = self._requests.get(timeout=1)
+                payload = self._requests_wrapper.get(MessageType.request, timeout=1)
             except queue.Empty:
-                self._ping.put("PING")
+                self._results.put((MessageType.ping, "PING"))
                 time.sleep(1)
                 replay = self._ping.get_nowait()
                 if replay == "PING":
@@ -89,10 +130,10 @@ class _ProcessWorker:
                 while self._thread.is_alive():
                     self._thread.join(timeout=1)
                     elapsed_time = self.time.sync_time() - start_time
-                    # todo: put elapsed time to queue
+                    self._results.put((MessageType.elapsed_time, elapsed_time))
                 self._thread = None
                 print("put: ", self._thread_result)
-                self._results.put(self._thread_result)
+                self._results.put((MessageType.result, self._thread_result))
 
 
     def process(self, id, args):
@@ -140,12 +181,13 @@ class WorkerProxy:
         self._ctx = mp.get_context('spawn')
         self._queue_send = self._ctx.Queue()
         self._queue_recv = self._ctx.Queue()
-        self._ping = self._ctx.Queue() # If worker has no work check regularly that main process is live.
+        self._queue_recv_wrapper = QueueWrapper(self._queue_recv)
+        #self._ping = self._ctx.Queue() # If worker has no work check regularly that main process is live.
 
         self._job_map = {}
         assert isinstance(setup_args, tuple)
         args = (self.time.sync_time(),
-                (self._queue_send, self._queue_recv, self._ping),
+                (self._queue_send, self._queue_recv),
                 worker_class, setup_args)
         self._proc = self._ctx.Process(target=self.run, args=args)
         self._proc.start()
@@ -157,12 +199,20 @@ class WorkerProxy:
 
     def ping_pong(self):
         try:
-            m = self._ping.get_nowait()
+            m = self._queue_recv_wrapper.get_nowait(MessageType.ping)
         except queue.Empty:
             return
         else:
-            self._ping.put("PONG")
+            self._queue_send.put((MessageType.ping, "PONG"))
         return
+
+    def get_elapsed_time(self):
+        try:
+            m = self._queue_recv_wrapper.get_nowait(MessageType.elapsed_time)
+        except queue.Empty:
+            return
+        else:
+            print("elapsed_time: ", m)
 
     def put(self, payload, ref=None):
         """
@@ -176,15 +226,16 @@ class WorkerProxy:
         self._job_map[id] = ref
         p = (id, payload)
         print("put: ", p)
-        self._queue_send.put(p)
+        self._queue_send.put((MessageType.request, p))
         self.ping_pong()
 
 
     def get(self) -> Optional[Result]:
         # first obtained result
         self.ping_pong()
+        self.get_elapsed_time()
         try:
-            result = self._queue_recv.get_nowait()
+            result = self._queue_recv_wrapper.get_nowait(MessageType.result)
         except queue.Empty:
             return None
         except (ValueError, OSError):
@@ -206,7 +257,7 @@ class WorkerProxy:
 
     def close(self):
         try:
-            self._queue_send.put(None)
+            self._queue_send.put((MessageType.request, None))
         except ValueError:
             pass
         time.sleep(0.1)
