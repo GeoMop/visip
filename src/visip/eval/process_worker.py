@@ -5,6 +5,7 @@ import attrs
 import time
 import sys
 import traceback
+import threading
 from .eval_time import Time
 from ..dev.exceptions import InterpreterError
 from ..dev import dtype
@@ -50,6 +51,9 @@ class _ProcessWorker:
 
         #self._results.put("TEST")
 
+        self._thread = None
+        self._thread_result = None
+
     def __del__(self):
         self.close()
 
@@ -78,9 +82,17 @@ class _ProcessWorker:
                 if payload is None:
                     # stop processing
                     return
-                result = self.process(*payload)# process
-                print("put: ", result)
-                self._results.put(result)
+                self._thread = threading.Thread(target=self.process, args=payload, daemon=True)
+                self._thread_result = None
+                self._thread.start()
+                start_time = self.time.sync_time()
+                while self._thread.is_alive():
+                    self._thread.join(timeout=1)
+                    elapsed_time = self.time.sync_time() - start_time
+                    # todo: put elapsed time to queue
+                self._thread = None
+                print("put: ", self._thread_result)
+                self._results.put(self._thread_result)
 
 
     def process(self, id, args):
@@ -100,7 +112,7 @@ class _ProcessWorker:
 
         print("process ", value, error)
         end_time = self.time.sync_time()
-        return Result(id, None, value, error, start_time, end_time)
+        self._thread_result = Result(id, None, value, error, start_time, end_time)
 
 
 
