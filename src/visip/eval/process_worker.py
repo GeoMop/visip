@@ -10,6 +10,7 @@ from enum import IntEnum
 from .eval_time import Time
 from ..dev.exceptions import InterpreterError
 from ..dev import dtype
+from visip.eval.redis_queue import RedisQueue
 # Important multiprocessing tips:
 # https://www.cloudcity.io/blog/2019/02/27/things-i-wish-they-told-me-about-multiprocessing-in-python/
 
@@ -80,7 +81,8 @@ class _ProcessWorker:
     """
     def __init__(self, sync_time, queues, worker_cls, *args):
         self.time = Time(sync_time)
-        self._requests, self._results = queues
+        self._requests = RedisQueue(queues[0])
+        self._results = RedisQueue(queues[1])
         self._requests_wrapper = QueueWrapper(self._requests)
         print(f"Spawn {worker_cls} {args}")
         try:
@@ -99,9 +101,9 @@ class _ProcessWorker:
         self.close()
 
     def close(self):
-        self._results.put(None)
-        _close_queue(self._results)
-        _close_queue(self._results)
+        self._results.put((MessageType.request, None))
+        #_close_queue(self._results)
+        #_close_queue(self._results)
 
     def loop(self):
         while True:
@@ -110,7 +112,7 @@ class _ProcessWorker:
             except queue.Empty:
                 self._results.put((MessageType.ping, "PING"))
                 time.sleep(1)
-                replay = self._ping.get_nowait()
+                replay = self._requests_wrapper.get_nowait(MessageType.ping)
                 if replay == "PING":
                     raise Exception("Dead master.")
                 print("No payload to process.")
@@ -179,15 +181,15 @@ class WorkerProxy:
 
         # creates queues , start process
         self._ctx = mp.get_context('spawn')
-        self._queue_send = self._ctx.Queue()
-        self._queue_recv = self._ctx.Queue()
+        self._queue_send = RedisQueue()
+        self._queue_recv = RedisQueue()
         self._queue_recv_wrapper = QueueWrapper(self._queue_recv)
         #self._ping = self._ctx.Queue() # If worker has no work check regularly that main process is live.
 
         self._job_map = {}
         assert isinstance(setup_args, tuple)
         args = (self.time.sync_time(),
-                (self._queue_send, self._queue_recv),
+                (self._queue_send.id, self._queue_recv.id),
                 worker_class, setup_args)
         self._proc = self._ctx.Process(target=self.run, args=args)
         self._proc.start()
@@ -261,7 +263,7 @@ class WorkerProxy:
         except ValueError:
             pass
         time.sleep(0.1)
-        _close_queue(self._queue_send)
-        _close_queue(self._queue_recv)
+        #_close_queue(self._queue_send)
+        #_close_queue(self._queue_recv)
         self._proc.join()
 
