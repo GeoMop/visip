@@ -53,7 +53,7 @@ def test_workflow_modification():
 
     #assert slots[1]._output_actions[0][0] == list_1
     #assert list_1._output_actions[0][0] == result
-    assert list_1.name == 'list_1'
+    assert list_1.name == 'A_list_1'
     assert len(w._action_calls) == 4
     # w:  (slot0 (B), slot2 (A)) -> List1 -> result
 
