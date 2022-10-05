@@ -14,7 +14,7 @@ def fa(a:int, /, b: float, *other_args: Tuple[int], c: str, **other_kwargs: Tupl
 
 def test_action_call():
     ac = ActionCall(A_list(), "my_list")
-    assert ac.action.name == "list"
+    assert ac.action.name == "A_list"
     assert len(ac.parameters) == 1
     assert ac.parameters['args'].kind == ActionParameter.VAR_POSITIONAL
     assert ac.arguments == []

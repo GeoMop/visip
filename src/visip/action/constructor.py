@@ -72,7 +72,7 @@ class _ListBase(ActionBase):
 
 class A_list(_ListBase):
     def __init__(self):
-        super().__init__(action_name='list')
+        super().__init__(action_name='A_list')
 
     def call_format(self, representer, action_name, arg_names, arg_values):
         return representer.list("[", "]", [(None, arg) for arg in arg_names])
@@ -87,7 +87,7 @@ class A_tuple(_ListBase):
     of given type.
     """
     def __init__(self):
-        super().__init__(action_name='tuple')
+        super().__init__(action_name='A_tuple')
 
     def call_format(self, representer, action_name, arg_names, arg_values):
         return representer.list("(", ")", [(None, arg) for arg in arg_names])
@@ -103,7 +103,7 @@ class A_dict(ActionBase):
                             default=ActionParameter.no_default, kind=ActionParameter.VAR_POSITIONAL)
         self.action_kind = base.ActionKind.Generic
         signature = Parameters((p, ), return_type=dtype.Any)
-        super().__init__('dict', signature)
+        super().__init__('A_dict', signature)
 
 
 

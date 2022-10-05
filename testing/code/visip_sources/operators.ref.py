@@ -9,8 +9,8 @@ def comparison_ops(self, a, b):
     self.d = b < 2
     self.e = b <= 2
     self.f = b != 2
-    list_1 = [self.A, self.B, self.c, self.d, self.e, self.f]
-    return list_1
+    A_list_1 = [self.A, self.B, self.c, self.d, self.e, self.f]
+    return A_list_1
 
 
 @wf.workflow
@@ -22,8 +22,8 @@ def arithmetic_ops(self, a, b):
     self.e = b % 1
     self.f = a ** 3
     self.g = (a + b) // 2
-    list_1 = [self.A, self.B, self.c, self.d, self.e, self.f, self.g]
-    return list_1
+    A_list_1 = [self.A, self.B, self.c, self.d, self.e, self.f, self.g]
+    return A_list_1
 
 
 @wf.workflow
@@ -34,8 +34,8 @@ def unary_and_other_ops(self, a, b):
     self.d = wf.round(number=b - 2.5, ndigits=None)
     self.e = wf.pow(base=a, exp=wf.abs(b), mod=2)
     self.f = wf.divmod(a, b)
-    list_1 = [self.A, self.B, self.c, self.d, self.e, self.f]
-    return list_1
+    A_list_1 = [self.A, self.B, self.c, self.d, self.e, self.f]
+    return A_list_1
 
 
 @wf.workflow
