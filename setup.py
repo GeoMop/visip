@@ -53,9 +53,10 @@ setuptools.setup(
     install_requires=['numpy',
                       'PyQt5',
                       'attrs',
-                      'pytypes',
+                      'dill',
                       'typing-inspect',
-                      'pyqtgraph'],
+                      'pyqtgraph',
+                      'redis'],
     setup_requires=['wheel'],
     python_requires='>=3.8',
     # extras_require={

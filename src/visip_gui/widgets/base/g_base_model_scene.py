@@ -57,7 +57,7 @@ class GBaseModelScene(QGraphicsScene):
             self.actions.clear()
             self.root_item = RootAction()
             self.addItem(self.root_item)
-            self.workflow.is_analysis = True
+            #self.workflow.is_analysis = True
 
             for child in self.action_model.get_item().children():
                 self.draw_action(child)

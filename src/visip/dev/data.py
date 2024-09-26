@@ -20,6 +20,8 @@ from typing import NewType
 import pickle
 import hashlib
 
+from .dtype import DataClassBase
+
 HashValue = NewType('HashValue', bytes)
 
 default_hash = hashlib.sha256
@@ -79,8 +81,24 @@ def serialize(data):
     :param data:
     :return:
     """
+    def inner(data):
+        # if data type is Class
+        if isinstance(data, DataClassBase):
+            new_data_dict = {name: inner(d) for name, d in data.__dict__.items()}
+            data = ("__class__", data.__class__.__module__, data.__class__.__name__, new_data_dict)
 
-    return pickle.dumps(data)
+        elif isinstance(data, list):
+            data = [inner(d) for d in data]
+
+        elif isinstance(data, tuple):
+            data = tuple(inner(d) for d in data)
+
+        elif isinstance(data, dict):
+            data = {name: inner(d) for name, d in data.items()}
+
+        return data
+
+    return pickle.dumps(inner(data))
 
 
 def deserialize(stream: bytearray):
@@ -89,4 +107,28 @@ def deserialize(stream: bytearray):
     :param stream:
     :return:
     """
-    return pickle.loads(stream)
+    data = pickle.loads(stream)
+
+    from visip.dev.module import Module
+
+    def inner(data):
+        # if data type is Class
+        if isinstance(data, tuple) and data[0] == "__class__":
+            action = Module.resolve_function(data[1], data[2])
+            new_data_dict = {name: inner(d) for name, d in data[3].items()}
+            obj = action._data_class.__new__(action._data_class)
+            obj.__dict__ = new_data_dict
+            data = obj
+
+        elif isinstance(data, list):
+            data = [inner(d) for d in data]
+
+        elif isinstance(data, tuple):
+            data = tuple(inner(d) for d in data)
+
+        elif isinstance(data, dict):
+            data = {name: inner(d) for name, d in data.items()}
+
+        return data
+
+    return inner(data)

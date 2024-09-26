@@ -158,9 +158,10 @@ class _Closure(MetaAction):
         # TODO: get callable type and check given arguments against signature
         # TODO: how to consistently reports errors at this stage
 
+    closure_hash = data.hash(hash("Closure"))
     def action_hash(self):
         # TODO: test that the hash is the same as the direct call of the action.
-        task_hash = self._action.action_hash()
+        task_hash = data.hash(self._action.action_hash(), previous=self.closure_hash)
         for task in self._args:
             task_hash = data.hash(task.result_hash, previous=task_hash)
         for task in self._kwargs.values():
@@ -168,7 +169,8 @@ class _Closure(MetaAction):
         return task_hash
 
     def __repr__(self):
-        return f"Closure({self._action}; {[task.short_hash(task.id) for task in self._args]})"
+        return f"Closure({self._action}; {[task.short_hash(task.id) for task in self._args]}," \
+               f" { {k:t.short_hash(t.id) for k, t in self._kwargs.items()} })"
 
     def expand(self, task: '_ClosureTask', task_creator, cache):
         # Always expand create the task with merged inputs.
@@ -202,9 +204,7 @@ class _Closure(MetaAction):
 
         # TODO: Abstart ActionCall.bind and use it here and in DynamicCall to check bindindg errors
         #
-
-        task_binding = tools.TaskBinding('__result__', self._action, id_args_pair, inputs)
-        task = task_creator(task_binding)
+        task = task_creator(self._action, id_args_pair, inputs)
         return {'__result__': task}
 
 
@@ -220,7 +220,7 @@ class _Lazy(MetaAction):
         #ReturnType = dtype.TypeVar(origin_type=None, name='ReturnType')
         ReturnType = TypeVar('ReturnType')
 
-        params = [ActionParameter("action", Callable[..., ReturnType]),
+        params = [ActionParameter("action", dtype.Any),         #Callable[..., ReturnType]),
                   ActionParameter("args", dtype.Any, kind=ActionParameter.VAR_POSITIONAL),
                   ActionParameter("kwargs", dtype.Any, kind=ActionParameter.VAR_KEYWORD),
                   ]
@@ -255,14 +255,9 @@ class _Lazy(MetaAction):
             args, kwargs = tools.compose_arguments(task.id_args_pair, task.inputs)
             action = self.dynamic_action(cache.value(args[0].result_hash))
 
-
             closure = _Closure(action, args[1:], kwargs)
-            cache.insert(task.result_hash, closure)
-            # empty task to proceed
-            task_binding = tools.TaskBinding('__result__', Pass(), ([0], {}), [task])
-            pass_task = task_creator(task_binding)
-
-            return {'__result__': pass_task}
+            result = task_creator(Value(closure), ([], {}), [])
+            return {'__result__': result}
         else:
             return None
 
@@ -298,7 +293,7 @@ class DynamicCall(MetaAction):
         super().__init__("DynamicCall")
 
         ReturnType = TypeVar('ReturnType')
-        params = [ActionParameter(name="function", p_type=Callable[..., ReturnType]),
+        params = [ActionParameter(name="function", p_type=dtype.Any),   #Callable[..., ReturnType]),
                   ActionParameter(name="args", p_type=dtype.Any, kind=ActionParameter.VAR_POSITIONAL),
                   ActionParameter(name="kwargs", p_type=dtype.Any, kind=ActionParameter.VAR_KEYWORD)]
         self._parameters = Parameters(params, ReturnType)
@@ -315,8 +310,7 @@ class DynamicCall(MetaAction):
             id_args, id_kwargs = task.task.id_args_pair
             id_args = [i - 1 for i in id_args[1:]]
             id_kwargs = {k: (i-1) for k, i in id_kwargs.items()}
-            task_binding = tools.TaskBinding('__result__', action, (id_args, id_kwargs), task.inputs[1:])
-            task = task_creator(task_binding)
+            task = task_creator(action, (id_args, id_kwargs), task.inputs[1:])
             return {'__result__': task}
         else:
             return None
@@ -335,9 +329,9 @@ class _If(MetaAction):
         params.append(
             ActionParameter(name="condition", p_type=dtype.Bool))
         params.append(
-            ActionParameter(name="true_body", p_type=Callable[..., ReturnType]))
+            ActionParameter(name="true_body", p_type=dtype.Any))    #Callable[..., ReturnType]))
         params.append(
-            ActionParameter(name="false_body", p_type=Callable[..., ReturnType]))
+            ActionParameter(name="false_body", p_type=dtype.Any))   #Callable[..., ReturnType]))
         self._parameters = Parameters(params, ReturnType)
 
     def expand(self, task, task_creator, cache):
@@ -347,8 +341,7 @@ class _If(MetaAction):
                 action = self.dynamic_action(cache.value(task.inputs[1].result_hash))
             else:
                 action = self.dynamic_action(cache.value(task.inputs[2].result_hash))
-            task_binding = tools.TaskBinding('__result__', action, ([], {}), [])
-            return {'__result__': task_creator(task_binding)}
+            return {'__result__': task_creator(action, ([], {}), [])}
 
         else:
             return None
