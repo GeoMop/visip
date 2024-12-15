@@ -11,7 +11,6 @@ from .action_instance import ActionCall, ActionArgument, ActionInputStatus
 from ..action.constructor import _ListBase, Value
 from .parameters import Parameters, ActionParameter
 from .extract_signature import _extract_signature
-from ..dev.tools import TaskBinding
 from ..action.slots import _SlotCall, _Slot   # provide to GUI
 
 """
@@ -42,9 +41,9 @@ class _Result(_ListBase):
         self._parameters = Parameters(params, return_type=out_type)
         # The "side effects" of the workflow.
         # TODO: Do we realy need this? We should rather introduce an action Head(*args): return args[0], that way one can do desired efect explicitly
-        # TODO: suport multiple return values ( better in GUI)
 
-    def _evaluate(self, *args, **kwargs):
+    @classmethod
+    def _evaluate(cls, *args):
         return args[0]
 
     def call_format(self, representer, action_name, arg_names, arg_values):
@@ -185,7 +184,7 @@ class _Workflow(meta.MetaAction):
         func_signature = _extract_signature(func, omit_self=True)
         # except exceptions.ExcTypeBase as e:
         #     raise exceptions.ExcTypeBase(f"Wrong signature of workflow:  {func.__module__}.{func.__name__}") from e
-        func_signature.process_empty(lambda var: dtype.TypeVar(origin_type=dtype.EmptyType, name="__Slot__"))
+        func_signature.process_empty(lambda var: dtype.TypeVar(origin_type=dtype.EmptyType, name=var))
         self._parameters = func_signature
 
         self._status = self.Status.no_result
@@ -579,8 +578,6 @@ class _Workflow(meta.MetaAction):
         tasks = {}
         assert len(self._slots) == len(task.inputs)
         for slot, input in zip(self._slots, task.inputs):
-            # shortcut the slots
-            # task = task_creator(slot.name, Pass(), [input])
             tasks[slot.name] = input
         for action_call in self._sorted_calls:
             if isinstance(action_call, _SlotCall):
@@ -588,8 +585,7 @@ class _Workflow(meta.MetaAction):
             # TODO: eliminate dict usage, assign a call rank to the action calls
             # TODO: use it to index tasks in the resulting task list 'childs'
             arg_tasks = [tasks[arg.value.name] for arg in action_call.arguments]
-            task_binding = TaskBinding(action_call.name, action_call.action, action_call.id_args_pair, arg_tasks)
-            child_task = task_creator(task_binding)
+            child_task = task_creator(action_call.action, action_call.id_args_pair, arg_tasks)
             childs[action_call.name] = child_task
             tasks[action_call.name] = child_task
         return childs

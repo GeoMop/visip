@@ -29,7 +29,7 @@ def tst_adder() -> float:
 
 
 
-@pytest.mark.skip
+#@pytest.mark.skip
 def test_action_returning_action():
     result = evaluation.run(tst_adder)
     assert result == 3
@@ -48,7 +48,7 @@ def false_body():
 
 
 @wf.workflow
-def wf_condition(cond: int) -> int:
+def wf_condition(cond: wf.Bool) -> wf.Int:
     return wf.If(cond, true_body, false_body)
 
 
@@ -68,7 +68,7 @@ def foo(x: int) -> int:
 def wf_condition(cond: int) -> int:
     return wf.If(cond, foo(100), 100)
 
-@pytest.mark.skip
+#@pytest.mark.skip
 def test_if_action():
     result = evaluation.run(wf_condition, True)
     assert result == 101
@@ -78,7 +78,15 @@ def test_if_action():
 
 #######################
 # Test lazy meta action.
-# No control over free positional arguments, must use keyword arguments instead.
+
+@wf.action_def
+def add(a, b):
+    return a + b
+
+@wf.workflow
+def basic_lazy_wf():
+    inc = wf.lazy(add, wf.empty, 1)
+    return inc(2)
 
 @wf.action_def
 def lazy_action(i:int, j:float, *args, a:bool, b:str, **kwargs):
@@ -93,9 +101,13 @@ def lazy_wf():
     a = a1(4)
     return (a, b)
 
-@pytest.mark.skip
+#@pytest.mark.skip
 def test_lazy():
+    result = evaluation.run(basic_lazy_wf)
+    assert result == 3
+
     #result = evaluation.run(lazy_wf, [], plot_expansion=True)
+
     result = evaluation.run(lazy_wf)
     assert result[0] == "lazy_action(4 1 (5,) 2 7 {'c': 3})"
     assert result[1] == "lazy_action(100 101 (102,) a b {'d': 'd'})"
@@ -184,44 +196,84 @@ def test_nested_wf():
 #
 
 
-
-
-@wf.action_def
-def _fib_cond(i: int) -> bool:
-    return i > 0
-
-@wf.action_def
-def _fib_add(a: int, b: int) -> int:
-    return a + b
-
-@wf.action_def
-def _fib_dec(i: int) -> int:
-    return i - 1
-
-
 @wf.workflow
 def _fib_true(prev):
     i, a, b = prev
-    return (_fib_dec(i), b, _fib_add(a, b))
+    return (i - 1, b, a + b)
 
 @wf.workflow
 def _fib_body(prev):
     i, a, b = prev
     false_body = wf.lazy(wf.Pass, None)
     true_body = wf.lazy(_fib_true, prev)
-    return wf.If(_fib_cond(i), true_body, false_body)
+    return wf.If(i > 0, true_body, false_body)
 
 @wf.workflow
 def fibonacci(n):
     fib = wf.While(_fib_body, (n, 1, 1))
     return fib[1]
 
-def test_while():
+#@pytest.mark.skip
+def test_While():
     assert evaluation.run(fibonacci, 0) == 1
     assert evaluation.run(fibonacci, 1) == 1
     assert evaluation.run(fibonacci, 2) == 2
     assert evaluation.run(fibonacci, 3) == 3
     assert evaluation.run(fibonacci, 4) == 5
+
+
+
+@wf.workflow
+def _fib_cond(prev):
+    i, a, b = prev
+    return i > 0
+
+@wf.workflow
+def _fib_body_cond(prev):
+    i, a, b = prev
+    return [i - 1, b, a + b]
+
+@wf.workflow
+def fibonacci_cond(n):
+    fib = wf.WhileCond([n, 1, 1], _fib_cond, _fib_body_cond)
+    return fib[1]
+
+def test_WhileCond():
+    assert evaluation.run(fibonacci_cond, 0) == 1
+    assert evaluation.run(fibonacci_cond, 1) == 1
+    assert evaluation.run(fibonacci_cond, 2) == 2
+    assert evaluation.run(fibonacci_cond, 3) == 3
+    assert evaluation.run(fibonacci_cond, 4) == 5
+
+
+@wf.workflow
+def _fib_extract(fib_data):
+    i, a, b = fib_data
+    return a
+
+@wf.workflow
+def _fib_cond1(prev):
+    i, a, b = prev
+    return i >= 0
+
+@wf.workflow
+def fibonacci_gen(n):
+    return wf.Generate([n, 1, 1], _fib_cond1, _fib_body_cond, _fib_extract)
+
+
+def test_Generate():
+  assert evaluation.run(fibonacci_gen, 0) == [1]
+  assert evaluation.run(fibonacci_gen, 1) == [1, 1]
+  assert evaluation.run(fibonacci_gen, 2) == [1, 1, 2]
+  assert evaluation.run(fibonacci_gen, 3) == [1, 1, 2, 3]
+  assert evaluation.run(fibonacci_gen, 4) == [1, 1, 2, 3, 5]
+
+@wf.workflow
+def square(x):
+    return x * x
+
+def test_Map():
+  assert evaluation.run(wf.Map, square, [0, 1, 2, 3]) == [0, 1, 4, 9]
 
 # @wf.action_def
 # def condition(lst:wf.List[float], num:float, end:float) -> bool:

@@ -9,13 +9,19 @@ class TaskResult:
         try:
             self._childs = self._task.childs
         except:
-            self._childs = None
-        if self._childs is None:
+            # Atomic
+            # self._childs = None
             self._childs = {}
+            self._result_task = self._task
+        else:
+            # Composed
+            self._result_task = self._childs['__result__']
+
+
 
     @property
     def result(self):
-        return self._cache.value(self._task.result_hash)
+        return self._cache.value(self._result_task.result_hash)
 
     def child(self, key):
         return TaskResult(self._childs[key], self._cache)

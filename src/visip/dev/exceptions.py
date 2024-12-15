@@ -1,4 +1,8 @@
 
+class InterpreterError(Exception):
+    pass
+
+
 class ExcVFileNotFound(Exception):
     pass
 

@@ -25,6 +25,7 @@ class GetAttribute(base.ActionBase):
         data_class_token = representer.token(arg_names[1])
         return representer.format(data_class_token, ".{}".format(key_name))
 
+    @classmethod
     def _evaluate(self, key: dtype.Const(dtype.Str), data_class: dtype.DataClassBase) -> dtype.Any:
         return data_class.__getattribute__(key)
 
@@ -47,6 +48,7 @@ class GetItem(base.ActionBase):
         assert len(arg_names) == 2
         return representer.format(representer.token(arg_names[0]), "[", representer.token(arg_names[1]), "]")
 
+    @classmethod
     def _evaluate(self, data_list, idx):
         return data_list[idx]
 

@@ -117,6 +117,10 @@ def action_def(func):
     Decorator to make an action class from the evaluate function.
     Action name is given by the nama of the function.
     Input types are given by the type hints of the function params.
+    TODO: optional parameters to define:
+    - resource supporced
+    - time scaling function
+    see: https://stackoverflow.com/questions/3931627/how-to-build-a-decorator-with-optional-parameters#comment23456327_3931903
     """
 
     signature = _extract_signature(func)

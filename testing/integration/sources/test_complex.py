@@ -16,8 +16,8 @@ def gmsh_run(self, geometry: wf.FileIn, mesh_step: float = 1.0) -> wf.FileIn:
     return self.mesh_file
 
 
-FLOW_PATH = "flow.sh"
-GMSH_PATH = "gmsh.sh"
+FLOW_PATH = "../flow.sh"
+GMSH_PATH = "../gmsh.sh"
 @wf.workflow
 def simple_wf(self, mesh_step) -> wf.ExecResult:
     self.geometry = wf.file_in('square.geo')
@@ -45,7 +45,7 @@ def test_simple_wf():
     remove_files(["darcy_flow.yaml", "square.msh_log", "square.msh"], prefix="flow_case")
 
     print("Root workspace: ", os.getcwd())
-    eval = evaluation.Evaluation(workspace=os.path.join(script_dir, "flow_case"))
+    eval = evaluation.Evaluation(workspace=os.path.join(script_dir, "../flow_case"))
     result = eval.run(simple_wf, 0.1).result
     print(result.stdout.decode())
 
