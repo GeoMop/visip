@@ -1,0 +1,294 @@
+- fix action names:
+  - refactor module to use only new_definitions
+  - move operators into separate VISIP module, that module could be accessible as visip.operator, same for visip.sys
+  - tox test
+  
+  
+- VISIP - merge/PR for RS_redis  
+- VISIP main script:  
+    How to have maximally selfcontained VISIP in Docker image:
+    PBS -> Remote Container Manager -> container -> VISIP main (read config) -> use SSH luncher to start on other machines 
+           RCM wrapper sripts: smpirun, svisip; inner script works with general internal manager
+        -> VISIP -> SSH or other connection 
+        -> manager ->  SSH start runners on allocated nodes
+               ->  MPI on allocated nodes
+               ->  other PBS job                               
+
+   PBS -> RCM -> VISIP main script (takes -luncher argument)            
+               
+               
+- Visip fix Multiprocess test, version 0.1 Following implemented in some extent in RS_redis:
+  - review resource interface and main evaluation loop conditions
+  - simplify worker to basic communication, use single pair of queues, perform ping requests
+  - design asynchronous action evaluation, 
+  - action special parameter __progress__ would be list of messages about progress provided by 
+    the action; can be used e.g. by Flow123d to extract progress variables
+    
+- Visip 0.1 (generate samples, simple mock calculation, collecting samples)
+  Documentation (take main parts from the report).
+  Single simple tutorial example.
+
+- Docker image containing all these
+  Part of GeoMop as a submodule, use same approach as for GeoMop parts.
+- starter script - move to visip, demonstrate main VISIP with workers running in containers
+
+
+
+
+                    
+JobPannel : can start VISIP scripts
+- move script and data to Charon (need preliminary analysis from VISIP to get all necessary files)
+- start PBS job
+- VISIP GUI to view progress = run evaluation with execution driven by the simplified result cache (just hashes and metadata)
+
+
+6.5.
+    avoid direct cache access by metaactions
+    
+    scheduler reduction of:
+    - Value containing action .. finaly has to target dynamic call expansion, has to be stored by scheduler
+    - Pass, Result just call or undergo shortcuting: can be evaluated by scheduler, but no problem stroing in cache   
+    
+    Workflow error reporting test : missing argument reporting
+    
+    task eval info in the cache: 
+        - table of evaluations, evaluation: list of resources, list of task hashes
+        - task cache meta data: (evaluation (analysis hash, time), resource idx, resource assign time, start of eval time, end of eval time)
+
+    visip system with container support:
+    - download from URL
+    - singularity conversion
+    - serial execution
+    - worker running in
+    - Redis running in container => whole VISIP running in container (same or different for applications?),
+      must start separate worker for different container. Definitely we should support that so the Scheduler must consider free nodes as 
+      sort of resources, let "inactive workers behave also as free resource" + include start time into time estimate model
+    - Marta Jaroš:
+      - k-dispatch, part of commercial SW, but using part meight be OK. Icludes:
+      - DB of tasks: characterisation of input size + run env. (number of procs.)
+      - estimation of a task run time using existign values in DB + interpolation
+      - scheduler based on genetic algorithm
+    
+    ?? singularity image caching
+    ===
+    VISIP - reduce
+    MLMC - mem API, VISIP interface design
+    VISIP GUI - (eval) DAG view and cache values
+
+     
+      
+
+
+20.5.
+
+    VISIP - running within PBS, PBS starter
+    parallel_test.py <PBS args>:
+    - build and push VISIP image
+    - visip <hostfile> -> start the master on the first process and runners on other processes (can we use it for multiprocess?
+    - create the JOB file(s), JOB dirs
+    VISIP - PBS resource
+    RS: VISIP - Redis cache operations, permanent, test preservation of the values between runs  
+    VISIP - test BGEM interface using action throwing approach
+    BGEM 
+    VISIP BGEM interface
+    BGEM - fields, (reviewed intersections)
+
+27. 5 
+    
+, singularity support, typechecking, meta actions
+    
+    (Co se stihne)
+    VISIP - GUI metaaction support
+
+3.6.
+    Flow123d 3.9.0 (disable equivalent mesh, doc, YAML converter)
+    Transport problem, executing through VISIP
+
+
+10.6.
+
+
+16.6. (zkrácený týden)
+
+Připravena přednáška na PANM.
+
+
+
+24.6.
+PANM, VISIP GUI - fix what could be fixed
+
+TODO:
+
+
+02.7.
+
+
+
+    
+    
+    
+    
+    
+30.4. BGEM and MLMC interface
+
+30.5. Hotový VISIP + interface
+
+
+30.6. Verze 1.0
+- error reporting
+- interface: MLMC, BGEM/GMSH, Flow123d 
+- GUI nějak funkční: metaakce, elementární typová kontrola, editace vstupů, evaluation view
+- demonstrační úloha (Endorse transport + MLMC)
+
+
+4.7. POSTOPNED after GeoPax end
+    Flow123d 4.0.0 release
+
+
+- Improve typing checks, Callable
+
+- převod Python -> Actions pomocí Python AST nikoliv pomocí spouštění
+
+    Flow123d 4.0.0 - implementation of key input changes
+    - Changes in input file
+    - BParser syntax
+    - More general coupling system
+    - Use strings to specify numbers with units. Can use Bparser to evaluate these as constants, can depend on other constants?
+
+    MPICH singularity execution script:
+    test container for:
+    - existing ssh
+    - existing ${MPIEXEC}
+    - ?? other
+    Tests for other MPI libraries, short paper with tests also for other libraries and platforms.
+
+    analytical fracture paper - final read
+    MLMC paper review, notes
+
+
+
+
+===============================
+GUI TODO:
+- do not allow connecting non-value to Const type parameter, should be rather part of action_instance.make_argument
+- merge RS_workflow, sustainable error logging
+- click and drag of filled input, should start connection dragging
+- undo / redo of connections, need model review
+- conecting to the lazy with one positional and one variadic connects to the first parameter after connecting to the variadic
+- file_in and system have wrong number of input dots (2 should be 1) and (4 should be 1)
+- workspace inputs and result shoud be attached to the boundary
+- keep arrow pointer wen on the plane, possibly change to fist only when moving the plane    
+
+===========================
+PBS, MPI, images tools (keep separated in VISIP with possible complate separation in future)
+Required functions
+- preparation of images (docker_config repository, DONE)
+
+- execution of mpi process in the MPICH (or other MPI) docker/singularity image (extract from Paulie scripts)
+- singularity images conversion reuse - storage (probably per user)
+´
+- PBS interface (from MLMC / JobPanel),  rather try to use some sort of PBS API
+  
+
+===========================
+
+- rename action._params to _signature
+- rename action_instance.py to action_call.py
+- rename Parameters to Signature
+
+
+Meta Actions:
+    - While(condition, body)
+
+Workspace:
+functions:
+    - separate workspace for an external executable
+    - able to keep result files
+    - 
+    - transfering files, (trough a ramdisk)
+    
+    
+    - explicit work with workspace, obtain workspace for an 
+    - 
+========================
+TODO:
+---
+Task DAG view, use simple DAG view, without resolved parameters, similar to GITK, based on idea from DAGVIZ
+Workflow can use same scheme butwith resolved parameters on the action line, need other color for error indication
+
+---
+Error reporting:
+   * errors during parsing (python to object representation)
+     ... pass in the ErrorLogger, should be reported in particular error log both in console as in GUI
+     
+   * errors of in individual workflows
+     ... reported in GUI by colors and tooltips
+     
+     ... no need to report in console, replaced by validaton before execution
+     ## reported in the console (module should have separate validate method for separate validation of workflows) 
+     
+   
+   * errors in validation before the analysis - List of workflow errors, can be represented bot in GUI as in console
+   
+   * errors during execution => exceptions, has to be stored in the DB and checked in evaluation to stop it
+   can either continue with independent tasks (possibly OK for stochastic calculations) 
+   or stop all processing
+   
+
+---   
+Simplified Scheduler   
+
+- reference tasks indirectly through te hashes
+- Scheduler keeps the map: task_hash -> task
+- can drop auxiliary CompositeHead and Result tasks
+- ? back references
+- tasks tail expansion !! (reference tasks only through hashes, 
+---
+Evaluation log:
+- sequence of expansions and planed jobs
+---
+Interactive Scheduler graph viewer:
+- interactive expansion
+- topological sort (horizontal)
+- nonlinear horizontal axis (given by time)
+- assignement to resources
+  
+
+
+==================================
+Postponed:
+---
+Workflow variadic args and kwargs:
+    - We can not wrap varidic parameters into Dummy so 
+      these can not be implemented without AST parsing or some special syntax.
+    - We postpone AST after core functionality is implemented, still be able to parse old sources with AST based reader
+    - special syntax should wrap variadic args into dummy explicitely:
+      @workflow
+      def my_wf(self, *args, **kwargs):
+          args = Dummy(args)
+          kwargs = Dummy(kwargs)
+          args[0]
+          # or through 'self' special parameter
+          self.args[0]
+    - ... make the isuue for this
+
+---    
+Stochastic actions:
+- Can calculate averages with error samples as these should consistently return error.
+- Able to mark an action_call: evaluate_always, * (can be a special kind of Pass action)
+
+---
+Representation improvement (Ideas)
+- separate completely code processing and code representation
+  from the "model" - data clases representing the code
+  model classes can provide a virtual methods to have a common interface, but only calling external
+  representation functions. Creation from code should use same setters as GUI.
+
+- model should be able to modify its structure and make basic validation
+
+- make full (recursive) validation of the analysis
+- then the dynamic expansion to the DAG of tasks follows
+
+- action call components:
+  code_representation details (variable name of the instance, action, its name and module, comments, ...)
+  call_details (function, inputs binding, signature ... runtime checks)
